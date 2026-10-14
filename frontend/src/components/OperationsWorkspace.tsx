@@ -3,11 +3,15 @@ import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
   ArrowLeft,
+  Building2,
   Check,
+  ClipboardList,
   Clock3,
+  Database,
   Download,
   FileSpreadsheet,
   MessageCircle,
+  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import { query, request } from "../api";
@@ -16,6 +20,7 @@ import type { Issue, Paginated, PageName } from "../types";
 import "../operations.css";
 import ObservationModal from "./ObservationModal";
 import OperationsAdministration from "./OperationsAdministration";
+import { Panel, Empty } from "./ui";
 
 type Origin = {
   id: number;
@@ -78,6 +83,7 @@ type Row = {
   phone?: string;
   verified_at?: string;
   user?: number;
+  mapping?: Record<string, string>;
 };
 const purposes: Record<string, string> = {
   appointment: "Agendamento",
@@ -1293,17 +1299,18 @@ function Administration({
     occurred_at: "Coluna da data (AAAA-MM-DD)",
   };
   const [category, setCategory] = useState(admin ? "sources" : "preparations");
-  const categories = [
+  type CategoryTab = [string, string, typeof Database];
+  const categories: CategoryTab[] = [
     ...(admin
-      ? [
-          ["sources", "Origens e regras"],
-          ["units", "Unidades"],
-          ["access", "Acesso a relatórios"],
-          ["schedules", "Relatórios agendados"],
-        ]
+      ? ([
+          ["sources", "Origens e regras", Database],
+          ["units", "Unidades", Building2],
+          ["access", "Acesso a relatórios", ShieldCheck],
+          ["schedules", "Relatórios agendados", Clock3],
+        ] as CategoryTab[])
       : []),
-    ["preparations", "Preparos"],
-    ["layouts", "Layouts CROSS"],
+    ["preparations", "Preparos", ClipboardList],
+    ["layouts", "Layouts CROSS", FileSpreadsheet],
   ];
   return (
     <div className="admin-workspace">
@@ -1311,7 +1318,7 @@ function Administration({
         className="admin-category-nav"
         aria-label="Cadastros administrativos"
       >
-        {categories.map(([id, label]) => (
+        {categories.map(([id, label, Icon]) => (
           <button
             type="button"
             key={id}
@@ -1319,7 +1326,8 @@ function Administration({
             onClick={() => setCategory(id)}
             aria-current={category === id ? "page" : undefined}
           >
-            {label}
+            <Icon size={15} />
+            <span>{label}</span>
           </button>
         ))}
       </nav>
@@ -1336,143 +1344,219 @@ function Administration({
             />
           )}
         {category === "preparations" && (
-          <div className="op-stack">
-            {admin && (
-              <FormAction title="Cadastro de preparo" label="Adicionar preparo">
-                <form
-                  className="op-card op-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void act("preparations", {
-                      procedure_code: code,
-                      name,
-                      text,
-                    })
-                      .then(() => setText(""))
-                      .catch(() => {});
-                  }}
-                >
-                  <h3>Cadastro de preparo</h3>
-                  <Field label="Código do procedimento">
-                    <input
-                      required
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Nome">
-                    <input
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Orientações">
-                    <textarea
-                      required
-                      rows={6}
-                      maxLength={12000}
-                      value={text}
-                      onChange={(e) => setText(e.target.value)}
-                    />
-                  </Field>
-                  <button className="button primary" disabled={busy}>
-                    Salvar nova versão
-                  </button>
-                </form>
-              </FormAction>
-            )}
-            <article className="op-card">
-              <h3>Preparos versionados</h3>
-              {preparations.map((p) => (
-                <details key={p.id}>
-                  <summary>
-                    {p.name} · {p.procedure_code} · versão {p.version} ·{" "}
-                    {p.active ? "Ativo" : "Histórico"}
-                  </summary>
-                  <p className="op-prewrap">{p.text}</p>
-                </details>
-              ))}
-              {!preparations.length && (
-                <p className="op-muted">Nenhum preparo cadastrado.</p>
-              )}
-            </article>
-          </div>
-        )}
-        {category === "layouts" && (
-          <div className="op-stack">
-            {admin && (
-              <FormAction
-                title="Layout de importação CROSS"
-                label="Adicionar layout CROSS"
-              >
-                <form
-                  className="op-card op-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void act("layouts", {
-                      name: layoutName,
-                      mapping,
-                      evidence,
-                      verified,
-                    }).catch(() => {});
-                  }}
-                >
-                  <h3>Layout de importação CROSS</h3>
-                  <Field label="Nome do layout">
-                    <input
-                      required
-                      value={layoutName}
-                      onChange={(e) => setLayoutName(e.target.value)}
-                    />
-                  </Field>
-                  {Object.entries(mapping).map(([k, v]) => (
-                    <Field key={k} label={labels[k]}>
+          <Panel
+            title="Preparos de procedimentos"
+            action={
+              admin ? (
+                <FormAction title="Cadastro de preparo" label="Adicionar preparo">
+                  <form
+                    className="op-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void act("preparations", {
+                        procedure_code: code,
+                        name,
+                        text,
+                      })
+                        .then(() => setText(""))
+                        .catch(() => {});
+                    }}
+                  >
+                    <h3>Cadastro de preparo</h3>
+                    <Field label="Código do procedimento">
                       <input
                         required
-                        value={v}
-                        onChange={(e) =>
-                          setMapping({ ...mapping, [k]: e.target.value })
-                        }
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        placeholder="Ex: 0301010072"
                       />
                     </Field>
-                  ))}
-                  <Field label="Referência da validação">
-                    <textarea
-                      value={evidence}
-                      onChange={(e) => setEvidence(e.target.value)}
-                      maxLength={4000}
-                    />
-                  </Field>
-                  <label className="op-check">
-                    <input
-                      type="checkbox"
-                      checked={verified}
-                      onChange={(e) => setVerified(e.target.checked)}
-                    />
-                    Layout conferido com a unidade
-                  </label>
-                  <button className="button primary" disabled={busy}>
-                    Cadastrar layout
-                  </button>
-                </form>
-              </FormAction>
+                    <Field label="Nome">
+                      <input
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Nome do procedimento ou exame"
+                      />
+                    </Field>
+                    <Field label="Orientações">
+                      <textarea
+                        required
+                        rows={6}
+                        maxLength={12000}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        placeholder="Orientações de preparo, jejum ou recomendações..."
+                      />
+                    </Field>
+                    <button className="button primary" disabled={busy}>
+                      Salvar nova versão
+                    </button>
+                  </form>
+                </FormAction>
+              ) : null
+            }
+          >
+            {preparations.length ? (
+              <div className="table-scroll">
+                <table className="directory-table">
+                  <thead>
+                    <tr>
+                      <th>Procedimento</th>
+                      <th>Código</th>
+                      <th>Versão</th>
+                      <th>Situação</th>
+                      <th>Orientações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preparations.map((p) => (
+                      <tr key={p.id}>
+                        <td>
+                          <strong>{p.name}</strong>
+                        </td>
+                        <td>
+                          <span className="directory-code">{p.procedure_code}</span>
+                        </td>
+                        <td>
+                          <span className="directory-detail" style={{ margin: 0 }}>
+                            v{p.version}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`directory-status ${p.active ? "active" : "paused"}`}
+                          >
+                            {p.active ? "Ativo" : "Histórico"}
+                          </span>
+                        </td>
+                        <td style={{ maxWidth: "420px" }}>
+                          <details className="preparations-preview">
+                            <summary>Ver orientações</summary>
+                            <p className="op-prewrap">{p.text}</p>
+                          </details>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <Empty text="Nenhum preparo cadastrado nesta unidade." />
             )}
-            <article className="op-card">
-              <h3>Layouts da unidade</h3>
-              {layouts.map((l) => (
-                <div className="op-list-row" key={l.id}>
-                  <strong>{l.name}</strong>
-                  <span className="op-pill">
-                    {l.verified ? "Validado" : "Pendente de validação"}
-                  </span>
-                </div>
-              ))}
-              {!layouts.length && (
-                <p className="op-muted">Nenhum layout cadastrado.</p>
-              )}
-            </article>
-          </div>
+          </Panel>
+        )}
+        {category === "layouts" && (
+          <Panel
+            title="Layouts de importação CROSS"
+            action={
+              admin ? (
+                <FormAction
+                  title="Layout de importação CROSS"
+                  label="Adicionar layout CROSS"
+                >
+                  <form
+                    className="op-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void act("layouts", {
+                        name: layoutName,
+                        mapping,
+                        evidence,
+                        verified,
+                      }).catch(() => {});
+                    }}
+                  >
+                    <h3>Layout de importação CROSS</h3>
+                    <Field label="Nome do layout">
+                      <input
+                        required
+                        value={layoutName}
+                        onChange={(e) => setLayoutName(e.target.value)}
+                        placeholder="Ex: Layout CROSS Ambulatorial"
+                      />
+                    </Field>
+                    {Object.entries(mapping).map(([k, v]) => (
+                      <Field key={k} label={labels[k]}>
+                        <input
+                          required
+                          value={v}
+                          onChange={(e) =>
+                            setMapping({ ...mapping, [k]: e.target.value })
+                          }
+                          placeholder="Nome da coluna no CSV"
+                        />
+                      </Field>
+                    ))}
+                    <Field label="Referência da validação">
+                      <textarea
+                        value={evidence}
+                        onChange={(e) => setEvidence(e.target.value)}
+                        maxLength={4000}
+                        rows={3}
+                        placeholder="Referência da validação com a unidade..."
+                      />
+                    </Field>
+                    <label className="op-check">
+                      <input
+                        type="checkbox"
+                        checked={verified}
+                        onChange={(e) => setVerified(e.target.checked)}
+                      />
+                      Layout conferido com a unidade
+                    </label>
+                    <button className="button primary" disabled={busy}>
+                      Cadastrar layout
+                    </button>
+                  </form>
+                </FormAction>
+              ) : null
+            }
+          >
+            {layouts.length ? (
+              <div className="table-scroll">
+                <table className="directory-table">
+                  <thead>
+                    <tr>
+                      <th>Nome do layout</th>
+                      <th>Mapeamento de colunas</th>
+                      <th>Validação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {layouts.map((l) => (
+                      <tr key={l.id}>
+                        <td>
+                          <strong>{l.name}</strong>
+                        </td>
+                        <td>
+                          <div className="mapping-chips">
+                            {l.mapping &&
+                              Object.entries(
+                                l.mapping as Record<string, string>,
+                              ).map(([k, v]) => (
+                                <span key={k} className="mapping-chip">
+                                  <small>{labels[k] || k}:</small> {v}
+                                </span>
+                              ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`directory-status ${l.verified ? "active" : "paused"}`}
+                          >
+                            {l.verified ? "Validado" : "Pendente de validação"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <Empty text="Nenhum layout CROSS cadastrado." />
+            )}
+          </Panel>
         )}
       </div>
     </div>

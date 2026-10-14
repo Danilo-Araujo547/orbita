@@ -23,6 +23,7 @@ type Group = {
   messages_delivered: number;
   messages_pending: number;
   paused: boolean;
+  can_dispatch_now?: boolean;
 };
 const day = (value: string) => value.split("-").reverse().join("/");
 const sendDate = (value: string) =>
@@ -98,6 +99,34 @@ function ScheduleDialog({
       setBusy(false);
     }
   }
+  async function dispatchNow() {
+    if (
+      !delay.trim() ||
+      !Number.isInteger(Number(delay)) ||
+      Number(delay) < 0 ||
+      Number(delay) > 3600
+    ) {
+      setError("Informe um intervalo entre 0 e 3600 segundos.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await request(
+        query(`appointment-groups/${group.id}/dispatch-now`, { unit }),
+        "POST",
+        {
+          version: group.version,
+          delay_seconds: Number(delay),
+        },
+      );
+      onSaved();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <InlineDialog
       title="Editar envio do grupo"
@@ -106,6 +135,16 @@ function ScheduleDialog({
       onClose={onClose}
       footer={
         <footer className="inline-dialog-footer">
+          {group.can_dispatch_now && (
+            <button
+              type="button"
+              className="button"
+              disabled={busy}
+              onClick={() => void dispatchNow()}
+            >
+              Disparar agora
+            </button>
+          )}
           <button
             type="button"
             className="button"
@@ -157,9 +196,13 @@ function ScheduleDialog({
           />
         </label>
 
-        {group.paused && (
-          <p className="group-edit-description">Envios pausados.</p>
-        )}
+        <p className="group-edit-description">
+          {group.can_dispatch_now
+            ? "Envio simulado"
+            : group.paused
+              ? "Envios pausados."
+              : ""}
+        </p>
       </form>
     </InlineDialog>
   );

@@ -1,7 +1,7 @@
 import FormAction from "./FormAction";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { LockKeyhole, Save, ShieldCheck } from "lucide-react";
+import { Save, ShieldCheck } from "lucide-react";
 import { request } from "../api";
 import { dateTime } from "../format";
 import { Panel } from "./ui";
@@ -159,13 +159,125 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
       .includes(search.toLowerCase()),
   );
   return (
-    <Panel title="Meta · WhatsApp por unidade" className="meta-settings">
-      <div className="meta-disabled">
-        <LockKeyhole size={18} />
-        <div>
-          <strong>Envio real desativado</strong>
-        </div>
-      </div>
+    <Panel
+      title="Meta · WhatsApp por unidade"
+      className="meta-settings"
+      action={
+        config ? (
+          <div className="panel-actions-group">
+            <button
+              type="button"
+              className="button secondary"
+              disabled={
+                busy ||
+                !config.has_access_token ||
+                !config.waba_id ||
+                !config.phone_number_id
+              }
+              onClick={() => void validate()}
+            >
+              <ShieldCheck size={14} />
+              <span>{busy ? "Consultando…" : "Validar e consultar"}</span>
+            </button>
+            <FormAction
+              title="Configuração da Meta"
+              label={
+                config.version
+                  ? "Editar configuração"
+                  : "Configurar Meta"
+              }
+              version={config.version}
+              error={error}
+              busy={busy}
+              onClose={() => setDirty(false)}
+            >
+              <form
+                key={config.version}
+                onSubmit={save}
+                onChange={() => setDirty(true)}
+                autoComplete="off"
+                className="meta-form op-form"
+              >
+                <fieldset disabled={busy}>
+                  <div className="meta-fields">
+                    {(
+                      [
+                        ["waba_id", "WABA ID"],
+                        ["phone_number_id", "Phone Number ID"],
+                        ["business_id", "Business ID (opcional)"],
+                        ["app_id", "App ID (opcional)"],
+                      ] as const
+                    ).map(([field, label]) => (
+                      <label key={field} className="op-field">
+                        {label}
+                        <input
+                          name={field}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={40}
+                          defaultValue={config[field]}
+                        />
+                      </label>
+                    ))}
+                    <label className="op-field">
+                      Versão da Graph API
+                      <input
+                        name="api_version"
+                        pattern="v[0-9]{1,3}\.[0-9]{1,2}"
+                        required
+                        defaultValue={config.api_version}
+                        placeholder="v24.0"
+                      />
+                    </label>
+                  </div>
+                  <div className="meta-fields meta-secrets">
+                    {secretFields.map(([field, label, exists]) => (
+                      <div key={field}>
+                        <label className="op-field">
+                          {label}
+                          <input
+                            type="password"
+                            name={field}
+                            autoComplete="new-password"
+                            maxLength={field === "access_token" ? 8192 : 1024}
+                            placeholder={
+                              config[exists]
+                                ? "Salvo · deixe vazio para manter"
+                                : "Não configurado"
+                            }
+                          />
+                        </label>
+                        <small>
+                          {config[exists]
+                            ? "Credencial salva e protegida"
+                            : "Credencial não cadastrada"}
+                        </small>
+                        {config[exists] && (
+                          <label className="meta-clear">
+                            <input type="checkbox" name={`clear_${field}`} />
+                            Remover credencial salva
+                          </label>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="meta-actions">
+                    {dirty && (
+                      <small>Salve as alterações antes de validar.</small>
+                    )}
+                  </div>
+                </fieldset>
+                <button type="submit" className="button primary">
+                  <Save size={15} />
+                  Salvar configuração
+                </button>
+              </form>
+            </FormAction>
+          </div>
+        ) : undefined
+      }
+    >
       {error && (
         <p className="meta-error" role="alert">
           {error}
@@ -177,181 +289,103 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
         </p>
       )}
       {!config ? (
-        <p className="muted-note">
+        <p className="directory-empty">
           {error
             ? "Não foi possível carregar a configuração."
             : "Carregando configuração…"}
         </p>
       ) : (
         <>
-          <div className="meta-config-summary">
-            <dl>
-              <div>
-                <dt>WABA ID</dt>
-                <dd>{config.waba_id || "Não configurado"}</dd>
+          <div className="config-overview-banner">
+            <div className="overview-item">
+              <span className="overview-label">Disparos de mensagens</span>
+              <span className="directory-status paused">
+                Envio real desativado
+              </span>
+            </div>
+            <div className="overview-item">
+              <span className="overview-label">Validação de Acesso</span>
+              <span
+                className={`directory-status ${
+                  config.validation_state === "valid"
+                    ? "active"
+                    : config.validation_state === "error"
+                      ? "paused"
+                      : ""
+                }`}
+              >
+                {config.validation_state === "valid"
+                  ? "Acesso validado"
+                  : config.validation_state === "error"
+                    ? "Falha na validação"
+                    : "Não validado"}
+              </span>
+              {config.checked_at && (
+                <small className="directory-detail">
+                  {dateTime(config.checked_at)}
+                </small>
+              )}
+            </div>
+            {config.account_name && (
+              <div className="overview-item">
+                <span className="overview-label">Conta WhatsApp Business</span>
+                <strong>
+                  {config.account_name} · {config.display_phone_number}
+                </strong>
+                {config.verified_name && (
+                  <small className="directory-detail">
+                    {config.verified_name}
+                  </small>
+                )}
               </div>
+            )}
+          </div>
+
+          <div className="config-detail-grid">
+            <div className="config-detail-card">
+              <span>WABA ID</span>
+              <strong className="directory-code">
+                {config.waba_id || "Não configurado"}
+              </strong>
+            </div>
+            <div className="config-detail-card">
+              <span>Phone Number ID</span>
+              <strong className="directory-code">
+                {config.phone_number_id || "Não configurado"}
+              </strong>
+            </div>
+            <div className="config-detail-card">
+              <span>Token de Acesso</span>
               <div>
-                <dt>ID do número</dt>
-                <dd>{config.phone_number_id || "Não configurado"}</dd>
-              </div>
-              <div>
-                <dt>Token de acesso</dt>
-                <dd>
+                <span
+                  className={`directory-status ${
+                    config.has_access_token ? "active" : ""
+                  }`}
+                >
                   {config.has_access_token
                     ? "Salvo e protegido"
                     : "Não configurado"}
-                </dd>
+                </span>
               </div>
-              <div>
-                <dt>Graph API</dt>
-                <dd>{config.api_version}</dd>
-              </div>
-            </dl>
-          </div>
-          <FormAction
-            title="Configuração da Meta"
-            label={
-              config.version
-                ? "Configurar Meta"
-                : "Adicionar configuração da Meta"
-            }
-            version={config.version}
-            error={error}
-            busy={busy}
-            onClose={() => setDirty(false)}
-          >
-            <form
-              key={config.version}
-              onSubmit={save}
-              onChange={() => setDirty(true)}
-              autoComplete="off"
-              className="meta-form"
-            >
-              <fieldset disabled={busy}>
-                <div className="meta-fields">
-                  {(
-                    [
-                      ["waba_id", "WABA ID"],
-                      ["phone_number_id", "Phone Number ID"],
-                      ["business_id", "Business ID (opcional)"],
-                      ["app_id", "App ID (opcional)"],
-                    ] as const
-                  ).map(([field, label]) => (
-                    <label key={field}>
-                      {label}
-                      <input
-                        name={field}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={40}
-                        defaultValue={config[field]}
-                      />
-                    </label>
-                  ))}
-                  <label>
-                    Versão da Graph API
-                    <input
-                      name="api_version"
-                      pattern="v[0-9]{1,3}\.[0-9]{1,2}"
-                      required
-                      defaultValue={config.api_version}
-                      placeholder="v24.0"
-                    />
-                  </label>
-                </div>
-                <div className="meta-fields meta-secrets">
-                  {secretFields.map(([field, label, exists]) => (
-                    <div key={field}>
-                      <label>
-                        {label}
-                        <input
-                          type="password"
-                          name={field}
-                          autoComplete="new-password"
-                          maxLength={field === "access_token" ? 8192 : 1024}
-                          placeholder={
-                            config[exists]
-                              ? "Salvo · deixe vazio para manter"
-                              : "Não configurado"
-                          }
-                        />
-                      </label>
-                      <small>
-                        {config[exists]
-                          ? "Credencial salva e protegida"
-                          : "Credencial não cadastrada"}
-                      </small>
-                      {config[exists] && (
-                        <label className="meta-clear">
-                          <input type="checkbox" name={`clear_${field}`} />
-                          Remover credencial salva
-                        </label>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="meta-actions">
-                  {dirty && (
-                    <small>Salve as alterações antes de validar.</small>
-                  )}
-                </div>
-              </fieldset>
-              <button type="submit" className="button primary">
-                <Save size={15} />
-                Salvar configuração
-              </button>
-            </form>
-          </FormAction>
-          <div className="meta-actions">
-            <button
-              type="button"
-              className="button"
-              disabled={
-                busy ||
-                !config.has_access_token ||
-                !config.waba_id ||
-                !config.phone_number_id
-              }
-              onClick={() => void validate()}
-            >
-              <ShieldCheck size={15} />
-              {busy ? "Consultando…" : "Validar e consultar templates"}
-            </button>
+            </div>
+            <div className="config-detail-card">
+              <span>Graph API</span>
+              <strong className="directory-code">{config.api_version}</strong>
+            </div>
           </div>
 
-          <div className="meta-validation">
-            <span
-              className={`meta-state meta-state-${config.validation_state}`}
-            >
-              {config.validation_state === "valid"
-                ? "Acesso validado"
-                : config.validation_state === "error"
-                  ? "Falha na validação"
-                  : "Não validado"}
-            </span>
-            <span>
-              {config.checked_at
-                ? `Última tentativa: ${dateTime(config.checked_at)}`
-                : "Nenhuma consulta realizada"}
-            </span>
-            {config.account_name && (
-              <strong>
-                {config.account_name} · {config.display_phone_number} ·{" "}
-                {config.verified_name}
-              </strong>
-            )}
-          </div>
           {config.validation_code && (
             <p className="meta-error" role="alert">
               {errors[config.validation_code] ||
                 `Consulta não concluída (${config.validation_code}). Confira o acesso e tente novamente.`}
             </p>
           )}
+
           <div className="meta-catalog-heading">
             <div>
               <h3>
-                Templates da Meta <span>{config.templates.length}</span>
+                Templates da Meta{" "}
+                <span className="directory-kind">{config.templates.length}</span>
               </h3>
               <p>
                 {config.templates_synced_at
@@ -373,11 +407,13 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
           </div>
           {config.validation_state === "error" &&
             config.templates_synced_at && (
-              <p className="muted-note">Dados da última consulta.</p>
+              <p className="directory-detail error-text">
+                Exibindo dados da última consulta bem-sucedida.
+              </p>
             )}
-          {templates.length > 0 && (
+          {templates.length > 0 ? (
             <div className="table-scroll">
-              <table>
+              <table className="directory-table">
                 <thead>
                   <tr>
                     <th>Template</th>
@@ -385,7 +421,7 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
                     <th>Situação na Meta</th>
                     <th>Categoria</th>
                     <th>Verificação local</th>
-                    <th />
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -393,25 +429,42 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
                     <tr key={t.id}>
                       <td>
                         <strong>{t.name}</strong>
-                        <small className="meta-template-id">{t.id}</small>
+                        <small className="directory-detail directory-code">
+                          {t.id}
+                        </small>
                       </td>
-                      <td>{t.language}</td>
+                      <td>
+                        <span className="directory-kind">{t.language}</span>
+                      </td>
                       <td>
                         <span
-                          className={`meta-template-status meta-status-${t.status}`}
+                          className={`directory-status ${
+                            t.status === "APPROVED"
+                              ? "active"
+                              : t.status === "PENDING"
+                                ? "paused"
+                                : ""
+                          }`}
                         >
                           {status[t.status] || t.status}
                         </span>
                       </td>
                       <td>{t.category}</td>
                       <td>
-                        {t.checks.length
-                          ? `${t.checks.length} ponto(s) para revisão`
-                          : "Texto e quantidade de variáveis conferem"}
+                        {t.checks.length ? (
+                          <span className="directory-detail error-text">
+                            {t.checks.length} ponto(s) para revisão
+                          </span>
+                        ) : (
+                          <span className="directory-status active">
+                            Conferido
+                          </span>
+                        )}
                       </td>
                       <td>
                         <button
-                          className="button"
+                          type="button"
+                          className="button secondary"
                           onClick={() => setSelected(t)}
                         >
                           Ver template
@@ -422,21 +475,29 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
                 </tbody>
               </table>
             </div>
+          ) : (
+            <p className="directory-empty">
+              {config.templates_synced_at
+                ? "Nenhum template encontrado com o filtro atual."
+                : "Catálogo não consultado ainda."}
+            </p>
           )}
           {templates.length > 15 && (
             <div className="meta-actions">
               <button
-                className="button"
+                type="button"
+                className="button secondary"
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
               >
                 Anterior
               </button>
-              <span>
+              <span className="directory-kind">
                 {page + 1} / {Math.ceil(templates.length / 15)}
               </span>
               <button
-                className="button"
+                type="button"
+                className="button secondary"
                 disabled={(page + 1) * 15 >= templates.length}
                 onClick={() => setPage((p) => p + 1)}
               >

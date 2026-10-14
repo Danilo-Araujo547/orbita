@@ -20,6 +20,7 @@ import {
   Activity,
   ArrowRight,
   Bell,
+  Building2,
   CalendarDays,
   Check,
   CheckCheck,
@@ -27,7 +28,9 @@ import {
   ChevronRight,
   CircleHelp,
   ClipboardList,
+  Clock3,
   Cloud,
+  Database,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -35,6 +38,7 @@ import {
   Pause,
   PanelLeftClose,
   PanelLeftOpen,
+  Phone,
   Play,
   Plus,
   RefreshCw,
@@ -738,21 +742,21 @@ function Workspace({
           {(page === "overview" || page === "messages") && (
             <div className="filters">
               <div className="filter-left">
-                  <select
-                    aria-label="Tipo de agendamento"
-                    value={kind}
-                    onChange={(e) => {
-                      setKind(e.target.value);
-                      setListPage(1);
-                    }}
-                  >
-                    <option value="">Todos os agendamentos</option>
-                    {Object.entries(kinds).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                <select
+                  aria-label="Tipo de agendamento"
+                  value={kind}
+                  onChange={(e) => {
+                    setKind(e.target.value);
+                    setListPage(1);
+                  }}
+                >
+                  <option value="">Todos os agendamentos</option>
+                  {Object.entries(kinds).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
               </div>
               {periodFilter}
             </div>
@@ -1179,18 +1183,22 @@ function Workspace({
               {page === "settings" && (
                 <div className="settings-workspace">
                   <nav className="settings-tabs" aria-label="Configurações">
-                    {[
-                      ...(role === "admin" && !isRemote
-                        ? [
-                            ["units", "Unidades"],
-                            ["oracle", "Oracle"],
-                            ["instances", "Instâncias"],
-                          ]
-                        : []),
-                      ...(role === "admin" ? [["meta", "WhatsApp"]] : []),
-                      ["rules", "Lembretes"],
-                      ["activity", "Atividades"],
-                    ].map(([id, label]) => (
+                    {(
+                      [
+                        ...(role === "admin" && !isRemote
+                          ? [
+                              ["units", "Unidades", Building2],
+                              ["oracle", "Oracle", Database],
+                              ["instances", "Instâncias", Cloud],
+                            ]
+                          : []),
+                        ...(role === "admin"
+                          ? [["meta", "WhatsApp", MessageCircle]]
+                          : []),
+                        ["rules", "Lembretes", Bell],
+                        ["activity", "Atividades", Activity],
+                      ] as [string, string, typeof Activity][]
+                    ).map(([id, label, Icon]) => (
                       <button
                         type="button"
                         key={id}
@@ -1198,7 +1206,8 @@ function Workspace({
                         aria-current={settingsTab === id ? "page" : undefined}
                         onClick={() => setSettingsTab(id)}
                       >
-                        {label}
+                        <Icon size={15} />
+                        <span>{label}</span>
                       </button>
                     ))}
                   </nav>
@@ -1267,12 +1276,20 @@ function Workspace({
                               {data.control.test_recipients.length}
                             </strong>
                           </div>
-                          <p className="muted-note">
-                            {data.control.test_recipients
-                              .map((phone) => "+" + phone)
-                              .join(", ") ||
-                              "Nenhum número autorizado no ambiente."}
-                          </p>
+                          <div className="test-recipients-list">
+                            {data.control.test_recipients.length > 0 ? (
+                              data.control.test_recipients.map((phone) => (
+                                <span className="recipient-pill" key={phone}>
+                                  <Phone size={12} />
+                                  +{phone}
+                                </span>
+                              ))
+                            ) : (
+                              <p className="muted-note">
+                                Nenhum número autorizado no ambiente.
+                              </p>
+                            )}
+                          </div>
                           {role === "admin" && (
                             <div className="settings-buttons">
                               <button
@@ -1351,12 +1368,19 @@ function Workspace({
                               <Activity size={20} />
                             </span>
                             <div>
-                              <strong>Oracle · AME</strong>
+                              <strong>
+                                {data.control.appointment_source ===
+                                "sqlite_simulated"
+                                  ? "SQLite · Simulação"
+                                  : "Oracle"}
+                              </strong>
                               <small>Consultas, exames e laboratório</small>
                             </div>
                             <Badge
                               value={
-                                data.control.oracle_configured
+                                data.control.oracle_configured ||
+                                data.control.appointment_source ===
+                                  "sqlite_simulated"
                                   ? "Configurado"
                                   : "Pendente"
                               }
@@ -1384,15 +1408,15 @@ function Workspace({
                       </div>
                       <Panel title="Regras de lembretes">
                         <div className="table-scroll">
-                          <table>
+                          <table className="directory-table">
                             <thead>
                               <tr>
                                 <th>Regra</th>
                                 <th>Antecedência</th>
                                 <th>Horário</th>
-                                <th>Dias</th>
+                                <th>Dias de envio</th>
                                 <th>Situação</th>
-                                <th />
+                                <th style={{ textAlign: "right" }}>Ação</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1400,39 +1424,58 @@ function Workspace({
                                 <tr key={rule.id}>
                                   <td data-label="Regra">
                                     <strong>{rule.name}</strong>
-                                    <small>
+                                    <small className="directory-detail">
                                       Versão {rule.version} · legado #
                                       {rule.legacy_scheduler_id}
                                     </small>
                                   </td>
                                   <td data-label="Antecedência">
-                                    {rule.days_before} dias
+                                    <span className="badge-days">
+                                      {rule.days_before} dias
+                                    </span>
                                   </td>
                                   <td data-label="Horário">
-                                    {rule.send_time.slice(0, 5)}
+                                    <span className="badge-time">
+                                      <Clock3 size={13} />{" "}
+                                      {rule.send_time.slice(0, 5)}
+                                    </span>
                                   </td>
                                   <td data-label="Dias">
-                                    {rule.weekdays
-                                      .map(
-                                        (day) =>
-                                          [
-                                            "Seg",
-                                            "Ter",
-                                            "Qua",
-                                            "Qui",
-                                            "Sex",
-                                            "Sáb",
-                                            "Dom",
-                                          ][day],
-                                      )
-                                      .join(", ")}
+                                    <div
+                                      className="weekday-chips"
+                                      aria-label="Dias de envio"
+                                    >
+                                      {[
+                                        "Seg",
+                                        "Ter",
+                                        "Qua",
+                                        "Qui",
+                                        "Sex",
+                                        "Sáb",
+                                        "Dom",
+                                      ].map((dayName, idx) => {
+                                        const isSelected =
+                                          rule.weekdays.includes(idx);
+                                        return (
+                                          <span
+                                            key={dayName}
+                                            className={`weekday-chip ${isSelected ? "active" : ""}`}
+                                          >
+                                            {dayName}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
                                   </td>
                                   <td data-label="Situação">
                                     <Badge
                                       value={rule.enabled ? "Ativa" : "Pausada"}
                                     />
                                   </td>
-                                  <td className="row-action">
+                                  <td
+                                    className="row-action"
+                                    style={{ textAlign: "right" }}
+                                  >
                                     {role === "admin" && (
                                       <button
                                         className="icon-button"
@@ -1454,32 +1497,41 @@ function Workspace({
                           </table>
                         </div>
                       </Panel>
-                      <Panel title="Templates">
-                        <div className="template-list">
+                      <Panel title="Templates de mensagens">
+                        <div className="templates-grid">
                           {data.templates.results.map((template) => (
-                            <article key={template.id}>
-                              <span className="integration-icon">
-                                <MessageCircle size={20} />
-                              </span>
-                              <div>
-                                <strong>{template.name}</strong>
-                                <small>
-                                  {template.language} · {template.fields.length}{" "}
-                                  variáveis
-                                </small>
+                            <article
+                              key={template.id}
+                              className="template-card"
+                            >
+                              <header className="template-card-header">
+                                <div>
+                                  <strong>{template.name}</strong>
+                                  <div className="template-card-badges">
+                                    <span className="template-badge-lang">
+                                      {template.language}
+                                    </span>
+                                    <span className="template-badge-vars">
+                                      {template.fields.length} variáveis
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="button"
+                                  onClick={() =>
+                                    setModal({
+                                      type: "template",
+                                      value: template,
+                                    })
+                                  }
+                                >
+                                  {role === "admin" ? "Configurar" : "Ver mapa"}
+                                </button>
+                              </header>
+                              <div className="template-body-preview">
                                 <p>{template.body}</p>
                               </div>
-                              <button
-                                className="button"
-                                onClick={() =>
-                                  setModal({
-                                    type: "template",
-                                    value: template,
-                                  })
-                                }
-                              >
-                                {role === "admin" ? "Configurar" : "Ver mapa"}
-                              </button>
                             </article>
                           ))}
                         </div>
@@ -1488,85 +1540,124 @@ function Workspace({
                   )}
                   {settingsTab === "activity" && (
                     <div className="settings-grid">
-                      <Panel title="Importações">
+                      <Panel
+                        title="Importações recentes"
+                        action={
+                          role === "admin" ? (
+                            <FormAction
+                              title="Importar agendamentos"
+                              label="Nova importação"
+                              busy={busy}
+                              error={error}
+                              version={data.audit.results[0]?.id || 0}
+                            >
+                              <form
+                                className="op-form"
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  void mutate(
+                                    data.control.appointment_source ===
+                                      "sqlite_simulated"
+                                      ? "imports/simulated"
+                                      : "imports/run",
+                                    {
+                                      rule_id: Number(
+                                        new FormData(event.currentTarget).get(
+                                          "rule_id",
+                                        ),
+                                      ),
+                                    },
+                                    "Solicitação de importação concluída.",
+                                  );
+                                }}
+                              >
+                                {data.control.appointment_source !==
+                                  "sqlite_simulated" && (
+                                  <label className="op-field">
+                                    Regra
+                                    <select
+                                      name="rule_id"
+                                      required
+                                      defaultValue={data.rules.results[0]?.id}
+                                    >
+                                      {data.rules.results.map((rule) => (
+                                        <option key={rule.id} value={rule.id}>
+                                          {rule.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                )}
+                                <button
+                                  type="submit"
+                                  className="button primary"
+                                  disabled={
+                                    busy ||
+                                    (!data.control.oracle_configured &&
+                                      data.control.appointment_source !==
+                                        "sqlite_simulated")
+                                  }
+                                >
+                                  {data.control.appointment_source ===
+                                  "sqlite_simulated"
+                                    ? "Importar SQLite simulado"
+                                    : "Importar regra"}
+                                </button>
+                              </form>
+                            </FormAction>
+                          ) : null
+                        }
+                      >
                         {!data.imports.results.length ? (
                           <Empty text="Nenhuma importação executada." />
                         ) : (
-                          data.imports.results.slice(0, 6).map((run) => (
-                            <div className="setting-row" key={run.id}>
-                              <span>
-                                {run.rule_name}
-                                <small>
-                                  {run.run_date} · {run.imported} registros{" "}
-                                  {run.error && `· ${run.error}`}
-                                </small>
-                              </span>
-                              <Badge value={run.status} />
-                            </div>
-                          ))
-                        )}
-                        {role === "admin" && (
-                          <FormAction
-                            title="Importar agendamentos"
-                            label="Adicionar importação"
-                            busy={busy}
-                            error={error}
-                            version={data.audit.results[0]?.id || 0}
-                          >
-                            <form
-                              className="op-form"
-                              onSubmit={(event) => {
-                                event.preventDefault();
-                                void mutate(
-                                  "imports/run",
-                                  {
-                                    rule_id: Number(
-                                      new FormData(event.currentTarget).get(
-                                        "rule_id",
-                                      ),
-                                    ),
-                                  },
-                                  "Solicitação de importação concluída.",
-                                );
-                              }}
-                            >
-                              <label className="op-field">
-                                Regra
-                                <select
-                                  name="rule_id"
-                                  required
-                                  defaultValue={data.rules.results[0]?.id}
-                                >
-                                  {data.rules.results.map((rule) => (
-                                    <option key={rule.id} value={rule.id}>
-                                      {rule.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                              <button
-                                type="submit"
-                                className="button primary"
-                                disabled={
-                                  busy || !data.control.oracle_configured
-                                }
-                              >
-                                Importar regra
-                              </button>
-                            </form>
-                          </FormAction>
+                          <div className="table-scroll">
+                            <table className="directory-table">
+                              <thead>
+                                <tr>
+                                  <th>Regra</th>
+                                  <th>Data</th>
+                                  <th>Registros</th>
+                                  <th>Situação</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {data.imports.results.slice(0, 8).map((run) => (
+                                  <tr key={run.id}>
+                                    <td>
+                                      <strong>{run.rule_name}</strong>
+                                      {run.error && (
+                                        <small className="directory-detail error-text">
+                                          {run.error}
+                                        </small>
+                                      )}
+                                    </td>
+                                    <td>{run.run_date}</td>
+                                    <td>
+                                      <span className="directory-code">
+                                        {run.imported} registros
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <Badge value={run.status} />
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
                       </Panel>
-                      <Panel title="Registro de atividades">
-                        <div className="audit-list">
-                          {data.audit.results.slice(0, 8).map((item) => (
-                            <div key={item.id}>
+
+                      <Panel title="Registro de auditoria">
+                        <div className="audit-timeline">
+                          {data.audit.results.slice(0, 10).map((item) => (
+                            <div key={item.id} className="audit-timeline-item">
                               <span className="audit-dot" />
-                              <div>
+                              <div className="audit-timeline-content">
                                 <strong>{item.action}</strong>
                                 <small>
-                                  {item.actor_name} ·{" "}
-                                  {dateTime(item.created_at)}
+                                  {item.actor_name} · {dateTime(item.created_at)}
                                 </small>
                               </div>
                             </div>

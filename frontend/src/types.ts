@@ -182,6 +182,7 @@ export interface Control {
   mode: string;
   test_recipients: string[];
   oracle_configured: boolean;
+  appointment_source?: string;
   meta_configured: boolean;
   production_enabled: boolean;
   legacy_exclusion: boolean;

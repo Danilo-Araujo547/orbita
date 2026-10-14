@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Database, LockKeyhole, PlugZap } from "lucide-react";
+import { LockKeyhole, PlugZap } from "lucide-react";
 import { request } from "../api";
 import { dateTime } from "../format";
 import FormAction from "./FormAction";
@@ -85,92 +85,73 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
   }
   const details = config?.details;
   return (
-    <Panel title="Oracle">
-      {error && (
-        <p role="alert" className="error-banner">
-          {error}
-        </p>
-      )}
-      {!config ? (
-        <p>Carregando configuração…</p>
-      ) : (
-        <>
-          <div className="oracle-summary">
-            <div className="setting-row">
-              <span>
-                <Database size={16} /> Conexão
-              </span>
-              <strong>
-                {config.configured
-                  ? config.unlocked
-                    ? "Desbloqueada"
-                    : "Bloqueada"
-                  : config.legacy_configured
-                    ? "Ativa · configuração do servidor"
-                    : "Não configurada"}
-              </strong>
-            </div>
-            {config.configured && (
+    <Panel
+      title="Oracle"
+      action={
+        config ? (
+          <div className="panel-actions-group">
+            {config.unlocked && (
               <>
-                <div className="setting-row">
-                  <span>Protegida por</span>
-                  <strong>{config.protected_by}</strong>
-                </div>
-                {config.unlocked_until && (
-                  <div className="setting-row">
-                    <span>Desbloqueada até</span>
-                    <strong>{dateTime(config.unlocked_until)}</strong>
-                  </div>
-                )}
-                {details && (
-                  <>
-                    <div className="setting-row">
-                      <span>Servidor</span>
-                      <strong>
-                        {details.host}:{details.port}
-                      </strong>
-                    </div>
-                    <div className="setting-row">
-                      <span>
-                        {details.identifier_type === "sid"
-                          ? "SID"
-                          : "Service name"}
-                      </span>
-                      <strong>{details.identifier}</strong>
-                    </div>
-                    <div className="setting-row">
-                      <span>Usuário Oracle</span>
-                      <strong>{details.username}</strong>
-                    </div>
-                  </>
-                )}
-                <div className="setting-row">
-                  <span>Último teste</span>
-                  <strong>
-                    {config.validation_state === "connected"
-                      ? "Conexão validada"
-                      : config.validation_state === "connection_failed"
-                        ? "Falha de conexão — confira os dados e o acesso à rede"
-                        : "Não realizado"}
-                    {config.checked_at
-                      ? ` · ${dateTime(config.checked_at)}`
-                      : ""}
-                  </strong>
-                </div>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => void action("test")}
+                >
+                  <PlugZap size={14} />
+                  <span>Testar conexão</span>
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => void action("lock")}
+                >
+                  <LockKeyhole size={14} />
+                  <span>Bloquear</span>
+                </button>
               </>
             )}
-            <div className="setting-row">
-              <span>Cliente Oracle do servidor</span>
-              <strong>{config.client_mode}</strong>
-            </div>
-          </div>
-          <div className="oracle-actions">
+            {config.configured && !config.unlocked && (
+              <FormAction
+                title="Desbloquear Oracle"
+                label="Desbloquear"
+                version={revision}
+                error={error}
+                busy={busy}
+              >
+                <form
+                  className="oracle-unlock-form op-form"
+                  onSubmit={(event) => submit(event, "unlock")}
+                >
+                  <p>
+                    Administrador: <strong>{config.protected_by}</strong>
+                  </p>
+                  <label className="op-field">
+                    Senha do administrador
+                    <input
+                      name="admin_password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="button primary"
+                    disabled={busy}
+                  >
+                    Desbloquear
+                  </button>
+                </form>
+              </FormAction>
+            )}
             <FormAction
               title="Configuração Oracle"
               label={
                 config.configured
-                  ? "Editar configuração Oracle"
-                  : "Adicionar conexão Oracle"
+                  ? "Editar conexão"
+                  : "Adicionar conexão"
               }
               version={revision}
               error={error}
@@ -178,9 +159,9 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
             >
               <form
                 onSubmit={(event) => submit(event, "configure")}
-                className="oracle-config-form"
+                className="oracle-config-form op-form"
               >
-                <label>
+                <label className="op-field">
                   Servidor / endereço
                   <input
                     name="host"
@@ -190,7 +171,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     placeholder="172.19.0.250"
                   />
                 </label>
-                <label>
+                <label className="op-field">
                   Porta
                   <input
                     name="port"
@@ -201,7 +182,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     defaultValue={details?.port ?? 1521}
                   />
                 </label>
-                <label>
+                <label className="op-field">
                   Tipo de identificador
                   <select
                     name="identifier_type"
@@ -211,7 +192,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     <option value="sid">SID</option>
                   </select>
                 </label>
-                <label>
+                <label className="op-field">
                   Identificador do banco
                   <input
                     name="identifier"
@@ -220,7 +201,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     defaultValue={details?.identifier ?? ""}
                   />
                 </label>
-                <label>
+                <label className="op-field">
                   Usuário Oracle
                   <input
                     name="username"
@@ -230,7 +211,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     defaultValue={details?.username ?? ""}
                   />
                 </label>
-                <label>
+                <label className="op-field">
                   Senha Oracle
                   <input
                     name="password"
@@ -240,7 +221,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     autoComplete="new-password"
                   />
                 </label>
-                <label>
+                <label className="op-field">
                   Limite por consulta (milissegundos)
                   <input
                     name="timeout_ms"
@@ -251,7 +232,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                     defaultValue={details?.timeout_ms ?? 30000}
                   />
                 </label>
-                <label>
+                <label className="op-field">
                   Sua senha de administrador
                   <input
                     name="admin_password"
@@ -271,58 +252,112 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                 </button>
               </form>
             </FormAction>
-            {config.configured && !config.unlocked && (
-              <FormAction
-                title="Desbloquear Oracle"
-                label="Desbloquear conexão"
-                version={revision}
-                error={error}
-                busy={busy}
+          </div>
+        ) : undefined
+      }
+    >
+      {error && (
+        <p role="alert" className="inline-error">
+          {error}
+        </p>
+      )}
+      {!config ? (
+        <p className="directory-empty">Carregando configuração…</p>
+      ) : (
+        <div className="oracle-status-layout">
+          <div className="config-overview-banner">
+            <div className="overview-item">
+              <span className="overview-label">Status da Conexão</span>
+              <span
+                className={`directory-status ${
+                  config.configured
+                    ? config.unlocked
+                      ? "active"
+                      : "paused"
+                    : config.legacy_configured
+                      ? "active"
+                      : ""
+                }`}
               >
-                <form
-                  className="oracle-unlock-form"
-                  onSubmit={(event) => submit(event, "unlock")}
-                >
-                  <p>Administrador: {config.protected_by}</p>
-                  <label>
-                    Senha do administrador
-                    <input
-                      name="admin_password"
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="button primary"
-                    disabled={busy}
-                  >
-                    Desbloquear
-                  </button>
-                </form>
-              </FormAction>
+                {config.configured
+                  ? config.unlocked
+                    ? "Desbloqueada"
+                    : "Bloqueada"
+                  : config.legacy_configured
+                    ? "Ativa · Configuração do servidor"
+                    : "Não configurada"}
+              </span>
+            </div>
+            <div className="overview-item">
+              <span className="overview-label">Último Teste</span>
+              <span
+                className={`directory-status ${
+                  config.validation_state === "connected"
+                    ? "active"
+                    : config.validation_state === "connection_failed"
+                      ? "paused"
+                      : ""
+                }`}
+              >
+                {config.validation_state === "connected"
+                  ? "Conexão validada"
+                  : config.validation_state === "connection_failed"
+                    ? "Falha de conexão"
+                    : "Não realizado"}
+              </span>
+              {config.checked_at && (
+                <small className="directory-detail">
+                  {dateTime(config.checked_at)}
+                </small>
+              )}
+            </div>
+            {config.protected_by && (
+              <div className="overview-item">
+                <span className="overview-label">Protegida por</span>
+                <strong>{config.protected_by}</strong>
+              </div>
             )}
-            {config.unlocked && (
-              <div className="oracle-direct-actions">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void action("test")}
-                >
-                  <PlugZap size={16} /> Testar conexão
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void action("lock")}
-                >
-                  <LockKeyhole size={16} /> Bloquear
-                </button>
+            {config.unlocked_until && (
+              <div className="overview-item">
+                <span className="overview-label">Desbloqueada até</span>
+                <strong>{dateTime(config.unlocked_until)}</strong>
               </div>
             )}
           </div>
-        </>
+
+          {details ? (
+            <div className="config-detail-grid">
+              <div className="config-detail-card">
+                <span>Servidor e Porta</span>
+                <strong className="directory-code">
+                  {details.host}:{details.port}
+                </strong>
+              </div>
+              <div className="config-detail-card">
+                <span>
+                  {details.identifier_type === "sid" ? "SID" : "Service Name"}
+                </span>
+                <strong className="directory-code">{details.identifier}</strong>
+              </div>
+              <div className="config-detail-card">
+                <span>Usuário Oracle</span>
+                <strong className="directory-code">{details.username}</strong>
+              </div>
+              <div className="config-detail-card">
+                <span>Limite por consulta</span>
+                <strong>{details.timeout_ms} ms</strong>
+              </div>
+              <div className="config-detail-card">
+                <span>Driver / Modo Oracle</span>
+                <strong>{config.client_mode}</strong>
+              </div>
+            </div>
+          ) : !config.configured && !config.legacy_configured ? (
+            <p className="directory-empty">
+              Nenhuma conexão Oracle configurada para esta unidade.
+            </p>
+          ) : null}
+        </div>
       )}
     </Panel>
   );
