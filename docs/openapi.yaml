@@ -1,0 +1,6779 @@
+openapi: 3.0.3
+info:
+  title: ROB8 Next API
+  version: 1.0.0
+paths:
+  /api/v1/appointment-groups/:
+    get:
+      operationId: appointment_groups_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - appointment-groups
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGroupList'
+          description: ''
+  /api/v1/appointment-groups/{id}/:
+    get:
+      operationId: appointment_groups_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este appointment group.
+        required: true
+      tags:
+      - appointment-groups
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+  /api/v1/appointment-groups/{id}/schedule/:
+    post:
+      operationId: appointment_groups_schedule_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este appointment group.
+        required: true
+      tags:
+      - appointment-groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupScheduleInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupScheduleInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupScheduleInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+  /api/v1/appointments/:
+    get:
+      operationId: appointments_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - appointments
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppointmentList'
+          description: ''
+  /api/v1/appointments/{id}/:
+    get:
+      operationId: appointments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este appointment.
+        required: true
+      tags:
+      - appointments
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+          description: ''
+  /api/v1/appointments/{id}/communications/:
+    get:
+      operationId: appointments_communications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este appointment.
+        required: true
+      tags:
+      - appointments
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentCommunications'
+          description: ''
+  /api/v1/appointments/export/:
+    get:
+      operationId: appointments_export_retrieve
+      tags:
+      - appointments
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+          description: ''
+  /api/v1/audit/:
+    get:
+      operationId: audit_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - audit
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditList'
+          description: ''
+  /api/v1/audit/{id}/:
+    get:
+      operationId: audit_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este audit.
+        required: true
+      tags:
+      - audit
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Audit'
+          description: ''
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      tags:
+      - auth
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfOutput'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/session/:
+    get:
+      operationId: auth_session_retrieve
+      tags:
+      - auth
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionOutput'
+          description: ''
+    post:
+      operationId: auth_session_create
+      tags:
+      - auth
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckOutput'
+          description: ''
+  /api/v1/campaigns/:
+    get:
+      operationId: campaigns_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - campaigns
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCampaignList'
+          description: ''
+    post:
+      operationId: campaigns_create
+      tags:
+      - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/campaigns/{id}/:
+    get:
+      operationId: campaigns_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este campaign.
+        required: true
+      tags:
+      - campaigns
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/campaigns/{id}/preview/:
+    post:
+      operationId: campaigns_preview_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este campaign.
+        required: true
+      tags:
+      - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/cases/:
+    get:
+      operationId: cases_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCaseList'
+          description: ''
+  /api/v1/cases/{id}/:
+    get:
+      operationId: cases_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este case.
+        required: true
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/cases/{id}/act/:
+    post:
+      operationId: cases_act_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este case.
+        required: true
+      tags:
+      - cases
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseActionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CaseActionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CaseActionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/cases/{id}/communications/:
+    get:
+      operationId: cases_communications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este case.
+        required: true
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/cases/{id}/timeline/:
+    get:
+      operationId: cases_timeline_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este case.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInteractionList'
+          description: ''
+  /api/v1/cases/export/:
+    get:
+      operationId: cases_export_retrieve
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/cases/health/:
+    get:
+      operationId: cases_health_retrieve
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/cases/metrics/:
+    get:
+      operationId: cases_metrics_retrieve
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/cases/operators/:
+    get:
+      operationId: cases_operators_retrieve
+      tags:
+      - cases
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Case'
+          description: ''
+  /api/v1/contacts/:
+    get:
+      operationId: contacts_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - contacts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContactList'
+          description: ''
+  /api/v1/contacts/{id}/:
+    get:
+      operationId: contacts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este contact.
+        required: true
+      tags:
+      - contacts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+  /api/v1/contacts/{id}/review/:
+    post:
+      operationId: contacts_review_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este contact.
+        required: true
+      tags:
+      - contacts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+  /api/v1/control/:
+    get:
+      operationId: control_retrieve
+      tags:
+      - control
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlOutput'
+          description: ''
+    post:
+      operationId: control_create
+      tags:
+      - control
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ControlInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ControlInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ControlInput'
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlOutput'
+          description: ''
+  /api/v1/federation/manifest/:
+    get:
+      operationId: federation_manifest_retrieve
+      tags:
+      - federation
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManifestOutput'
+          description: ''
+  /api/v1/flow-rules/:
+    get:
+      operationId: flow_rules_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - flow-rules
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFlowRuleList'
+          description: ''
+    post:
+      operationId: flow_rules_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - flow-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlowRule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FlowRule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FlowRule'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowRule'
+          description: ''
+  /api/v1/flow-rules/{id}/:
+    get:
+      operationId: flow_rules_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este flow rule.
+        required: true
+      tags:
+      - flow-rules
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowRule'
+          description: ''
+  /api/v1/flow-rules/{id}/configure/:
+    post:
+      operationId: flow_rules_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este flow rule.
+        required: true
+      tags:
+      - flow-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlowRule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FlowRule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FlowRule'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowRule'
+          description: ''
+  /api/v1/flow-runs/:
+    get:
+      operationId: flow_runs_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - flow-runs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFlowRunList'
+          description: ''
+  /api/v1/flow-runs/{id}/:
+    get:
+      operationId: flow_runs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este flow run.
+        required: true
+      tags:
+      - flow-runs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlowRun'
+          description: ''
+  /api/v1/imports/:
+    get:
+      operationId: imports_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedImportRunList'
+          description: ''
+  /api/v1/imports/{id}/:
+    get:
+      operationId: imports_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este import run.
+        required: true
+      tags:
+      - imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportRun'
+          description: ''
+  /api/v1/imports/run/:
+    post:
+      operationId: imports_run_create
+      tags:
+      - imports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ImportInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportRun'
+          description: ''
+        '202':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/indicators/:
+    get:
+      operationId: indicators_retrieve
+      tags:
+      - indicators
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndicatorsOutput'
+          description: ''
+  /api/v1/instance-keys/:
+    get:
+      operationId: instance_keys_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - instance-keys
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKeyList'
+          description: ''
+    post:
+      operationId: instance_keys_create
+      tags:
+      - instance-keys
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeyInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KeyInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KeyInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuedKeyOutput'
+          description: ''
+  /api/v1/instance-keys/{id}/:
+    get:
+      operationId: instance_keys_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este instance access key.
+        required: true
+      tags:
+      - instance-keys
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Key'
+          description: ''
+  /api/v1/instance-keys/{id}/revoke/:
+    post:
+      operationId: instance_keys_revoke_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este instance access key.
+        required: true
+      tags:
+      - instance-keys
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Key'
+          description: ''
+  /api/v1/issues/:
+    get:
+      operationId: issues_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - issues
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIssueList'
+          description: ''
+  /api/v1/issues/{id}/:
+    get:
+      operationId: issues_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este issue.
+        required: true
+      tags:
+      - issues
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+  /api/v1/issues/{id}/resolve/:
+    post:
+      operationId: issues_resolve_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este issue.
+        required: true
+      tags:
+      - issues
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResolveInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResolveInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+          description: ''
+  /api/v1/layouts/:
+    get:
+      operationId: layouts_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - layouts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedImportLayoutList'
+          description: ''
+    post:
+      operationId: layouts_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - layouts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportLayout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ImportLayout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportLayout'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportLayout'
+          description: ''
+  /api/v1/layouts/{id}/:
+    get:
+      operationId: layouts_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este import layout.
+        required: true
+      tags:
+      - layouts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportLayout'
+          description: ''
+  /api/v1/layouts/{id}/configure/:
+    post:
+      operationId: layouts_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este import layout.
+        required: true
+      tags:
+      - layouts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportLayout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ImportLayout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportLayout'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportLayout'
+          description: ''
+  /api/v1/members/:
+    get:
+      operationId: members_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - members
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMemberList'
+          description: ''
+    post:
+      operationId: members_create
+      tags:
+      - members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MemberInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MemberInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+  /api/v1/members/{id}/:
+    get:
+      operationId: members_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este membership.
+        required: true
+      tags:
+      - members
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+  /api/v1/members/{id}/role/:
+    post:
+      operationId: members_role_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este membership.
+        required: true
+      tags:
+      - members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Member'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Member'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Member'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+  /api/v1/messages/:
+    get:
+      operationId: messages_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - messages
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMessageList'
+          description: ''
+  /api/v1/messages/{id}/:
+    get:
+      operationId: messages_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este message.
+        required: true
+      tags:
+      - messages
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/messages/{id}/retry/:
+    post:
+      operationId: messages_retry_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este message.
+        required: true
+      tags:
+      - messages
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/messages/{id}/simulate/:
+    post:
+      operationId: messages_simulate_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este message.
+        required: true
+      tags:
+      - messages
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulateInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SimulateInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SimulateInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AckOutput'
+          description: ''
+  /api/v1/meta-configuration/:
+    get:
+      operationId: meta_configuration_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - meta-configuration
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConfigOutputList'
+          description: ''
+  /api/v1/meta-configuration/configure/:
+    post:
+      operationId: meta_configuration_configure_create
+      tags:
+      - meta-configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfigInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfigInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigOutput'
+          description: ''
+  /api/v1/meta-configuration/validate/:
+    post:
+      operationId: meta_configuration_validate_create
+      tags:
+      - meta-configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigOutput'
+          description: ''
+  /api/v1/movements/:
+    get:
+      operationId: movements_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - movements
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMovementList'
+          description: ''
+    post:
+      operationId: movements_create
+      tags:
+      - movements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Movement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Movement'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movement'
+          description: ''
+  /api/v1/movements/{id}/:
+    get:
+      operationId: movements_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este movement.
+        required: true
+      tags:
+      - movements
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movement'
+          description: ''
+  /api/v1/movements/{id}/confirm/:
+    post:
+      operationId: movements_confirm_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este movement.
+        required: true
+      tags:
+      - movements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovementConfirmInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MovementConfirmInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MovementConfirmInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movement'
+          description: ''
+  /api/v1/oracle-configuration/:
+    get:
+      operationId: oracle_configuration_list
+      description: Configuration is local and cannot be delegated via federation keys.
+      tags:
+      - oracle-configuration
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigurationOutput'
+          description: ''
+  /api/v1/oracle-configuration/configure/:
+    post:
+      operationId: oracle_configuration_configure_create
+      description: Configuration is local and cannot be delegated via federation keys.
+      tags:
+      - oracle-configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigurationInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfigurationInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfigurationInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationOutput'
+          description: ''
+  /api/v1/oracle-configuration/lock/:
+    post:
+      operationId: oracle_configuration_lock_create
+      description: Configuration is local and cannot be delegated via federation keys.
+      tags:
+      - oracle-configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OracleVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OracleVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OracleVersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationOutput'
+          description: ''
+  /api/v1/oracle-configuration/test/:
+    post:
+      operationId: oracle_configuration_test_create
+      description: Configuration is local and cannot be delegated via federation keys.
+      tags:
+      - oracle-configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OracleVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OracleVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OracleVersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationOutput'
+          description: ''
+  /api/v1/oracle-configuration/unlock/:
+    post:
+      operationId: oracle_configuration_unlock_create
+      description: Configuration is local and cannot be delegated via federation keys.
+      tags:
+      - oracle-configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationOutput'
+          description: ''
+  /api/v1/policies/:
+    get:
+      operationId: policies_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - policies
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPurposePolicyList'
+          description: ''
+    post:
+      operationId: policies_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - policies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposePolicy'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PurposePolicy'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PurposePolicy'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposePolicy'
+          description: ''
+  /api/v1/policies/{id}/:
+    get:
+      operationId: policies_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este purpose policy.
+        required: true
+      tags:
+      - policies
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposePolicy'
+          description: ''
+  /api/v1/policies/{id}/configure/:
+    post:
+      operationId: policies_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este purpose policy.
+        required: true
+      tags:
+      - policies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposePolicy'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PurposePolicy'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PurposePolicy'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposePolicy'
+          description: ''
+  /api/v1/preparations/:
+    get:
+      operationId: preparations_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - preparations
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPreparationList'
+          description: ''
+    post:
+      operationId: preparations_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - preparations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preparation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Preparation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Preparation'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preparation'
+          description: ''
+  /api/v1/preparations/{id}/:
+    get:
+      operationId: preparations_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este preparation.
+        required: true
+      tags:
+      - preparations
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preparation'
+          description: ''
+  /api/v1/preparations/{id}/configure/:
+    post:
+      operationId: preparations_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este preparation.
+        required: true
+      tags:
+      - preparations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preparation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Preparation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Preparation'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preparation'
+          description: ''
+  /api/v1/remote-instances/:
+    get:
+      operationId: remote_instances_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - remote-instances
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRemoteList'
+          description: ''
+    post:
+      operationId: remote_instances_create
+      tags:
+      - remote-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RemoteInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RemoteInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remote'
+          description: ''
+  /api/v1/remote-instances/{id}/:
+    get:
+      operationId: remote_instances_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este remote instance.
+        required: true
+      tags:
+      - remote-instances
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remote'
+          description: ''
+  /api/v1/remote-instances/{id}/check/:
+    post:
+      operationId: remote_instances_check_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este remote instance.
+        required: true
+      tags:
+      - remote-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstanceVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InstanceVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InstanceVersionInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remote'
+          description: ''
+  /api/v1/remote-instances/{id}/configure/:
+    post:
+      operationId: remote_instances_configure_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este remote instance.
+        required: true
+      tags:
+      - remote-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RemoteInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RemoteInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remote'
+          description: ''
+  /api/v1/remote-instances/{id}/disconnect/:
+    post:
+      operationId: remote_instances_disconnect_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este remote instance.
+        required: true
+      tags:
+      - remote-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstanceVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InstanceVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InstanceVersionInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Remote'
+          description: ''
+  /api/v1/remote/{connection_id}/{resource}:
+    get:
+      operationId: remote_retrieve
+      parameters:
+      - in: path
+        name: connection_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: resource
+        schema:
+          type: string
+        required: true
+      tags:
+      - remote
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
+    post:
+      operationId: remote_create
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: connection_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: resource
+        schema:
+          type: string
+        required: true
+      tags:
+      - remote
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: {}
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: {}
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: {}
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/replies/:
+    get:
+      operationId: replies_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - replies
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReplyList'
+          description: ''
+  /api/v1/replies/{id}/:
+    get:
+      operationId: replies_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este reply.
+        required: true
+      tags:
+      - replies
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reply'
+          description: ''
+  /api/v1/report-access/:
+    get:
+      operationId: report_access_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-access
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportAccessList'
+          description: ''
+    post:
+      operationId: report_access_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportAccess'
+          description: ''
+  /api/v1/report-access/{id}/:
+    get:
+      operationId: report_access_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report access.
+        required: true
+      tags:
+      - report-access
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportAccess'
+          description: ''
+  /api/v1/report-access/{id}/configure/:
+    post:
+      operationId: report_access_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report access.
+        required: true
+      tags:
+      - report-access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportAccess'
+          description: ''
+  /api/v1/report-access/{id}/revoke/:
+    post:
+      operationId: report_access_revoke_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report access.
+        required: true
+      tags:
+      - report-access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportAccess'
+          description: ''
+  /api/v1/report-access/{id}/verify/:
+    post:
+      operationId: report_access_verify_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report access.
+        required: true
+      tags:
+      - report-access
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportAccess'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportAccess'
+          description: ''
+  /api/v1/report-requests/:
+    get:
+      operationId: report_requests_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-requests
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportRequestList'
+          description: ''
+    post:
+      operationId: report_requests_create
+      tags:
+      - report-requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportRequest'
+          description: ''
+  /api/v1/report-requests/{id}/:
+    get:
+      operationId: report_requests_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report request.
+        required: true
+      tags:
+      - report-requests
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportRequest'
+          description: ''
+  /api/v1/report-requests/{id}/delivery_preview/:
+    post:
+      operationId: report_requests_delivery_preview_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report request.
+        required: true
+      tags:
+      - report-requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportRequest'
+          description: ''
+  /api/v1/report-requests/{id}/download/:
+    get:
+      operationId: report_requests_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report request.
+        required: true
+      tags:
+      - report-requests
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportRequest'
+          description: ''
+  /api/v1/report-schedules/:
+    get:
+      operationId: report_schedules_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-schedules
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportScheduleList'
+          description: ''
+    post:
+      operationId: report_schedules_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-schedules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
+          description: ''
+  /api/v1/report-schedules/{id}/:
+    get:
+      operationId: report_schedules_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report schedule.
+        required: true
+      tags:
+      - report-schedules
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
+          description: ''
+  /api/v1/report-schedules/{id}/configure/:
+    post:
+      operationId: report_schedules_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report schedule.
+        required: true
+      tags:
+      - report-schedules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportSchedule'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
+          description: ''
+  /api/v1/reports/:
+    get:
+      operationId: reports_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - reports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReportDefinitionList'
+          description: ''
+    post:
+      operationId: reports_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportDefinition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportDefinition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportDefinition'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDefinition'
+          description: ''
+  /api/v1/reports/{id}/:
+    get:
+      operationId: reports_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDefinition'
+          description: ''
+  /api/v1/reports/{id}/configure/:
+    post:
+      operationId: reports_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportDefinition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportDefinition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportDefinition'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportDefinition'
+          description: ''
+  /api/v1/rules/:
+    get:
+      operationId: rules_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - rules
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRuleList'
+          description: ''
+    post:
+      operationId: rules_create
+      tags:
+      - rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Rule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Rule'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+          description: ''
+  /api/v1/rules/{id}/:
+    get:
+      operationId: rules_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este rule.
+        required: true
+      tags:
+      - rules
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+          description: ''
+  /api/v1/rules/{id}/configure/:
+    post:
+      operationId: rules_configure_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este rule.
+        required: true
+      tags:
+      - rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Rule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Rule'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+          description: ''
+  /api/v1/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/sheet-imports/:
+    get:
+      operationId: sheet_imports_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSheetList'
+          description: ''
+    post:
+      operationId: sheet_imports_create
+      tags:
+      - sheet-imports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetPreviewInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetPreviewInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetPreviewInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sheet'
+          description: ''
+  /api/v1/sheet-imports/{id}/:
+    get:
+      operationId: sheet_imports_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sheet'
+          description: ''
+  /api/v1/sheet-imports/{id}/confirm/:
+    post:
+      operationId: sheet_imports_confirm_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      tags:
+      - sheet-imports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetConfirmInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetConfirmInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetConfirmInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sheet'
+          description: ''
+  /api/v1/sheet-imports/{id}/rows/:
+    get:
+      operationId: sheet_imports_rows_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sheet'
+          description: ''
+  /api/v1/sources/:
+    get:
+      operationId: sources_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - sources
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSourceConfigurationList'
+          description: ''
+    post:
+      operationId: sources_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - sources
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceConfiguration'
+          description: ''
+  /api/v1/sources/{id}/:
+    get:
+      operationId: sources_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este source configuration.
+        required: true
+      tags:
+      - sources
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceConfiguration'
+          description: ''
+  /api/v1/sources/{id}/configure/:
+    post:
+      operationId: sources_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este source configuration.
+        required: true
+      tags:
+      - sources
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SourceConfiguration'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceConfiguration'
+          description: ''
+  /api/v1/templates/:
+    get:
+      operationId: templates_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - templates
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTemplateList'
+          description: ''
+    post:
+      operationId: templates_create
+      tags:
+      - templates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Template'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Template'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Template'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+  /api/v1/templates/{id}/:
+    get:
+      operationId: templates_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este template.
+        required: true
+      tags:
+      - templates
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+  /api/v1/templates/{id}/configure/:
+    post:
+      operationId: templates_configure_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este template.
+        required: true
+      tags:
+      - templates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Template'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Template'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Template'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+          description: ''
+  /api/v1/tests/appointments/:
+    post:
+      operationId: tests_appointments_create
+      tags:
+      - tests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestAppointmentInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TestAppointmentInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TestAppointmentInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/tests/process/:
+    post:
+      operationId: tests_process_create
+      tags:
+      - tests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessTestInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProcessTestInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessTestInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/units/:
+    get:
+      operationId: units_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - units
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUnitList'
+          description: ''
+    post:
+      operationId: units_create
+      tags:
+      - units
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Unit'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Unit'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Unit'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unit'
+          description: ''
+  /api/v1/units/{id}/:
+    get:
+      operationId: units_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este unit.
+        required: true
+      tags:
+      - units
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unit'
+          description: ''
+  /api/v1/users/:
+    get:
+      operationId: users_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserOutputList'
+          description: ''
+    post:
+      operationId: users_create
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOutput'
+          description: ''
+  /api/v1/users/{id}/configure/:
+    post:
+      operationId: users_configure_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este usuário.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOutput'
+          description: ''
+  /api/v1/users/options/:
+    get:
+      operationId: users_options_retrieve
+      description: Handler method for HTTP 'OPTIONS' request.
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOptionsOutput'
+          description: ''
+  /api/v1/workspace/:
+    get:
+      operationId: workspace_retrieve
+      tags:
+      - workspace
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlOutput'
+          description: ''
+components:
+  schemas:
+    AckOutput:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+      - ok
+    ActionEnum:
+      enum:
+      - note
+      - call
+      - classify
+      - record_response
+      type: string
+      description: |-
+        * `note` - note
+        * `call` - call
+        * `classify` - classify
+        * `record_response` - record_response
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        external_id:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/AppointmentKindEnum'
+        patient:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 40
+        phone_numbers: {}
+        patient_record:
+          type: integer
+          nullable: true
+        patient_external_id:
+          type: string
+          maxLength: 100
+        professional:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 150
+        tracking:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        procedure:
+          type: string
+          maxLength: 200
+        procedure_code:
+          type: string
+          maxLength: 100
+        appointment_type:
+          type: string
+          maxLength: 100
+        scheduled_at:
+          type: string
+          format: date-time
+        arrival_time:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          maxLength: 20
+        synthetic:
+          type: boolean
+        revision:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        source:
+          type: string
+          maxLength: 30
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+        data_issue:
+          type: string
+          maxLength: 50
+      required:
+      - arrival_time
+      - external_id
+      - id
+      - kind
+      - last_seen_at
+      - patient
+      - procedure
+      - scheduled_at
+      - tracking
+    AppointmentCommunications:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        manual_responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Interaction'
+      required:
+      - count
+      - manual_responses
+      - next
+      - previous
+      - results
+    AppointmentKindEnum:
+      enum:
+      - consultation
+      - exam
+      - lab
+      type: string
+      description: |-
+        * `consultation` - Consulta
+        * `exam` - Exame
+        * `lab` - Laboratório
+    Attempt:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        outcome:
+          type: string
+          maxLength: 30
+        error_code:
+          type: string
+          maxLength: 80
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - number
+      - started_at
+    Audit:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        actor_name:
+          type: string
+          readOnly: true
+          default: Sistema
+        action:
+          type: string
+          maxLength: 80
+        object_id:
+          type: string
+          maxLength: 80
+        details: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_name
+      - created_at
+      - id
+    CDRImportPurposeEnum:
+      enum:
+      - waitlist
+      - summons
+      type: string
+      description: |-
+        * `waitlist` - waitlist
+        * `summons` - summons
+    CallResultEnum:
+      enum:
+      - answered
+      - not_answered
+      type: string
+      description: |-
+        * `answered` - answered
+        * `not_answered` - not_answered
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        purpose:
+          $ref: '#/components/schemas/CommunicationPurposeEnum'
+        state:
+          type: string
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        scheduled_for:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        template:
+          type: integer
+          nullable: true
+        cases:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - cases
+      - created_at
+      - id
+      - name
+      - purpose
+      - state
+      - unit
+      - version
+    Case:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event:
+          allOf:
+          - $ref: '#/components/schemas/Event'
+          readOnly: true
+        assignee_name:
+          type: string
+          readOnly: true
+          default: ''
+        purpose_label:
+          type: string
+          readOnly: true
+        state_label:
+          type: string
+          readOnly: true
+        purpose:
+          $ref: '#/components/schemas/CommunicationPurposeEnum'
+        state:
+          $ref: '#/components/schemas/CaseStateEnum'
+        priority:
+          $ref: '#/components/schemas/CasePriorityEnum'
+        outcome:
+          type: string
+          maxLength: 40
+        response_state:
+          type: string
+          maxLength: 30
+        last_response_at:
+          type: string
+          format: date-time
+          nullable: true
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        unit:
+          type: integer
+        assignee:
+          type: integer
+          nullable: true
+      required:
+      - assignee_name
+      - created_at
+      - event
+      - id
+      - purpose
+      - purpose_label
+      - state_label
+      - unit
+      - updated_at
+    CaseActionInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        text:
+          type: string
+          maxLength: 4000
+          minLength: 3
+        assignee:
+          type: integer
+        phone:
+          type: string
+          maxLength: 40
+        outcome:
+          type: string
+          maxLength: 40
+        interlocutor:
+          type: string
+          maxLength: 200
+        call_result:
+          $ref: '#/components/schemas/CallResultEnum'
+        priority:
+          $ref: '#/components/schemas/CaseActionInputPriorityEnum'
+        channel:
+          $ref: '#/components/schemas/ChannelEnum'
+        occurred_at:
+          type: string
+          format: date-time
+        message_id:
+          type: string
+          format: uuid
+      required:
+      - action
+      - text
+      - version
+    CaseActionInputPriorityEnum:
+      enum:
+      - normal
+      - high
+      type: string
+      description: |-
+        * `normal` - normal
+        * `high` - high
+    CasePriorityEnum:
+      enum:
+      - normal
+      - high
+      type: string
+      description: |-
+        * `normal` - Normal
+        * `high` - Alta
+    CaseStateEnum:
+      enum:
+      - open
+      - assigned
+      - waiting_external
+      - closed
+      type: string
+      description: |-
+        * `open` - Aberto
+        * `assigned` - Em atendimento
+        * `waiting_external` - Aguardando ação externa
+        * `closed` - Concluído
+    ChannelEnum:
+      enum:
+      - phone
+      - whatsapp
+      type: string
+      description: |-
+        * `phone` - phone
+        * `whatsapp` - whatsapp
+    CheckInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    ClassificationEnum:
+      enum:
+      - confirmed
+      - declined
+      - review
+      - wrong_person
+      - opt_out
+      - stay_waitlist
+      - leave_waitlist
+      - acknowledged
+      - well
+      - needs_attention
+      - reason_received
+      type: string
+      description: |-
+        * `confirmed` - confirmed
+        * `declined` - declined
+        * `review` - review
+        * `wrong_person` - wrong_person
+        * `opt_out` - opt_out
+        * `stay_waitlist` - stay_waitlist
+        * `leave_waitlist` - leave_waitlist
+        * `acknowledged` - acknowledged
+        * `well` - well
+        * `needs_attention` - needs_attention
+        * `reason_received` - reason_received
+    ClearSecretsEnum:
+      enum:
+      - access_token
+      - app_secret
+      - verify_token
+      type: string
+      description: |-
+        * `access_token` - access_token
+        * `app_secret` - app_secret
+        * `verify_token` - verify_token
+    CommunicationPurposeEnum:
+      enum:
+      - appointment
+      - waitlist
+      - summons
+      - postoperative
+      - absence
+      - movement
+      - report
+      type: string
+      description: |-
+        * `appointment` - Confirmação de agendamento
+        * `waitlist` - Permanência na fila CDR
+        * `summons` - Convocação CDR
+        * `postoperative` - Acompanhamento pós-cirúrgico
+        * `absence` - Motivo da ausência
+        * `movement` - Movimentação de agenda
+        * `report` - Relatório
+    ConfigInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        waba_id:
+          type: string
+          pattern: ^\d{1,40}$
+        phone_number_id:
+          type: string
+          pattern: ^\d{1,40}$
+        business_id:
+          type: string
+          pattern: ^\d{1,40}$
+        app_id:
+          type: string
+          pattern: ^\d{1,40}$
+        api_version:
+          type: string
+          pattern: ^v\d{1,3}\.\d{1,2}$
+        access_token:
+          type: string
+          writeOnly: true
+          maxLength: 8192
+        app_secret:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+        verify_token:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+        clear_secrets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClearSecretsEnum'
+      required:
+      - api_version
+      - phone_number_id
+      - version
+      - waba_id
+    ConfigOutput:
+      type: object
+      properties:
+        unit:
+          type: string
+        version:
+          type: integer
+        waba_id:
+          type: string
+        phone_number_id:
+          type: string
+        business_id:
+          type: string
+        app_id:
+          type: string
+        api_version:
+          type: string
+        has_access_token:
+          type: boolean
+        has_app_secret:
+          type: boolean
+        has_verify_token:
+          type: boolean
+        sending_enabled:
+          type: boolean
+        validation_state:
+          type: string
+        validation_code:
+          type: string
+        checked_at:
+          type: string
+          format: date-time
+          nullable: true
+        account_name:
+          type: string
+        display_phone_number:
+          type: string
+        verified_name:
+          type: string
+        templates_synced_at:
+          type: string
+          format: date-time
+          nullable: true
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RemoteTemplateOutput'
+      required:
+      - account_name
+      - api_version
+      - app_id
+      - business_id
+      - checked_at
+      - display_phone_number
+      - has_access_token
+      - has_app_secret
+      - has_verify_token
+      - phone_number_id
+      - sending_enabled
+      - templates
+      - templates_synced_at
+      - unit
+      - validation_code
+      - validation_state
+      - verified_name
+      - version
+      - waba_id
+    ConfigurationInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        admin_password:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+        host:
+          type: string
+          pattern: ^[a-zA-Z0-9][a-zA-Z0-9.\-:]{0,252}$
+        port:
+          type: integer
+          maximum: 65535
+          minimum: 1
+          default: 1521
+        identifier_type:
+          $ref: '#/components/schemas/IdentifierTypeEnum'
+        identifier:
+          type: string
+          pattern: ^[a-zA-Z0-9_.$\-]{1,128}$
+        username:
+          type: string
+          maxLength: 128
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+        timeout_ms:
+          type: integer
+          maximum: 120000
+          minimum: 1000
+          default: 30000
+      required:
+      - admin_password
+      - host
+      - identifier
+      - identifier_type
+      - password
+      - username
+      - version
+    ConfigurationOutput:
+      type: object
+      properties:
+        unit:
+          type: string
+        version:
+          type: integer
+        configured:
+          type: boolean
+        legacy_configured:
+          type: boolean
+        unlocked:
+          type: boolean
+        unlocked_until:
+          type: string
+          format: date-time
+          nullable: true
+        protected_by:
+          type: string
+        validation_state:
+          type: string
+        checked_at:
+          type: string
+          format: date-time
+          nullable: true
+        details:
+          nullable: true
+        client_mode:
+          type: string
+      required:
+      - checked_at
+      - client_mode
+      - configured
+      - details
+      - legacy_configured
+      - protected_by
+      - unit
+      - unlocked
+      - unlocked_until
+      - validation_state
+      - version
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          maxLength: 40
+        status:
+          type: string
+          maxLength: 30
+        opted_out:
+          type: boolean
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        event:
+          type: integer
+        patient_phone:
+          type: integer
+          nullable: true
+      required:
+      - event
+      - id
+      - phone
+      - unit
+      - version
+    ControlInput:
+      type: object
+      properties:
+        paused:
+          type: boolean
+        response_hours:
+          type: integer
+          maximum: 168
+          minimum: 1
+    ControlOutput:
+      type: object
+      properties:
+        unit:
+          $ref: '#/components/schemas/Unit'
+        mode:
+          type: string
+        test_recipients:
+          type: array
+          items:
+            type: string
+        oracle_configured:
+          type: boolean
+        meta_configured:
+          type: boolean
+        production_enabled:
+          type: boolean
+        legacy_exclusion:
+          type: boolean
+      required:
+      - legacy_exclusion
+      - meta_configured
+      - mode
+      - oracle_configured
+      - production_enabled
+      - test_recipients
+      - unit
+    CsrfOutput:
+      type: object
+      properties:
+        csrfToken:
+          type: string
+      required:
+      - csrfToken
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source:
+          type: string
+          maxLength: 80
+        external_id:
+          type: string
+          maxLength: 200
+        kind:
+          type: string
+          maxLength: 30
+        patient:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 40
+        occurred_at:
+          type: string
+          format: date-time
+        revision:
+          type: integer
+          readOnly: true
+        data: {}
+        synthetic:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        appointment:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - appointment
+      - created_at
+      - external_id
+      - id
+      - kind
+      - occurred_at
+      - revision
+      - source
+      - synthetic
+      - unit
+    EventEnum:
+      enum:
+      - sent
+      - delivered
+      - read
+      - confirmed
+      - declined
+      - review
+      type: string
+      description: |-
+        * `sent` - sent
+        * `delivered` - delivered
+        * `read` - read
+        * `confirmed` - confirmed
+        * `declined` - declined
+        * `review` - review
+    FlowRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          type: string
+          maxLength: 80
+        name:
+          type: string
+          maxLength: 150
+        purpose:
+          $ref: '#/components/schemas/CommunicationPurposeEnum'
+        days_after:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        send_time:
+          type: string
+          format: time
+        weekdays: {}
+        enabled:
+          type: boolean
+        evidence:
+          type: string
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        source:
+          type: integer
+        template:
+          type: integer
+      required:
+      - code
+      - id
+      - name
+      - purpose
+      - send_time
+      - source
+      - template
+      - unit
+      - version
+    FlowRun:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        run_date:
+          type: string
+          format: date
+        state:
+          type: string
+          maxLength: 20
+        error_code:
+          type: string
+          maxLength: 80
+        count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        unit:
+          type: integer
+          readOnly: true
+        rule:
+          type: integer
+      required:
+      - id
+      - rule
+      - run_date
+      - started_at
+      - unit
+    FormatEnum:
+      enum:
+      - csv
+      - pdf
+      - text
+      type: string
+      description: |-
+        * `csv` - csv
+        * `pdf` - pdf
+        * `text` - text
+    GrantInput:
+      type: object
+      properties:
+        unit:
+          type: string
+          maxLength: 100
+        role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+        permissions: {}
+      required:
+      - role
+      - unit
+    Group:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          type: string
+          maxLength: 30
+        appointment_date:
+          type: string
+          format: date
+        rule_name:
+          type: string
+          readOnly: true
+        rule_version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        scheduled_for:
+          type: string
+          format: date-time
+        delay_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        appointments_total:
+          type: integer
+          readOnly: true
+        appointments_sent:
+          type: integer
+          readOnly: true
+        messages_total:
+          type: integer
+          readOnly: true
+        messages_sent:
+          type: integer
+          readOnly: true
+        messages_delivered:
+          type: integer
+          readOnly: true
+        messages_pending:
+          type: integer
+          readOnly: true
+        paused:
+          type: boolean
+          readOnly: true
+      required:
+      - appointment_date
+      - appointments_sent
+      - appointments_total
+      - id
+      - kind
+      - messages_delivered
+      - messages_pending
+      - messages_sent
+      - messages_total
+      - paused
+      - rule_name
+      - rule_version
+      - scheduled_for
+    GroupScheduleInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        scheduled_for:
+          type: string
+          format: date-time
+        delay_seconds:
+          type: integer
+          maximum: 3600
+          minimum: 0
+      required:
+      - delay_seconds
+      - scheduled_for
+      - version
+    IdentifierTypeEnum:
+      enum:
+      - service
+      - sid
+      type: string
+      description: |-
+        * `service` - service
+        * `sid` - sid
+    ImportInput:
+      type: object
+      properties:
+        rule_id:
+          type: integer
+      required:
+      - rule_id
+    ImportLayout:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          readOnly: true
+        mapping: {}
+        verified:
+          type: boolean
+        evidence:
+          type: string
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - name
+      - unit
+      - version
+    ImportRun:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        rule_name:
+          type: string
+          readOnly: true
+        run_date:
+          type: string
+          format: date
+        status:
+          type: string
+          maxLength: 20
+        imported:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        error:
+          type: string
+          maxLength: 100
+        legacy_exclusion:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - rule_name
+      - run_date
+      - started_at
+    IndicatorsOutput:
+      type: object
+      properties:
+        appointments:
+          type: integer
+        messages:
+          type: integer
+        accepted:
+          type: integer
+        delivered:
+          type: integer
+        confirmed:
+          type: integer
+        declined:
+          type: integer
+        no_response:
+          type: integer
+        issues:
+          type: integer
+        synthetic_appointments:
+          type: integer
+        states:
+          type: object
+          additionalProperties:
+            type: integer
+        responses:
+          type: object
+          additionalProperties:
+            type: integer
+        by_kind:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        trend:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        paused:
+          type: boolean
+      required:
+      - accepted
+      - appointments
+      - by_kind
+      - confirmed
+      - declined
+      - delivered
+      - issues
+      - messages
+      - no_response
+      - paused
+      - responses
+      - states
+      - synthetic_appointments
+      - trend
+    InstanceVersionInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    Interaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        actor_name:
+          type: string
+          readOnly: true
+          default: Sistema
+        kind:
+          type: string
+          maxLength: 30
+        text:
+          type: string
+          maxLength: 4000
+        interlocutor:
+          type: string
+          maxLength: 200
+        channel:
+          type: string
+          maxLength: 30
+        outcome:
+          type: string
+          maxLength: 40
+        data: {}
+        occurred_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        case:
+          type: string
+          format: uuid
+        actor:
+          type: integer
+          nullable: true
+      required:
+      - actor_name
+      - case
+      - created_at
+      - id
+      - kind
+      - occurred_at
+      - text
+    Issue:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        message:
+          type: string
+          format: uuid
+          nullable: true
+        case:
+          type: string
+          format: uuid
+          nullable: true
+        contact_phone:
+          type: string
+          maxLength: 40
+        appointment:
+          type: integer
+          readOnly: true
+        reply:
+          type: integer
+          nullable: true
+        sender:
+          type: string
+          readOnly: true
+          default: ''
+        patient:
+          type: string
+          readOnly: true
+        reply_text:
+          type: string
+          readOnly: true
+          default: ''
+        category:
+          type: string
+          maxLength: 40
+        description:
+          type: string
+        resolution:
+          type: string
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - appointment
+      - category
+      - created_at
+      - description
+      - id
+      - patient
+      - reply_text
+      - sender
+    IssuedKeyOutput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        active:
+          type: boolean
+          readOnly: true
+        key:
+          type: string
+          readOnly: true
+      required:
+      - active
+      - created_at
+      - expires_at
+      - id
+      - key
+      - name
+      - role
+    Key:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        active:
+          type: boolean
+          readOnly: true
+      required:
+      - active
+      - created_at
+      - expires_at
+      - id
+      - name
+      - role
+    KeyInput:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        role:
+          allOf:
+          - $ref: '#/components/schemas/MembershipRoleEnum'
+          default: viewer
+        validity_days:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 90
+      required:
+      - name
+    LoginInput:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - username
+    ManifestOutput:
+      type: object
+      properties:
+        protocol:
+          type: string
+        instance_id:
+          type: string
+          format: uuid
+        unit:
+          $ref: '#/components/schemas/Unit'
+        role:
+          type: string
+        sending_enabled:
+          type: boolean
+        permissions:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+      - instance_id
+      - permissions
+      - protocol
+      - role
+      - sending_enabled
+      - unit
+    Member:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+        username:
+          type: string
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+        active:
+          type: boolean
+          readOnly: true
+      required:
+      - active
+      - id
+      - user
+      - username
+    MemberInput:
+      type: object
+      properties:
+        username:
+          type: string
+          pattern: ^[\w.@+-]{3,150}$
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 200
+          minLength: 12
+        role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+      required:
+      - password
+      - role
+      - username
+    MembershipRoleEnum:
+      enum:
+      - admin
+      - operator
+      - viewer
+      type: string
+      description: |-
+        * `admin` - Administrador
+        * `operator` - Operador
+        * `viewer` - Consulta
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        appointment:
+          type: integer
+          nullable: true
+        case:
+          type: string
+          format: uuid
+          nullable: true
+        purpose:
+          type: string
+          maxLength: 30
+        snapshot: {}
+        sender_phone:
+          type: string
+          readOnly: true
+        sent_at:
+          type: string
+          format: date-time
+          readOnly: true
+        responses:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        patient:
+          type: string
+          readOnly: true
+        kind:
+          type: string
+          readOnly: true
+        procedure:
+          type: string
+          readOnly: true
+        appointment_at:
+          type: string
+          readOnly: true
+        synthetic:
+          type: boolean
+          readOnly: true
+        rule_name:
+          type: string
+          readOnly: true
+          default: Campanha
+        recipient:
+          type: string
+          maxLength: 40
+        template_name:
+          type: string
+          maxLength: 100
+        template_language:
+          type: string
+          maxLength: 15
+        parameters: {}
+        body:
+          type: string
+        state:
+          $ref: '#/components/schemas/MessageStateEnum'
+        response_state:
+          type: string
+          maxLength: 20
+        scheduled_for:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        attempt_count:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        error_code:
+          type: string
+          maxLength: 80
+        provider_id:
+          type: string
+          nullable: true
+          maxLength: 200
+        channel_id:
+          type: string
+          maxLength: 100
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        attempts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attempt'
+          readOnly: true
+      required:
+      - appointment_at
+      - attempts
+      - body
+      - created_at
+      - expires_at
+      - id
+      - kind
+      - patient
+      - procedure
+      - recipient
+      - responses
+      - rule_name
+      - scheduled_for
+      - sender_phone
+      - sent_at
+      - synthetic
+      - template_language
+      - template_name
+    MessageStateEnum:
+      enum:
+      - preview
+      - queued
+      - sending
+      - accepted
+      - sent
+      - delivered
+      - read
+      - failed
+      - uncertain
+      - blocked
+      - expired
+      - cancelled
+      type: string
+      description: |-
+        * `preview` - Somente análise
+        * `queued` - Na fila
+        * `sending` - Enviando
+        * `accepted` - Aceita pela API
+        * `sent` - Enviada
+        * `delivered` - Entregue
+        * `read` - Lida
+        * `failed` - Falha
+        * `uncertain` - Resultado incerto
+        * `blocked` - Bloqueada
+        * `expired` - Vencida
+        * `cancelled` - Invalidada
+    Movement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          $ref: '#/components/schemas/MovementKindEnum'
+        before:
+          readOnly: true
+        requested: {}
+        final:
+          readOnly: true
+        state:
+          type: string
+          readOnly: true
+        evidence:
+          type: string
+          readOnly: true
+        confirmed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        version:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        case:
+          type: string
+          format: uuid
+        created_by:
+          type: integer
+          readOnly: true
+        confirmed_by:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - before
+      - case
+      - confirmed_at
+      - confirmed_by
+      - created_at
+      - created_by
+      - evidence
+      - final
+      - id
+      - kind
+      - state
+      - unit
+      - version
+    MovementConfirmInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        evidence:
+          type: string
+          maxLength: 4000
+          minLength: 5
+        final: {}
+      required:
+      - evidence
+      - version
+    MovementKindEnum:
+      enum:
+      - cancel
+      - reschedule
+      - transfer
+      type: string
+      description: |-
+        * `cancel` - Cancelamento
+        * `reschedule` - Reagendamento
+        * `transfer` - Transferência
+    OracleVersionInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    PaginatedAppointmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+    PaginatedAuditList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Audit'
+    PaginatedCampaignList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+    PaginatedCaseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Case'
+    PaginatedConfigOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfigOutput'
+    PaginatedContactList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contact'
+    PaginatedFlowRuleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowRule'
+    PaginatedFlowRunList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowRun'
+    PaginatedGroupList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+    PaginatedImportLayoutList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportLayout'
+    PaginatedImportRunList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportRun'
+    PaginatedInteractionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Interaction'
+    PaginatedIssueList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+    PaginatedKeyList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Key'
+    PaginatedMemberList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+    PaginatedMessageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+    PaginatedMovementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movement'
+    PaginatedPreparationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Preparation'
+    PaginatedPurposePolicyList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurposePolicy'
+    PaginatedRemoteList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Remote'
+    PaginatedReplyList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reply'
+    PaginatedReportAccessList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportAccess'
+    PaginatedReportDefinitionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportDefinition'
+    PaginatedReportRequestList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportRequest'
+    PaginatedReportScheduleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportSchedule'
+    PaginatedRuleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+    PaginatedSheetList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sheet'
+    PaginatedSourceConfigurationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceConfiguration'
+    PaginatedTemplateList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+    PaginatedUnitList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Unit'
+    PaginatedUserOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserOutput'
+    PasswordInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        admin_password:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+      required:
+      - admin_password
+      - version
+    Preparation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        procedure_code:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 200
+        text:
+          type: string
+          maxLength: 12000
+        version:
+          type: integer
+          readOnly: true
+          default: 1
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - procedure_code
+      - text
+      - unit
+      - version
+    ProcessTestInput:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+      required:
+      - message_id
+    PurposePolicy:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        purpose:
+          $ref: '#/components/schemas/CommunicationPurposeEnum'
+        response_hours:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        enabled:
+          type: boolean
+        evidence:
+          type: string
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - purpose
+      - unit
+      - version
+    Remote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        base_url:
+          type: string
+          format: uri
+          maxLength: 500
+        remote_instance_id:
+          type: string
+          format: uuid
+        remote_unit: {}
+        remote_unit_slug:
+          type: string
+          maxLength: 50
+        remote_role:
+          $ref: '#/components/schemas/MembershipRoleEnum'
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        checked_at:
+          type: string
+          format: date-time
+          nullable: true
+        state:
+          type: string
+          maxLength: 20
+        error_code:
+          type: string
+          maxLength: 40
+        has_key:
+          type: boolean
+          readOnly: true
+      required:
+      - base_url
+      - has_key
+      - id
+      - name
+      - remote_instance_id
+      - remote_role
+      - remote_unit_slug
+    RemoteInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        name:
+          type: string
+          maxLength: 120
+        base_url:
+          type: string
+          maxLength: 500
+        key:
+          type: string
+          writeOnly: true
+          pattern: ^orbita_[a-f0-9]{32}\.[A-Za-z0-9_-]{43}$
+      required:
+      - base_url
+      - name
+      - version
+    RemoteTemplateOutput:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        language:
+          type: string
+        status:
+          type: string
+        category:
+          type: string
+        components: {}
+        body:
+          type: string
+        parameters:
+          type: array
+          items:
+            type: string
+        checks:
+          type: array
+          items:
+            type: string
+      required:
+      - body
+      - category
+      - checks
+      - components
+      - id
+      - language
+      - name
+      - parameters
+      - status
+    Reply:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        message:
+          type: string
+          format: uuid
+          nullable: true
+        sender:
+          type: string
+          maxLength: 40
+        text:
+          type: string
+        classification:
+          type: string
+          maxLength: 20
+        patient:
+          type: string
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - classification
+      - created_at
+      - id
+      - occurred_at
+      - patient
+      - sender
+      - text
+    ReportAccess:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          maxLength: 40
+        verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        active:
+          type: boolean
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+        reports:
+          type: array
+          items:
+            type: integer
+      required:
+      - id
+      - phone
+      - reports
+      - unit
+      - user
+      - verified_at
+      - version
+    ReportDefinition:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          type: string
+          maxLength: 80
+        name:
+          type: string
+          maxLength: 200
+        keyword:
+          type: string
+          maxLength: 80
+        source:
+          type: string
+          maxLength: 80
+        handler:
+          type: string
+          maxLength: 80
+        parameter_schema: {}
+        enabled:
+          type: boolean
+        unavailable_reason:
+          type: string
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - code
+      - id
+      - keyword
+      - name
+      - unit
+      - version
+    ReportInput:
+      type: object
+      properties:
+        report:
+          type: integer
+        parameters: {}
+        format:
+          allOf:
+          - $ref: '#/components/schemas/FormatEnum'
+          default: csv
+      required:
+      - report
+    ReportRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        report_name:
+          type: string
+          readOnly: true
+        parameters: {}
+        format:
+          type: string
+          maxLength: 10
+        definition_version:
+          type: integer
+          readOnly: true
+        state:
+          type: string
+          readOnly: true
+        delivery_state:
+          type: string
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        unit:
+          type: integer
+          readOnly: true
+        report:
+          type: integer
+        requester:
+          type: integer
+          readOnly: true
+        access:
+          type: integer
+          readOnly: true
+          nullable: true
+        inbound_event:
+          type: integer
+          nullable: true
+        notification:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - access
+      - completed_at
+      - created_at
+      - definition_version
+      - delivery_state
+      - error_code
+      - id
+      - report
+      - report_name
+      - requester
+      - state
+      - unit
+    ReportSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        send_time:
+          type: string
+          format: time
+        weekdays: {}
+        enabled:
+          type: boolean
+        last_run_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        parameters: {}
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        access:
+          type: integer
+        report:
+          type: integer
+      required:
+      - access
+      - id
+      - last_run_date
+      - report
+      - send_time
+      - unit
+      - version
+    ResolveInput:
+      type: object
+      properties:
+        resolution:
+          type: string
+          maxLength: 4000
+          minLength: 5
+        classification:
+          $ref: '#/components/schemas/ClassificationEnum'
+        message_id:
+          type: string
+          format: uuid
+      required:
+      - resolution
+    ResponseConditionEnum:
+      enum:
+      - any
+      - unanswered
+      - confirmed
+      type: string
+      description: |-
+        * `any` - Qualquer resposta
+        * `unanswered` - Sem resposta
+        * `confirmed` - Confirmados
+    Rule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        kind:
+          $ref: '#/components/schemas/AppointmentKindEnum'
+        days_before:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        response_condition:
+          $ref: '#/components/schemas/ResponseConditionEnum'
+        validity_hours:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        evidence:
+          type: string
+        send_time:
+          type: string
+          format: time
+        weekdays: {}
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          readOnly: true
+        template:
+          type: integer
+        template_name:
+          type: string
+          readOnly: true
+        legacy_report_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        legacy_scheduler_id:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - code
+      - days_before
+      - id
+      - kind
+      - legacy_report_id
+      - legacy_scheduler_id
+      - name
+      - send_time
+      - template
+      - template_name
+      - version
+    SessionOutput:
+      type: object
+      properties:
+        username:
+          type: string
+        units:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionUnitOutput'
+        roles:
+          type: object
+          additionalProperties:
+            type: string
+        permissions:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+        mode:
+          type: string
+      required:
+      - mode
+      - permissions
+      - roles
+      - units
+      - username
+    SessionUnitOutput:
+      type: object
+      properties:
+        id:
+          oneOf:
+          - type: integer
+          - type: string
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 150
+        timezone:
+          type: string
+          maxLength: 50
+        paused:
+          type: boolean
+        response_hours:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        remote:
+          type: boolean
+        instance_id:
+          type: string
+          format: uuid
+        instance_name:
+          type: string
+        origin_unit:
+          type: string
+        connection_state:
+          type: string
+        permissions:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+      - id
+      - name
+      - slug
+    Sheet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        layout:
+          type: integer
+        state:
+          type: string
+          maxLength: 20
+        row_count:
+          type: integer
+          readOnly: true
+        errors: {}
+        duplicates:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - layout
+      - row_count
+    SheetConfirmInput:
+      type: object
+      properties:
+        purpose:
+          $ref: '#/components/schemas/CDRImportPurposeEnum'
+      required:
+      - purpose
+    SheetPreviewInput:
+      type: object
+      properties:
+        layout:
+          type: integer
+        filename:
+          type: string
+          maxLength: 200
+        content_base64:
+          type: string
+          maxLength: 7340032
+      required:
+      - content_base64
+      - filename
+      - layout
+    SimulateInput:
+      type: object
+      properties:
+        event:
+          $ref: '#/components/schemas/EventEnum'
+      required:
+      - event
+    SourceConfiguration:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          $ref: '#/components/schemas/SourceKindEnum'
+        view_name:
+          type: string
+          maxLength: 200
+        verified:
+          type: boolean
+        evidence:
+          type: string
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - kind
+      - unit
+      - version
+      - view_name
+    SourceKindEnum:
+      enum:
+      - consultation
+      - exam
+      - lab
+      - postoperative
+      type: string
+      description: |-
+        * `consultation` - Consulta
+        * `exam` - Exame
+        * `lab` - Laboratório
+        * `postoperative` - Pós-cirúrgico
+    Template:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        language:
+          type: string
+          maxLength: 15
+        body:
+          type: string
+        fields: {}
+        approved_for_test:
+          type: boolean
+        purpose:
+          type: string
+          maxLength: 30
+        components: {}
+        version:
+          type: integer
+          readOnly: true
+      required:
+      - body
+      - id
+      - name
+      - version
+    TestAppointmentInput:
+      type: object
+      properties:
+        phone:
+          type: string
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/AppointmentKindEnum'
+          default: consultation
+      required:
+      - phone
+    Unit:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 150
+        timezone:
+          type: string
+          maxLength: 50
+        paused:
+          type: boolean
+        response_hours:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - id
+      - name
+      - slug
+    UserInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 0
+        username:
+          type: string
+          pattern: ^[\w.@+-]{3,150}$
+        full_name:
+          type: string
+          default: ''
+          maxLength: 150
+        active:
+          type: boolean
+          default: true
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 200
+          minLength: 12
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrantInput'
+      required:
+      - grants
+      - version
+    UserOptionsOutput:
+      type: object
+      properties:
+        units:
+          type: array
+          items: {}
+        sections:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+      - sections
+      - units
+    UserOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        full_name:
+          type: string
+        active:
+          type: boolean
+        version:
+          type: integer
+        grants:
+          type: array
+          items:
+            $ref: '#/components/schemas/GrantInput'
+        editable:
+          type: boolean
+        global_editable:
+          type: boolean
+        has_other_units:
+          type: boolean
+        administrative:
+          type: boolean
+      required:
+      - active
+      - administrative
+      - editable
+      - full_name
+      - global_editable
+      - grants
+      - has_other_units
+      - id
+      - username
+      - version
+    VersionInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    orbitaInstanceKey:
+      type: http
+      scheme: bearer
+      bearerFormat: orbita_<id>.<secret>

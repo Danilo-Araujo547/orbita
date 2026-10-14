@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ajuda · Órbita</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f7fb;
+        --surface: #fff;
+        --text: #243a53;
+        --muted: #64748b;
+        --line: #dce6ef;
+        --link: #075b94;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #101114;
+          --surface: #181a1e;
+          --text: #e8ecf1;
+          --muted: #a1a9b5;
+          --line: #30353d;
+          --link: #8ad0e7;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          15px/1.75 system-ui,
+          sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+      main {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 32px 44px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+      a {
+        color: var(--link);
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 24px;
+      }
+      h1 {
+        font-size: 30px;
+        margin: 18px 0 0;
+        letter-spacing: -0.7px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 30px 0 10px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      footer {
+        margin-top: 36px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (max-width: 700px) {
+        main {
+          margin: 16px;
+          padding: 24px;
+        }
+      }
+    </style>
+    <script src="/guia.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a id="back" href="/">← Voltar ao painel</a>
+        <h1 id="title">Ajuda da tela</h1>
+      </header>
+      <div id="content"></div>
+      <noscript
+        >Ative JavaScript para consultar a documentação desta tela.</noscript
+      >
+      <footer>Órbita · Documentação operacional</footer>
+    </main>
+  </body>
+</html>

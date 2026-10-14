@@ -1,0 +1,11 @@
+Django>=5.2,<5.3
+djangorestframework>=3.16,<3.17
+celery>=5.5,<5.7
+redis>=5,<7
+psycopg[binary]>=3.2,<4
+oracledb>=3,<4
+requests>=2.32,<3
+drf-spectacular>=0.28,<0.30
+django-cors-headers>=4,<5
+whitenoise>=6,<7
+gunicorn>=23,<24; sys_platform != 'win32'

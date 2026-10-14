@@ -1,0 +1,74 @@
+name: rob8-next
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-rob8}
+      POSTGRES_USER: ${DATABASE_USER:-rob8}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Configure DATABASE_PASSWORD no .env}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+  api:
+    build: ./backend
+    env_file: .env
+    environment: &backend_environment
+      DATABASE_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py bootstrap && python manage.py bootstrap_operations && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile -"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+  worker:
+    build: ./backend
+    env_file: .env
+    environment: *backend_environment
+    command: ["celery", "-A", "config", "worker", "--loglevel=warning", "--concurrency=2"]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+  scheduler:
+    build: ./backend
+    env_file: .env
+    environment: *backend_environment
+    command: ["celery", "-A", "config", "beat", "--loglevel=warning", "--schedule=/tmp/celerybeat-schedule"]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+  panel:
+    build: ./frontend
+    ports: ["127.0.0.1:8080:80"]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+  tests:
+    profiles: ["test"]
+    build: ./backend
+    env_file: .env
+    environment: *backend_environment
+    command: ["pytest", "-q", "tests"]
+    depends_on:
+      api: {condition: service_healthy}
+volumes:
+  postgres_data:
+  redis_data:
