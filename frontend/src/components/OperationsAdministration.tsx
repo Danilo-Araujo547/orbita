@@ -115,9 +115,8 @@ export default function OperationsAdministration({
     };
   }, [unit, revision, onError]);
   const tab = activeTab || internalTab;
-  if (tab === "units" && activeTab) return <UnitDirectory unit={unit} />;
   return (
-    <div className="admin-records op-stack">
+    <div className="admin-records">
       {!activeTab && (
         <div className="op-toolbar">
           {[
@@ -227,7 +226,7 @@ export default function OperationsAdministration({
       {tab === "units" && <UnitDirectory unit={unit} />}
 
       {tab === "sources" && (
-        <div className="op-stack">
+        <>
           <Panel
             title="Origens de dados Oracle"
             action={
@@ -617,7 +616,7 @@ export default function OperationsAdministration({
               <Empty text="Nenhuma regra de agendamento cadastrada." />
             )}
           </Panel>
-        </div>
+        </>
       )}
 
       {tab === "access" && (

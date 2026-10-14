@@ -181,15 +181,19 @@ export default function RemoteInstances({
         </button>
       }
     >
-      {error && (
-        <p className="inline-error" role="alert">
-          {error}
-        </p>
-      )}
-      {notice && (
-        <p className="meta-notice" role="status">
-          {notice}
-        </p>
+      {(error || notice) && (
+        <div className="remote-messages">
+          {error && (
+            <p className="inline-error" role="alert">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p className="meta-notice" role="status">
+              {notice}
+            </p>
+          )}
+        </div>
       )}
 
       <div className="remote-section-heading">

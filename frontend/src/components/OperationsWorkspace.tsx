@@ -1305,6 +1305,7 @@ function Administration({
       ? ([
           ["sources", "Origens e regras", Database],
           ["units", "Unidades", Building2],
+          ["team", "Equipe da unidade", UserRound],
           ["access", "Acesso a relatórios", ShieldCheck],
           ["schedules", "Relatórios agendados", Clock3],
         ] as CategoryTab[])
@@ -1333,7 +1334,7 @@ function Administration({
       </nav>
       <div className="admin-category-content" key={category}>
         {admin &&
-          ["sources", "units", "access", "schedules"].includes(category) && (
+          ["sources", "units", "team", "access", "schedules"].includes(category) && (
             <OperationsAdministration
               unit={unit}
               revision={revision}

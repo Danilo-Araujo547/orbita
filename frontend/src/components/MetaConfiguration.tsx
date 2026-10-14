@@ -29,7 +29,7 @@ export type MetaConfig = {
   has_access_token: boolean;
   has_app_secret: boolean;
   has_verify_token: boolean;
-  sending_enabled: false;
+  sending_enabled: boolean;
   validation_state: string;
   validation_code: string;
   checked_at: string | null;
@@ -122,9 +122,7 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
         ),
       );
       setDirty(false);
-      setNotice(
-        "Configuração salva nesta unidade. Envio real continua desativado.",
-      );
+      setNotice("Configuração salva.");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -181,11 +179,7 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
             </button>
             <FormAction
               title="Configuração da Meta"
-              label={
-                config.version
-                  ? "Editar configuração"
-                  : "Configurar Meta"
-              }
+              label={config.version ? "Editar configuração" : "Configurar Meta"}
               version={config.version}
               error={error}
               busy={busy}
@@ -296,121 +290,127 @@ export default function MetaConfiguration({ unit }: { unit: string }) {
         </p>
       ) : (
         <>
-          <div className="config-overview-banner">
-            <div className="overview-item">
-              <span className="overview-label">Disparos de mensagens</span>
-              <span className="directory-status paused">
-                Envio real desativado
-              </span>
-            </div>
-            <div className="overview-item">
-              <span className="overview-label">Validação de Acesso</span>
-              <span
-                className={`directory-status ${
-                  config.validation_state === "valid"
-                    ? "active"
-                    : config.validation_state === "error"
-                      ? "paused"
-                      : ""
-                }`}
-              >
-                {config.validation_state === "valid"
-                  ? "Acesso validado"
-                  : config.validation_state === "error"
-                    ? "Falha na validação"
-                    : "Não validado"}
-              </span>
-              {config.checked_at && (
-                <small className="directory-detail">
-                  {dateTime(config.checked_at)}
-                </small>
-              )}
-            </div>
-            {config.account_name && (
+          <div className="meta-body">
+            <div className="config-overview-banner">
               <div className="overview-item">
-                <span className="overview-label">Conta WhatsApp Business</span>
-                <strong>
-                  {config.account_name} · {config.display_phone_number}
-                </strong>
-                {config.verified_name && (
+                <span className="overview-label">Disparos de mensagens</span>
+                <span className="directory-status paused">
+                  {config.sending_enabled
+                    ? "Envio real · teste"
+                    : "Envio real desativado"}
+                </span>
+              </div>
+              <div className="overview-item">
+                <span className="overview-label">Validação de Acesso</span>
+                <span
+                  className={`directory-status ${
+                    config.validation_state === "valid"
+                      ? "active"
+                      : config.validation_state === "error"
+                        ? "paused"
+                        : ""
+                  }`}
+                >
+                  {config.validation_state === "valid"
+                    ? "Acesso validado"
+                    : config.validation_state === "error"
+                      ? "Falha na validação"
+                      : "Não validado"}
+                </span>
+                {config.checked_at && (
                   <small className="directory-detail">
-                    {config.verified_name}
+                    {dateTime(config.checked_at)}
                   </small>
                 )}
               </div>
-            )}
-          </div>
+              {config.account_name && (
+                <div className="overview-item">
+                  <span className="overview-label">Conta WhatsApp Business</span>
+                  <strong>
+                    {config.account_name} · {config.display_phone_number}
+                  </strong>
+                  {config.verified_name && (
+                    <small className="directory-detail">
+                      {config.verified_name}
+                    </small>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <div className="config-detail-grid">
-            <div className="config-detail-card">
-              <span>WABA ID</span>
-              <strong className="directory-code">
-                {config.waba_id || "Não configurado"}
-              </strong>
-            </div>
-            <div className="config-detail-card">
-              <span>Phone Number ID</span>
-              <strong className="directory-code">
-                {config.phone_number_id || "Não configurado"}
-              </strong>
-            </div>
-            <div className="config-detail-card">
-              <span>Token de Acesso</span>
-              <div>
-                <span
-                  className={`directory-status ${
-                    config.has_access_token ? "active" : ""
-                  }`}
-                >
-                  {config.has_access_token
-                    ? "Salvo e protegido"
-                    : "Não configurado"}
-                </span>
+            <div className="config-detail-grid">
+              <div className="config-detail-card">
+                <span>WABA ID</span>
+                <strong className="directory-code">
+                  {config.waba_id || "Não configurado"}
+                </strong>
+              </div>
+              <div className="config-detail-card">
+                <span>Phone Number ID</span>
+                <strong className="directory-code">
+                  {config.phone_number_id || "Não configurado"}
+                </strong>
+              </div>
+              <div className="config-detail-card">
+                <span>Token de Acesso</span>
+                <div>
+                  <span
+                    className={`directory-status ${
+                      config.has_access_token ? "active" : ""
+                    }`}
+                  >
+                    {config.has_access_token
+                      ? "Salvo e protegido"
+                      : "Não configurado"}
+                  </span>
+                </div>
+              </div>
+              <div className="config-detail-card">
+                <span>Graph API</span>
+                <strong className="directory-code">{config.api_version}</strong>
               </div>
             </div>
-            <div className="config-detail-card">
-              <span>Graph API</span>
-              <strong className="directory-code">{config.api_version}</strong>
-            </div>
-          </div>
 
-          {config.validation_code && (
-            <p className="meta-error" role="alert">
-              {errors[config.validation_code] ||
-                `Consulta não concluída (${config.validation_code}). Confira o acesso e tente novamente.`}
-            </p>
-          )}
-
-          <div className="meta-catalog-heading">
-            <div>
-              <h3>
-                Templates da Meta{" "}
-                <span className="directory-kind">{config.templates.length}</span>
-              </h3>
-              <p>
-                {config.templates_synced_at
-                  ? `Catálogo consultado em ${dateTime(config.templates_synced_at)}`
-                  : "O catálogo será carregado após uma validação bem-sucedida."}
-              </p>
-            </div>
-            <label>
-              Filtrar templates
-              <input
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
-                }}
-                placeholder="Nome, idioma ou situação"
-              />
-            </label>
-          </div>
-          {config.validation_state === "error" &&
-            config.templates_synced_at && (
-              <p className="directory-detail error-text">
-                Exibindo dados da última consulta bem-sucedida.
+            {config.validation_code && (
+              <p className="meta-error" role="alert">
+                {errors[config.validation_code] ||
+                  `Consulta não concluída (${config.validation_code}). Confira o acesso e tente novamente.`}
               </p>
             )}
+
+            <div className="meta-catalog-heading">
+              <div>
+                <h3>
+                  Templates da Meta{" "}
+                  <span className="directory-kind">
+                    {config.templates.length}
+                  </span>
+                </h3>
+                <p>
+                  {config.templates_synced_at
+                    ? `Catálogo consultado em ${dateTime(config.templates_synced_at)}`
+                    : "O catálogo será carregado após uma validação bem-sucedida."}
+                </p>
+              </div>
+              <label>
+                Filtrar templates
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(0);
+                  }}
+                  placeholder="Nome, idioma ou situação"
+                />
+              </label>
+            </div>
+            {config.validation_state === "error" &&
+              config.templates_synced_at && (
+                <p className="directory-detail error-text">
+                  Exibindo dados da última consulta bem-sucedida.
+                </p>
+              )}
+          </div>
           {templates.length > 0 ? (
             <div className="table-scroll">
               <table className="directory-table">

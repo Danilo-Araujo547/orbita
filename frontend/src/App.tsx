@@ -1242,7 +1242,7 @@ function Workspace({
                       <OracleConfiguration key={`oracle-${unit}`} unit={unit} />
                     )}
                   {settingsTab === "rules" && (
-                    <>
+                    <div className="rules-settings-layout">
                       <div className="settings-grid">
                         <Panel title="Controle de envios">
                           <div className="setting-row">
@@ -1536,10 +1536,10 @@ function Workspace({
                           ))}
                         </div>
                       </Panel>
-                    </>
+                    </div>
                   )}
                   {settingsTab === "activity" && (
-                    <div className="settings-grid">
+                    <div className="activity-settings-layout">
                       <Panel
                         title="Importações recentes"
                         action={
