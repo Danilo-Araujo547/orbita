@@ -148,9 +148,12 @@ class Preparation(models.Model):
 
 
 class ImportLayout(models.Model):
+    standard_mapping = models.JSONField(default=dict, blank=True)
+    default_template = models.ForeignKey("messaging.Template", null=True, blank=True, on_delete=models.PROTECT, related_name="cross_layouts")
+    parameter_fields = models.JSONField(default=list, blank=True)
     format = models.CharField(
         max_length=30,
-        choices=[("table", "CSV/XLSX"), ("absence_html", "Ausentes HTML (.xls)")],
+        choices=[("table", "CSV/XLSX"), ("absence_html", "Ausentes HTML (.xls)"), ("cross_demand_csv", "Demanda por recurso CROSS (.csv)")],
         default="table",
     )
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
@@ -162,6 +165,9 @@ class ImportLayout(models.Model):
 
 
 class SheetImport(models.Model):
+    filename = models.CharField(max_length=200, blank=True)
+    template = models.ForeignKey("messaging.Template", null=True, blank=True, on_delete=models.PROTECT, related_name="cross_imports")
+    configuration = models.JSONField(default=dict, blank=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     layout = models.ForeignKey(ImportLayout, on_delete=models.PROTECT)
@@ -180,6 +186,7 @@ class SheetImport(models.Model):
 
 
 class Campaign(models.Model):
+    import_batch = models.OneToOneField("SheetImport", null=True, blank=True, on_delete=models.PROTECT, related_name="campaign")
     sends_enabled = models.BooleanField(default=False)
     next_send_at = models.DateTimeField(null=True, blank=True)
     response_policy = models.CharField(

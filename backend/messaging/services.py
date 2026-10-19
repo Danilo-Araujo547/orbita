@@ -45,6 +45,9 @@ def issue_once(message, code, description):
 
 
 def send_guard(message):
+    if message.snapshot.get("oracle_agenda"):
+        return "oracle_agenda_preview_only"
+
     from messaging.pilot import authorized_recipients
 
     real = False

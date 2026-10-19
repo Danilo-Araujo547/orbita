@@ -3,6 +3,161 @@ info:
   title: Orbita API
   version: 1.0.0
 paths:
+  /api/v1/agenda-items/:
+    get:
+      operationId: agenda_items_list
+      parameters:
+      - in: query
+        name: corrections
+        schema:
+          type: boolean
+      - in: query
+        name: date_basis
+        schema:
+          type: string
+          enum:
+          - appointment
+          - reply
+          - send
+      - in: query
+        name: delivery
+        schema:
+          type: string
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: group
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: kind
+        schema:
+          type: string
+      - in: query
+        name: observations
+        schema:
+          type: boolean
+      - in: query
+        name: operational_pending
+        schema:
+          type: boolean
+      - in: query
+        name: outcome
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: response
+        schema:
+          type: string
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: unit
+        schema:
+          type: string
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAgendaItemList'
+          description: ''
+  /api/v1/agenda-items/{id}/:
+    get:
+      operationId: agenda_items_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaItem'
+          description: ''
+  /api/v1/agenda-items/{id}/communications/:
+    get:
+      operationId: agenda_items_communications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentCommunications'
+          description: ''
+  /api/v1/agenda-items/export/:
+    get:
+      operationId: agenda_items_export_retrieve
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaItem'
+          description: ''
+  /api/v1/agenda-items/types/:
+    get:
+      operationId: agenda_items_types_list
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgendaType'
+          description: ''
   /api/v1/appointment-groups/:
     get:
       operationId: appointment_groups_list
@@ -444,6 +599,40 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/VersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/campaigns/{id}/schedule/:
+    post:
+      operationId: campaigns_schedule_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este campaign.
+        required: true
+      tags:
+      - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignScheduleInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CampaignScheduleInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CampaignScheduleInput'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -1254,7 +1443,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedImportLayoutList'
+                $ref: '#/components/schemas/PaginatedLayoutList'
           description: ''
     post:
       operationId: layouts_create
@@ -1265,13 +1454,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -1281,7 +1470,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportLayout'
+                $ref: '#/components/schemas/Layout'
           description: ''
   /api/v1/layouts/{id}/:
     get:
@@ -1304,7 +1493,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportLayout'
+                $ref: '#/components/schemas/Layout'
           description: ''
   /api/v1/layouts/{id}/configure/:
     post:
@@ -1323,13 +1512,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -1339,7 +1528,74 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportLayout'
+                $ref: '#/components/schemas/Layout'
+          description: ''
+  /api/v1/logs/:
+    get:
+      operationId: logs_list
+      parameters:
+      - in: query
+        name: category
+        schema:
+          enum:
+          - audit
+          - imports
+          - messages
+          - attempts
+          - flows
+          - cross
+          - reports
+          - events
+          type: string
+          minLength: 1
+        description: |-
+          * `audit` - audit
+          * `imports` - imports
+          * `messages` - messages
+          * `attempts` - attempts
+          * `flows` - flows
+          * `cross` - cross
+          * `reports` - reports
+          * `events` - events
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: status
+        schema:
+          type: string
+          maxLength: 80
+          minLength: 1
+      tags:
+      - logs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogList'
           description: ''
   /api/v1/members/:
     get:
@@ -1727,6 +1983,190 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Movement'
+          description: ''
+  /api/v1/oracle-agendas/:
+    get:
+      operationId: oracle_agendas_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - oracle-agendas
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAgendaOutputList'
+          description: ''
+  /api/v1/oracle-agendas/configure/:
+    post:
+      operationId: oracle_agendas_configure_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/inspect/:
+    post:
+      operationId: oracle_agendas_inspect_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InspectInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InspectInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectOutput'
+          description: ''
+  /api/v1/oracle-agendas/remove/:
+    post:
+      operationId: oracle_agendas_remove_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/restore/:
+    post:
+      operationId: oracle_agendas_restore_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/synchronize/:
+    post:
+      operationId: oracle_agendas_synchronize_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaVersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/test_patient/:
+    post:
+      operationId: oracle_agendas_test_patient_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestPatientInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TestPatientInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TestPatientInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestPatientOutput'
           description: ''
   /api/v1/oracle-configuration/:
     get:
@@ -3246,9 +3686,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Sheet'
           description: ''
-  /api/v1/sheet-imports/{id}/rows/:
+  /api/v1/sheet-imports/{id}/export/:
     get:
-      operationId: sheet_imports_rows_retrieve
+      operationId: sheet_imports_export_retrieve
       parameters:
       - in: path
         name: id
@@ -3265,9 +3705,54 @@ paths:
       responses:
         '200':
           content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/sheet-imports/{id}/rows/:
+    get:
+      operationId: sheet_imports_rows_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Sheet'
+                $ref: '#/components/schemas/PaginatedStandardRowList'
+          description: ''
+  /api/v1/sheet-imports/schema/:
+    get:
+      operationId: sheet_imports_schema_retrieve
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardSchema'
           description: ''
   /api/v1/sources/:
     get:
@@ -3769,6 +4254,224 @@ components:
         * `call` - call
         * `classify` - classify
         * `record_response` - record_response
+    AgendaDeleteInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    AgendaInput:
+      type: object
+      properties:
+        view_name:
+          type: string
+          maxLength: 200
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          default: Agenda Oracle
+          maxLength: 120
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/AgendaInputKindEnum'
+          default: consultation
+        version:
+          type: integer
+          minimum: 0
+        template_id:
+          type: string
+          maxLength: 40
+        column_mapping: {}
+        parameter_mapping: {}
+        horizon_days:
+          type: integer
+          maximum: 30
+          minimum: 1
+          default: 10
+        days_before:
+          type: integer
+          maximum: 30
+          minimum: 0
+          default: 5
+        send_time:
+          type: string
+          format: time
+          default: 09:00
+        enabled:
+          type: boolean
+          default: true
+        send_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+          minItems: 1
+        blocked_day_policy: {}
+      required:
+      - column_mapping
+      - parameter_mapping
+      - template_id
+      - version
+      - view_name
+    AgendaInputKindEnum:
+      enum:
+      - consultation
+      - exam
+      - lab
+      type: string
+      description: |-
+        * `consultation` - consultation
+        * `exam` - exam
+        * `lab` - lab
+    AgendaItem:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        external_id:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/AppointmentKindEnum'
+        patient:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 40
+        phone_numbers: {}
+        patient_record:
+          type: integer
+          nullable: true
+        patient_external_id:
+          type: string
+          maxLength: 100
+        professional:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 150
+        tracking:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        procedure:
+          type: string
+          maxLength: 200
+        procedure_code:
+          type: string
+          maxLength: 100
+        appointment_type:
+          type: string
+        scheduled_at:
+          type: string
+          format: date-time
+        arrival_time:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          maxLength: 20
+        synthetic:
+          type: boolean
+        revision:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        source:
+          type: string
+          maxLength: 30
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+        data_issue:
+          type: string
+          maxLength: 50
+        record_type:
+          type: string
+          readOnly: true
+        purpose:
+          type: string
+          readOnly: true
+        kind_label:
+          type: string
+          readOnly: true
+      required:
+      - arrival_time
+      - external_id
+      - id
+      - kind
+      - kind_label
+      - last_seen_at
+      - patient
+      - procedure
+      - purpose
+      - record_type
+      - scheduled_at
+      - tracking
+    AgendaOutput:
+      type: object
+      properties:
+        configurations:
+          type: array
+          items: {}
+        archived_configurations:
+          type: array
+          items: {}
+        archived_configuration:
+          nullable: true
+        configuration:
+          nullable: true
+        templates:
+          type: array
+          items: {}
+        default_columns: {}
+      required:
+      - archived_configuration
+      - archived_configurations
+      - configuration
+      - configurations
+      - default_columns
+      - templates
+    AgendaType:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        group:
+          type: string
+      required:
+      - group
+      - label
+      - value
+    AgendaVersionInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+        refresh:
+          type: boolean
+          default: false
+      required:
+      - version
     Appointment:
       type: object
       properties:
@@ -3811,7 +4514,6 @@ components:
           maxLength: 100
         appointment_type:
           type: string
-          maxLength: 100
         scheduled_at:
           type: string
           format: date-time
@@ -3981,6 +4683,11 @@ components:
           type: string
           format: date-time
           readOnly: true
+        import_batch:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
         unit:
           type: integer
           readOnly: true
@@ -3996,12 +4703,28 @@ components:
       - cases
       - created_at
       - id
+      - import_batch
       - name
       - next_send_at
       - purpose
       - sends_enabled
       - state
       - unit
+      - version
+    CampaignScheduleInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        scheduled_for:
+          type: string
+          format: date-time
+        name:
+          type: string
+          maxLength: 150
+      required:
+      - scheduled_for
       - version
     CampaignSendingInput:
       type: object
@@ -4776,41 +5499,6 @@ components:
           type: integer
       required:
       - rule_id
-    ImportLayout:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        format:
-          $ref: '#/components/schemas/ImportLayoutFormatEnum'
-        name:
-          type: string
-          maxLength: 120
-        version:
-          type: integer
-          readOnly: true
-        mapping: {}
-        verified:
-          type: boolean
-        evidence:
-          type: string
-        unit:
-          type: integer
-          readOnly: true
-      required:
-      - id
-      - name
-      - unit
-      - version
-    ImportLayoutFormatEnum:
-      enum:
-      - table
-      - absence_html
-      type: string
-      description: |-
-        * `table` - CSV/XLSX
-        * `absence_html` - Ausentes HTML (.xls)
     ImportRun:
       type: object
       properties:
@@ -4904,6 +5592,22 @@ components:
       - states
       - synthetic_appointments
       - trend
+    InspectInput:
+      type: object
+      properties:
+        view_name:
+          type: string
+          maxLength: 200
+      required:
+      - view_name
+    InspectOutput:
+      type: object
+      properties:
+        columns:
+          type: array
+          items: {}
+      required:
+      - columns
     InstanceVersionInput:
       type: object
       properties:
@@ -5113,6 +5817,91 @@ components:
           default: 90
       required:
       - name
+    Layout:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        standard_mapping: {}
+        parameter_fields: {}
+        format:
+          $ref: '#/components/schemas/LayoutFormatEnum'
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          readOnly: true
+        mapping: {}
+        verified:
+          type: boolean
+        evidence:
+          type: string
+        default_template:
+          type: integer
+          nullable: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - name
+      - unit
+      - version
+    LayoutFormatEnum:
+      enum:
+      - table
+      - absence_html
+      - cross_demand_csv
+      type: string
+      description: |-
+        * `table` - CSV/XLSX
+        * `absence_html` - Ausentes HTML (.xls)
+        * `cross_demand_csv` - Demanda por recurso CROSS (.csv)
+    Log:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        title:
+          type: string
+        reference:
+          type: string
+        recipient:
+          type: string
+        provider_id:
+          type: string
+        actor:
+          type: string
+        error_code:
+          type: string
+        count:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - actor
+      - category
+      - completed_at
+      - count
+      - error_code
+      - id
+      - occurred_at
+      - provider_id
+      - recipient
+      - reference
+      - status
+      - title
     LoginInput:
       type: object
       properties:
@@ -5434,6 +6223,52 @@ components:
           minimum: 1
       required:
       - version
+    PaginatedAgendaItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaItem'
+    PaginatedAgendaOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaOutput'
     PaginatedAppointmentList:
       type: object
       required:
@@ -5641,29 +6476,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Group'
-    PaginatedImportLayoutList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ImportLayout'
     PaginatedImportRunList:
       type: object
       required:
@@ -5756,6 +6568,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Key'
+    PaginatedLayoutList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Layout'
+    PaginatedLogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Log'
     PaginatedMemberList:
       type: object
       required:
@@ -6078,6 +6936,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SourceConfiguration'
+    PaginatedStandardRowList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StandardRow'
     PaginatedTemplateList:
       type: object
       required:
@@ -6757,6 +7638,9 @@ components:
           readOnly: true
         layout:
           type: integer
+        layout_format:
+          type: string
+          readOnly: true
         state:
           type: string
           maxLength: 20
@@ -6772,11 +7656,34 @@ components:
           type: string
           format: date-time
           readOnly: true
+        filename:
+          type: string
+          maxLength: 200
+        template:
+          type: integer
+          nullable: true
+        template_name:
+          type: string
+          readOnly: true
+          default: ''
+        configuration: {}
+        campaign_id:
+          type: integer
+          nullable: true
+          readOnly: true
+        purpose:
+          type: string
+          readOnly: true
+          default: ''
       required:
+      - campaign_id
       - created_at
       - id
       - layout
+      - layout_format
+      - purpose
       - row_count
+      - template_name
     SheetConfirmInput:
       type: object
       properties:
@@ -6797,6 +7704,17 @@ components:
     SheetPreviewInput:
       type: object
       properties:
+        template:
+          type: integer
+        standard_mapping:
+          type: object
+          additionalProperties:
+            type: string
+        parameter_fields:
+          type: array
+          items:
+            type: string
+          maxItems: 30
         layout:
           type: integer
         filename:
@@ -6855,6 +7773,52 @@ components:
         * `exam` - Exame
         * `lab` - Laboratório
         * `postoperative` - Pós-cirúrgico
+    StandardRow:
+      type: object
+      properties:
+        nome_completo:
+          type: string
+        data:
+          type: string
+        hora:
+          type: string
+        celular:
+          type: string
+        celular2:
+          type: string
+        tipo:
+          type: string
+        horario_chegada:
+          type: string
+        data_nascimento:
+          type: string
+        codigo:
+          type: string
+        local:
+          type: string
+        tipo2:
+          type: string
+        obs:
+          type: string
+    StandardSchema:
+      type: object
+      properties:
+        version:
+          type: integer
+        fields:
+          type: array
+          items:
+            type: string
+        default_mappings:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+      required:
+      - default_mappings
+      - fields
+      - version
     Template:
       type: object
       properties:
@@ -6895,6 +7859,37 @@ components:
           default: consultation
       required:
       - phone
+    TestPatientInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        view_name:
+          type: string
+          maxLength: 200
+        patient_external_id:
+          type: string
+          maxLength: 100
+        column_mapping: {}
+        parameter_mapping: {}
+      required:
+      - patient_external_id
+    TestPatientOutput:
+      type: object
+      properties:
+        found:
+          type: boolean
+        source:
+          type: string
+        patient_external_id:
+          type: string
+        values: {}
+        parameters: {}
+        message:
+          type: string
+      required:
+      - found
     Unit:
       type: object
       properties:

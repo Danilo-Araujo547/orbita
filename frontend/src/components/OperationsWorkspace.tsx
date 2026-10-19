@@ -1,3 +1,8 @@
+import {
+  CrossImportForm,
+  CrossLayoutEditor,
+  standardFields,
+} from "./CrossImportConfiguration";
 import FormAction, { FormActionContext } from "./FormAction";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -60,6 +65,19 @@ type Interaction = {
   occurred_at: string;
 };
 type Row = {
+  body?: string;
+  fields?: string[];
+  standard_mapping?: Record<string, string>;
+  default_template?: number | null;
+  parameter_fields?: string[];
+  filename?: string;
+  template_name?: string;
+  template?: number;
+  campaign_id?: number | null;
+  import_batch?: string | null;
+  scheduled_for?: string | null;
+  evidence?: string;
+  layout_format?: string;
   sends_enabled?: boolean;
   id: string | number;
   name?: string;
@@ -866,8 +884,7 @@ function Campaigns({
     batches = useRows<Row>("sheet-imports", unit, revision, onError),
     layouts = useRows<Row>("layouts", unit, revision, onError),
     templates = useRows<Row>("templates", unit, revision, onError);
-  const [layout, setLayout] = useState(""),
-    [purpose, setPurpose] = useState("waitlist"),
+  const [purpose, setPurpose] = useState("waitlist"),
     [name, setName] = useState(""),
     [template, setTemplate] = useState(""),
     [sendAt, setSendAt] = useState(""),
@@ -895,63 +912,18 @@ function Campaigns({
       onError((e as Error).message);
     }
   }
-  async function upload(file?: File) {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      onError("Arquivo excede 5 MB.");
-      return;
-    }
-    const buffer = new Uint8Array(await file.arrayBuffer());
-    let binary = "";
-    for (const b of buffer) binary += String.fromCharCode(b);
-    await act("sheet-imports", {
-      layout: Number(layout),
-      filename: file.name,
-      content_base64: btoa(binary),
-    });
-  }
   return (
     <div className="op-stack">
       {operate && (
         <div className="op-two">
-          <FormAction title="Importar planilha" label="Adicionar importação">
-            <article className="op-card op-form">
-              <h3>
-                <FileSpreadsheet size={18} /> Importar planilha
-              </h3>
-              <Field label="Layout validado">
-                <select
-                  value={layout}
-                  onChange={(e) => setLayout(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {layouts
-                    .filter((l) => l.verified)
-                    .map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name} · versão {l.version}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-              <Field label="Planilha CSV, XLSX ou HTML .xls">
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  disabled={!layout || busy}
-                  onChange={(e) =>
-                    void upload(e.target.files?.[0]).catch(() => {})
-                  }
-                />
-              </Field>
-              {!layouts.some((l) => l.verified) && (
-                <p className="op-muted">
-                  Cadastre e valide o layout desta unidade em Administração.
-                </p>
-              )}
-            </article>
-          </FormAction>
-          <FormAction title="Nova importação CROSS" label="Adicionar importação CROSS">
+          <CrossImportForm
+            unit={unit}
+            layouts={layouts}
+            templates={templates}
+            act={act}
+            busy={busy}
+          />
+          <FormAction title="Comunicação avulsa" label="Comunicação avulsa">
             <form
               className="op-card op-form"
               onSubmit={(e) => {
@@ -1049,11 +1021,13 @@ function Campaigns({
           <div className="op-list-row" key={b.id}>
             <div>
               <strong>
-                {b.row_count} linhas · {status[b.state || ""]}
+                {b.filename || "Planilha"} · {b.row_count} linhas ·{" "}
+                {status[b.state || ""]}
               </strong>
               <small>
                 {b.duplicates} duplicidades · {b.errors?.length || 0} erros
               </small>
+              <small>{b.template_name || "Sem template associado"}</small>
               {b.errors?.slice(0, 5).map((e) => (
                 <small key={`${e.line}:${e.code}`}>
                   Linha {e.line}: {e.code}
@@ -1067,18 +1041,37 @@ function Campaigns({
               <>
                 <select
                   aria-label="Finalidade da importação"
-                  value={purpose}
+                  value={
+                    b.purpose ||
+                    (b.layout_format === "absence_html"
+                      ? "absence"
+                      : b.layout_format === "cross_demand_csv"
+                        ? "waitlist"
+                        : purpose)
+                  }
                   onChange={(e) => setPurpose(e.target.value)}
                 >
-                  <option value="waitlist">Permanência na fila</option>
-                  <option value="summons">Convocação</option>
+                  {b.layout_format === "absence_html" ? (
+                    <option value="absence">Ausentes</option>
+                  ) : (
+                    <option value="waitlist">Permanência na fila</option>
+                  )}
+                  {!b.layout_format || b.layout_format === "table" ? (
+                    <option value="summons">Convocação</option>
+                  ) : null}
                 </select>
                 <button
                   className="button"
                   disabled={busy}
                   onClick={() =>
                     void act(`sheet-imports/${b.id}/confirm`, {
-                      purpose,
+                      purpose:
+                        b.purpose ||
+                        (b.layout_format === "absence_html"
+                          ? "absence"
+                          : b.layout_format === "cross_demand_csv"
+                            ? "waitlist"
+                            : purpose),
                     }).catch(() => {})
                   }
                 >
@@ -1095,8 +1088,16 @@ function Campaigns({
           <div className="op-table">
             <div className="op-list-row">
               <span>
-                {previewCount} registros · Página {previewPage}
+                Planilha padronizada · {previewCount} registros · Página{" "}
+                {previewPage}
               </span>
+              <a
+                className="button"
+                href={query(`sheet-imports/${previewBatch}/export`, { unit })}
+                download
+              >
+                Baixar CSV padronizado
+              </a>
               <button
                 className="button"
                 disabled={previewPage <= 1}
@@ -1112,30 +1113,20 @@ function Campaigns({
                 Próxima
               </button>
             </div>
-            <table>
+            <table className="cross-standard-table">
               <thead>
                 <tr>
-                  <th>Paciente</th>
-                  <th>Contato</th>
-                  <th>Referência</th>
-                  <th>Data</th>
-                  <th>Motivo de origem</th>
-                  <th>Observação de origem</th>
+                  {standardFields.map((field) => (
+                    <th key={field}>{field}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {preview.map((r, i) => (
-                  <tr key={i}>
-                    <td>{r.patient}</td>
-                    <td>
-                      {Array.isArray(r.phone_numbers)
-                        ? r.phone_numbers.join(", ")
-                        : r.phone}
-                    </td>
-                    <td>{r.external_id}</td>
-                    <td>{dateTime(r.occurred_at)}</td>
-                    <td>{r.source_reason || "—"}</td>
-                    <td>{r.source_observation || "—"}</td>
+                {preview.map((row, index) => (
+                  <tr key={index}>
+                    {standardFields.map((field) => (
+                      <td key={field}>{row[field] || "—"}</td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -1155,6 +1146,49 @@ function Campaigns({
               </small>
               <small>Envio {c.sends_enabled ? "ativado" : "desativado"}</small>
             </div>
+            {operate && c.state === "draft" && (
+              <FormAction
+                title="Programar comunicação"
+                label="Programar"
+                busy={busy}
+              >
+                <form
+                  className="op-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const values = new FormData(e.currentTarget);
+                    void act(`campaigns/${c.id}/schedule`, {
+                      version: c.version,
+                      name: String(values.get("name") || ""),
+                      scheduled_for: new Date(
+                        String(values.get("scheduled_for")),
+                      ).toISOString(),
+                    }).catch(() => {});
+                  }}
+                >
+                  <label className="op-field">
+                    Nome
+                    <input
+                      name="name"
+                      required
+                      maxLength={150}
+                      defaultValue={c.name}
+                    />
+                  </label>
+                  <label className="op-field">
+                    Data e hora
+                    <input
+                      name="scheduled_for"
+                      required
+                      type="datetime-local"
+                    />
+                  </label>
+                  <button className="button primary" disabled={busy}>
+                    Salvar programação
+                  </button>
+                </form>
+              </FormAction>
+            )}
             {admin && (
               <button
                 className="button"
@@ -1172,7 +1206,10 @@ function Campaigns({
             {admin &&
               c.sends_enabled &&
               ["draft", "preview"].includes(c.state || "") && (
-                <FormAction title="Enviar importação CROSS" label="Enviar agora">
+                <FormAction
+                  title="Enviar importação CROSS"
+                  label="Enviar agora"
+                >
                   <form
                     className="op-form"
                     onSubmit={(e) => {
@@ -1186,8 +1223,8 @@ function Campaigns({
                       {c.name} · {c.cases?.length || 0} registros
                     </p>
                     <p>
-                      Envio real aos contatos da importação CROSS, com intervalo de 5
-                      segundos.
+                      Envio real aos contatos da importação CROSS, com intervalo
+                      de 5 segundos.
                     </p>
                     <button className="button primary" disabled={busy}>
                       Liberar envio
@@ -1366,32 +1403,26 @@ function Administration({
   const [code, setCode] = useState(""),
     [name, setName] = useState(""),
     [text, setText] = useState("");
-  const [layoutName, setLayoutName] = useState(""),
-    [mapping, setMapping] = useState({
-      external_id: "",
-      patient: "",
-      phone: "",
-      occurred_at: "",
-    }),
-    [evidence, setEvidence] = useState(""),
-    [verified, setVerified] = useState(false);
+  const layoutTemplates = useRows<Row>("templates", unit, revision, onError);
   const labels: Record<string, string> = {
     external_id: "Coluna do identificador",
     patient: "Coluna do paciente",
     phone: "Coluna do telefone",
     occurred_at: "Coluna da data (AAAA-MM-DD)",
   };
-  const [internalCategory, setCategory] = useState(admin ? "sources" : "preparations");
+  const [internalCategory, setCategory] = useState(
+    admin ? "sources" : "preparations",
+  );
   const category = activeCategory || internalCategory;
   type CategoryTab = [string, string, typeof Database];
   const categories: CategoryTab[] = [
     ...([
-          ["sources", "Origens e regras", Database],
-          ["units", "Unidades", Building2],
-          ["team", "Equipe da unidade", UserRound],
-          ["access", "Acesso a relatórios", ShieldCheck],
-          ["schedules", "Relatórios agendados", Clock3],
-        ] as CategoryTab[]),
+      ["sources", "Origens e regras", Database],
+      ["units", "Unidades", Building2],
+      ["team", "Equipe da unidade", UserRound],
+      ["access", "Acesso a relatórios", ShieldCheck],
+      ["schedules", "Relatórios agendados", Clock3],
+    ] as CategoryTab[]),
     ["preparations", "Preparos", ClipboardList],
     ["layouts", "Layouts CROSS", FileSpreadsheet],
     ["reportDefinitions", "Catálogo de relatórios", ClipboardList],
@@ -1399,45 +1430,152 @@ function Administration({
   ];
   return (
     <div className="admin-workspace">
-      {!activeCategory && <nav
-        className="admin-category-nav"
-        aria-label="Cadastros administrativos"
-      >
-        {categories.map(([id, label, Icon]) => (
-          <button
-            type="button"
-            key={id}
-            className={category === id ? "active" : ""}
-            onClick={() => setCategory(id)}
-            aria-current={category === id ? "page" : undefined}
-          >
-            <Icon size={15} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>}
+      {!activeCategory && (
+        <nav
+          className="admin-category-nav"
+          aria-label="Cadastros administrativos"
+        >
+          {categories.map(([id, label, Icon]) => (
+            <button
+              type="button"
+              key={id}
+              className={category === id ? "active" : ""}
+              onClick={() => setCategory(id)}
+              aria-current={category === id ? "page" : undefined}
+            >
+              <Icon size={15} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
       <div className="admin-category-content" key={category}>
-        {category === "reportDefinitions" && <Panel title="Catálogo de relatórios"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Relatório</th><th>Palavra-chave</th><th>Situação</th><th>Ações</th></tr></thead><tbody>{reportDefinitions.map(record=><tr key={record.id}><td>{record.name}</td><td>{String((record as Record<string,unknown>).keyword||"")}</td><td>{record.enabled?"Ativo":"Desativado"}</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`reports/${record.id}/configure`} act={act} busy={busy} fields={[
-          {key:"name",label:"Nome",required:true},{key:"keyword",label:"Palavra-chave",required:true},
-          {key:"enabled",label:"Ativo",type:"checkbox"},{key:"unavailable_reason",label:"Motivo de indisponibilidade",type:"textarea"},
-        ]}/>}</td></tr>)}</tbody></table></div></Panel>}
-        {category === "policies" && <Panel title="Prazos de resposta"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Finalidade</th><th>Prazo</th><th>Ações</th></tr></thead><tbody>{policies.map(record=><tr key={record.id}><td>{purposes[record.purpose||""]}</td><td>{String((record as Record<string,unknown>).response_hours)} horas</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`policies/${record.id}/configure`} act={act} busy={busy} fields={[
-          {key:"response_hours",label:"Prazo em horas",type:"number"},{key:"enabled",label:"Ativo",type:"checkbox"},{key:"evidence",label:"Referência da validação",type:"textarea"},
-        ]}/>}</td></tr>)}</tbody></table></div></Panel>}
+        {category === "reportDefinitions" && (
+          <Panel title="Catálogo de relatórios">
+            <div className="table-scroll">
+              <table className="directory-table">
+                <thead>
+                  <tr>
+                    <th>Relatório</th>
+                    <th>Palavra-chave</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportDefinitions.map((record) => (
+                    <tr key={record.id}>
+                      <td>{record.name}</td>
+                      <td>
+                        {String(
+                          (record as Record<string, unknown>).keyword || "",
+                        )}
+                      </td>
+                      <td>{record.enabled ? "Ativo" : "Desativado"}</td>
+                      <td>
+                        {admin && (
+                          <ConfigurationEditor
+                            record={{ ...record }}
+                            path={`reports/${record.id}/configure`}
+                            act={act}
+                            busy={busy}
+                            fields={[
+                              { key: "name", label: "Nome", required: true },
+                              {
+                                key: "keyword",
+                                label: "Palavra-chave",
+                                required: true,
+                              },
+                              {
+                                key: "enabled",
+                                label: "Ativo",
+                                type: "checkbox",
+                              },
+                              {
+                                key: "unavailable_reason",
+                                label: "Motivo de indisponibilidade",
+                                type: "textarea",
+                              },
+                            ]}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        )}
+        {category === "policies" && (
+          <Panel title="Prazos de resposta">
+            <div className="table-scroll">
+              <table className="directory-table">
+                <thead>
+                  <tr>
+                    <th>Finalidade</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {policies.map((record) => (
+                    <tr key={record.id}>
+                      <td>{purposes[record.purpose || ""]}</td>
+                      <td>
+                        {String(
+                          (record as Record<string, unknown>).response_hours,
+                        )}{" "}
+                        horas
+                      </td>
+                      <td>
+                        {admin && (
+                          <ConfigurationEditor
+                            record={{ ...record }}
+                            path={`policies/${record.id}/configure`}
+                            act={act}
+                            busy={busy}
+                            fields={[
+                              {
+                                key: "response_hours",
+                                label: "Prazo em horas",
+                                type: "number",
+                              },
+                              {
+                                key: "enabled",
+                                label: "Ativo",
+                                type: "checkbox",
+                              },
+                              {
+                                key: "evidence",
+                                label: "Referência da validação",
+                                type: "textarea",
+                              },
+                            ]}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        )}
         {["sources", "units", "team", "access", "schedules"].includes(
-            category,
-          ) && (
-            <OperationsAdministration
-              unit={unit}
-              revision={revision}
-              act={act}
-              busy={busy}
-              onError={onError}
-              activeTab={category}
-              editable={admin}
-              userAccess={userAccess}
-            />
-          )}
+          category,
+        ) && (
+          <OperationsAdministration
+            unit={unit}
+            revision={revision}
+            act={act}
+            busy={busy}
+            onError={onError}
+            activeTab={category}
+            editable={admin}
+            userAccess={userAccess}
+          />
+        )}
         {category === "preparations" && (
           <Panel
             title="Preparos de procedimentos"
@@ -1540,12 +1678,37 @@ function Administration({
                             <p className="op-prewrap">{p.text}</p>
                           </details>
                         </td>
-                        <td>{admin && <ConfigurationEditor record={{...p}} path="preparations" title="Nova versão do preparo" label="Editar" act={act} busy={busy} fields={[
-                          {key:"procedure_code",label:"Código do procedimento",required:true},
-                          {key:"name",label:"Nome",required:true},
-                          {key:"text",label:"Orientações",type:"textarea",required:true},
-                          {key:"active",label:"Ativo",type:"checkbox"},
-                        ]}/>}</td>
+                        <td>
+                          {admin && (
+                            <ConfigurationEditor
+                              record={{ ...p }}
+                              path="preparations"
+                              title="Nova versão do preparo"
+                              label="Editar"
+                              act={act}
+                              busy={busy}
+                              fields={[
+                                {
+                                  key: "procedure_code",
+                                  label: "Código do procedimento",
+                                  required: true,
+                                },
+                                { key: "name", label: "Nome", required: true },
+                                {
+                                  key: "text",
+                                  label: "Orientações",
+                                  type: "textarea",
+                                  required: true,
+                                },
+                                {
+                                  key: "active",
+                                  label: "Ativo",
+                                  type: "checkbox",
+                                },
+                              ]}
+                            />
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1561,65 +1724,12 @@ function Administration({
             title="Layouts de importação CROSS"
             action={
               admin ? (
-                <FormAction
-                  title="Layout de importação CROSS"
-                  label="Adicionar layout CROSS"
-                >
-                  <form
-                    className="op-form"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void act("layouts", {
-                        name: layoutName,
-                        mapping,
-                        evidence,
-                        verified,
-                      }).catch(() => {});
-                    }}
-                  >
-                    <h3>Layout de importação CROSS</h3>
-                    <Field label="Nome do layout">
-                      <input
-                        required
-                        value={layoutName}
-                        onChange={(e) => setLayoutName(e.target.value)}
-                        placeholder="Ex: Layout CROSS Ambulatorial"
-                      />
-                    </Field>
-                    {Object.entries(mapping).map(([k, v]) => (
-                      <Field key={k} label={labels[k]}>
-                        <input
-                          required
-                          value={v}
-                          onChange={(e) =>
-                            setMapping({ ...mapping, [k]: e.target.value })
-                          }
-                          placeholder="Nome da coluna no CSV"
-                        />
-                      </Field>
-                    ))}
-                    <Field label="Referência da validação">
-                      <textarea
-                        value={evidence}
-                        onChange={(e) => setEvidence(e.target.value)}
-                        maxLength={4000}
-                        rows={3}
-                        placeholder="Referência da validação com a unidade..."
-                      />
-                    </Field>
-                    <label className="op-check">
-                      <input
-                        type="checkbox"
-                        checked={verified}
-                        onChange={(e) => setVerified(e.target.checked)}
-                      />
-                      Layout conferido com a unidade
-                    </label>
-                    <button className="button primary" disabled={busy}>
-                      Cadastrar layout
-                    </button>
-                  </form>
-                </FormAction>
+                <CrossLayoutEditor
+                  unit={unit}
+                  templates={layoutTemplates}
+                  act={act}
+                  busy={busy}
+                />
               ) : null
             }
           >
@@ -1629,6 +1739,7 @@ function Administration({
                   <thead>
                     <tr>
                       <th>Nome do layout</th>
+                      <th>Template</th>
                       <th>Mapeamento de colunas</th>
                       <th>Validação</th>
                       <th>Ações</th>
@@ -1641,10 +1752,18 @@ function Administration({
                           <strong>{l.name}</strong>
                         </td>
                         <td>
+                          {layoutTemplates.find(
+                            (t) => t.id === l.default_template,
+                          )?.name || "Não definido"}
+                        </td>
+                        <td>
                           <div className="mapping-chips">
-                            {l.mapping &&
+                            {(l.standard_mapping || l.mapping) &&
                               Object.entries(
-                                l.mapping as Record<string, string>,
+                                (l.standard_mapping &&
+                                Object.keys(l.standard_mapping).length
+                                  ? l.standard_mapping
+                                  : l.mapping) as Record<string, string>,
                               ).map(([k, v]) => (
                                 <span key={k} className="mapping-chip">
                                   <small>{labels[k] || k}:</small> {v}
@@ -1659,13 +1778,17 @@ function Administration({
                             {l.verified ? "Validado" : "Pendente de validação"}
                           </span>
                         </td>
-                        <td>{admin && <ConfigurationEditor record={{...l}} path="layouts" act={act} busy={busy} title="Nova versão do layout" label="Editar" fields={[
-                          {key:"name",label:"Nome",required:true},
-                          {key:"format",label:"Formato",type:"select",options:[{value:"table",label:"CSV / XLSX"},{value:"absence_html",label:"Ausentes HTML (.xls)"}]},
-                          {key:"mapping",label:"Colunas",type:"mapping"},
-                          {key:"evidence",label:"Referência da validação",type:"textarea"},
-                          {key:"verified",label:"Validado",type:"checkbox"},
-                        ]}/>}</td>
+                        <td>
+                          {admin && (
+                            <CrossLayoutEditor
+                              unit={unit}
+                              templates={layoutTemplates}
+                              record={l}
+                              act={act}
+                              busy={busy}
+                            />
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

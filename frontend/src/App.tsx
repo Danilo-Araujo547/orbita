@@ -6,6 +6,7 @@ import AppointmentGroups from "./components/AppointmentGroups";
 import ExecutionLogs from "./components/ExecutionLogs";
 import MetaConfiguration from "./components/MetaConfiguration";
 import OracleConfiguration from "./components/OracleConfiguration";
+import OracleAgendaConfiguration from "./components/OracleAgendaConfiguration";
 import UnitDirectory from "./components/UnitDirectory";
 import UserDirectory from "./components/UserDirectory";
 import { canAccess, permissionsFor, reconcileSession } from "./permissions";
@@ -1149,6 +1150,7 @@ function Workspace({
                     !isRemote && (
                       <OracleConfiguration key={`oracle-${unit}`} unit={unit} />
                     )}
+                  {settingsTab === "oracleAgendas" && role === "admin" && !isRemote && <OracleAgendaConfiguration key={unit} unit={unit} />}
                   {settingsTab === "rules" && (
                     <div className="rules-settings-layout">
                       <div className="settings-grid">

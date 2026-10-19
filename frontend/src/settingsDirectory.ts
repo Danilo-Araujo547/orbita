@@ -12,7 +12,7 @@ export function settingsEntries(policy: SectionPermissions, role: string, remote
   if (!remote && can("users")) add("users", "Usuários e acessos", "Instância", "users");
   if (can("settings")) {
     if (role === "admin" && policy.settings === "write") {
-      if (!remote) { add("instances", "Instâncias remotas", "Integrações", "settings"); add("oracle", "Oracle", "Integrações", "settings"); }
+      if (!remote) { add("instances", "Instâncias remotas", "Integrações", "settings"); add("oracle", "Oracle", "Integrações", "settings"); add("oracleAgendas", "Agendas e templates Oracle", "Operação", "settings"); }
       add("meta", "WhatsApp / Meta", "Integrações", "settings");
     }
     add("rules", "Lembretes e envios", "Operação", "settings");

@@ -137,6 +137,7 @@ CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_IGNORE_RESULT = True
 ASYNC_TASKS = bool(os.getenv("REDIS_URL"))
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "0") == "1"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
     "tick": {"task": "scheduling.tick", "schedule": 60.0},

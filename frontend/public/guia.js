@@ -123,6 +123,7 @@ const guides = {
     title: "Importa CROSS",
     path: "/importa-cross",
     sections: [
+      ["Planilha padronizada", "Em Importar planilha, selecione modelo e template, confira os parâmetros e mapeie as colunas para os 12 campos padrão. Gere a prévia, confira os registros e baixe o CSV padronizado. Confirmar cria uma comunicação em rascunho; Programar define data e hora antes da prévia das mensagens. Campos obrigatórios sem valor bloqueiam a confirmação."],
       [
         "Importar planilha",
         "Adicionar importação abre layout e arquivo CSV/XLSX. O layout precisa estar validado para a unidade. Revise erros, totais e duplicidades antes de confirmar.",

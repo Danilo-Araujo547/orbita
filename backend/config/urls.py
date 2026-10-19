@@ -1,3 +1,4 @@
+from scheduling.agenda_api import OracleAgendaViewSet
 from core import views
 from core.agenda import AgendaViewSet
 from core.logs import LogViewSet
@@ -15,6 +16,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 for prefix, view in [
+    ("oracle-agendas", OracleAgendaViewSet),
     ("oracle-configuration", OracleConfigurationViewSet),
     ("users", UserViewSet),
     ("instance-keys", InstanceKeyViewSet),

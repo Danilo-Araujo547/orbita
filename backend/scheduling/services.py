@@ -3,12 +3,12 @@ from dataclasses import asdict
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from core.models import Audit
 from django.db import transaction
 from django.utils import timezone
+
+from core.models import Audit
 from messaging.models import Message, Notification
 from responses.models import Issue
-
 from scheduling.connectors import normalize_phone
 from scheduling.models import Appointment, ImportRun, Rule
 
@@ -20,9 +20,9 @@ def render_template(template, appointment):
         "patient": appointment.patient,
         "appointment_type": appointment.appointment_type,
         "procedure": appointment.procedure,
-        "date": timezone.localtime(appointment.scheduled_at, ZoneInfo(appointment.unit.timezone)).strftime(
-            "%d/%m/%Y"
-        ),
+        "date": timezone.localtime(
+            appointment.scheduled_at, ZoneInfo(appointment.unit.timezone)
+        ).strftime("%d/%m/%Y"),
         "arrival_time": appointment.arrival_time,
     }
     if "preparation" in template.fields:
@@ -30,18 +30,34 @@ def render_template(template, appointment):
 
         preparation = (
             Preparation.objects.filter(
-                unit=appointment.unit, procedure_code=appointment.procedure_code, active=True
+                unit=appointment.unit,
+                procedure_code=appointment.procedure_code,
+                active=True,
             ).first()
             if appointment.procedure_code
             else None
         )
         available["preparation"] = preparation.text if preparation else ""
-    parameters = [available[field] for field in template.fields]
+
+    def field_value(field):
+        if field.startswith("oracle:"):
+            from scheduling.oracle_agendas import format_value
+
+            _, column, kind = field.split(":")
+            return format_value(appointment.source_values.get(column, ""), kind)
+        return available[field]
+
+    parameters = [field_value(field) for field in template.fields]
     if any(not value.strip() for value in parameters):
         raise ValueError("missing_template_parameter")
     body = template.body
-    for i, value in enumerate(parameters, start=1):
-        body = body.replace("{{" + str(i) + "}}", value)
+    keys = list(dict.fromkeys(re.findall(r"{{\s*([^{} ]+)\s*}}", body)))
+    if len(keys) != len(parameters):
+        raise ValueError("missing_template_parameter")
+    if keys and all(key.isdigit() for key in keys):
+        keys.sort(key=int)
+    lookup = dict(zip(keys, parameters))
+    body = re.sub(r"{{\s*([^{} ]+)\s*}}", lambda match: lookup[match[1]], body)
     return parameters, body
 
 
@@ -56,7 +72,9 @@ def queue_appointment(appointment, rule, scheduled_for, now=None):
     group, _ = AppointmentGroup.objects.get_or_create(
         unit=appointment.unit,
         kind=appointment.kind,
-        appointment_date=appointment.scheduled_at.astimezone(ZoneInfo(appointment.unit.timezone)).date(),
+        appointment_date=appointment.scheduled_at.astimezone(
+            ZoneInfo(appointment.unit.timezone)
+        ).date(),
         rule=rule,
         rule_version=rule.version,
         defaults={"scheduled_for": scheduled_for},
@@ -64,8 +82,38 @@ def queue_appointment(appointment, rule, scheduled_for, now=None):
     if group.schedule_overridden:
         scheduled_for = group.scheduled_for
     local_day = scheduled_for.astimezone(ZoneInfo(rule.unit.timezone)).date()
-    end_of_day = datetime.combine(local_day + timedelta(days=1), time.min, ZoneInfo(rule.unit.timezone))
-    expiry = min(end_of_day, scheduled_for + timedelta(hours=rule.validity_hours), appointment.scheduled_at)
+    end_of_day = datetime.combine(
+        local_day + timedelta(days=1), time.min, ZoneInfo(rule.unit.timezone)
+    )
+    expiry = min(
+        end_of_day,
+        scheduled_for + timedelta(hours=rule.validity_hours),
+        appointment.scheduled_at,
+    )
+    # Bindings belong to the origin, even when it shares a Meta template.
+    if hasattr(rule, "oracle_agenda"):
+        from copy import copy
+
+        from scheduling.oracle_agendas import template_keys
+
+        agenda = rule.oracle_agenda
+        template = copy(rule.template)
+        template.version = agenda.version
+        remote = agenda.template_snapshot
+        template.body = next(
+            c["text"] for c in remote["components"] if c["type"] == "BODY"
+        )
+        template.name = remote["name"]
+        template.language = remote["language"]
+        template.components = remote["components"]
+        template.fields = [
+            "oracle:"
+            + agenda.parameter_mapping[k]["column"]
+            + ":"
+            + agenda.parameter_mapping[k]["format"]
+            for k in template_keys(remote)
+        ]
+        rule.template = template
     try:
         params, body = render_template(rule.template, appointment)
         parameter_error = ""
@@ -73,7 +121,11 @@ def queue_appointment(appointment, rule, scheduled_for, now=None):
         params, body, parameter_error = [], "", "missing_template_parameter"
     notification, _ = Notification.objects.get_or_create(
         key=f"appointment:{appointment.pk}:{rule.pk}:{rule.version}:{appointment.revision}",
-        defaults={"unit": appointment.unit, "appointment": appointment, "revision": appointment.revision},
+        defaults={
+            "unit": appointment.unit,
+            "appointment": appointment,
+            "revision": appointment.revision,
+        },
     )
     messages = []
     for phone in appointment.phone_numbers or [appointment.phone]:
@@ -169,7 +221,9 @@ def _queue_recipient(
                 "ambiguous_source_record": "Dados conflitantes para o mesmo agendamento na origem.",
             }.get(
                 error,
-                "Formato de telefone inválido." if phone_error else "Parâmetros incompletos no template.",
+                "Formato de telefone inválido."
+                if phone_error
+                else "Parâmetros incompletos no template.",
             ),
         )
     return message
@@ -178,7 +232,10 @@ def _queue_recipient(
 @transaction.atomic
 def upsert_appointment(unit, data):
     values = asdict(data)
-    values["phone_numbers"] = contact_numbers(values.get("phone_numbers"), values["phone"])
+    values["source_values"] = dict(values.get("source_values", ()))
+    values["phone_numbers"] = contact_numbers(
+        values.get("phone_numbers"), values["phone"]
+    )
     values["phone"] = values["phone_numbers"][0] if values["phone_numbers"] else ""
     key = {
         "unit": unit,
@@ -186,11 +243,15 @@ def upsert_appointment(unit, data):
         "kind": values.pop("kind"),
         "external_id": values.pop("external_id"),
     }
-    appointment, created = Appointment.objects.select_for_update().get_or_create(**key, defaults=values)
+    appointment, created = Appointment.objects.select_for_update().get_or_create(
+        **key, defaults=values
+    )
     if not created:
         # Real data can never promote an existing real appointment to synthetic through this connector.
         values["synthetic"] = appointment.synthetic and values["synthetic"]
-        changed = any(getattr(appointment, field) != value for field, value in values.items())
+        changed = any(
+            getattr(appointment, field) != value for field, value in values.items()
+        )
         if changed:
             for field, value in values.items():
                 setattr(appointment, field, value)
@@ -234,11 +295,15 @@ def contact_numbers(numbers, primary=""):
 
 
 def import_rule(rule, source, now=None, retry=False, refresh=False):
+    if hasattr(rule, "oracle_agenda"):
+        return None
     now = now or timezone.now()
     local = now.astimezone(ZoneInfo(rule.unit.timezone))
     if not rule.enabled or local.weekday() not in rule.weekdays:
         return None
-    scheduled_for = datetime.combine(local.date(), rule.send_time, ZoneInfo(rule.unit.timezone))
+    scheduled_for = datetime.combine(
+        local.date(), rule.send_time, ZoneInfo(rule.unit.timezone)
+    )
     if now < scheduled_for:
         return None
     with transaction.atomic():
@@ -269,7 +334,8 @@ def import_rule(rule, source, now=None, retry=False, refresh=False):
             for data in rows:
                 if (
                     data.kind != rule.kind
-                    or data.scheduled_at.astimezone(ZoneInfo(rule.unit.timezone)).date() != target
+                    or data.scheduled_at.astimezone(ZoneInfo(rule.unit.timezone)).date()
+                    != target
                 ):
                     raise ValueError("source_contract_mismatch")
                 appointment = upsert_appointment(rule.unit, data)
@@ -277,11 +343,13 @@ def import_rule(rule, source, now=None, retry=False, refresh=False):
             run.status, run.imported = "completed", len(rows)
             run.completed_at = now
             run.save()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - sanitize connector error codes
         # Do not persist SQL, patient data or credential-bearing exception messages.
         oracle_code = getattr(exc.args[0], "full_code", "") if exc.args else ""
         safe_code = (
-            oracle_code if re.fullmatch(r"(?:ORA|DPI|DPY)-\d+", str(oracle_code)) else type(exc).__name__
+            oracle_code
+            if re.fullmatch(r"(?:ORA|DPI|DPY)-\d+", str(oracle_code))
+            else type(exc).__name__
         )
         run.status, run.error, run.completed_at = "failed", safe_code, now
         run.save(update_fields=["status", "error", "completed_at"])

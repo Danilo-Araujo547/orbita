@@ -32,6 +32,7 @@ class AppointmentData:
     phone_numbers: tuple[str, ...] = ()
     professional: str = ""
     city: str = ""
+    source_values: tuple[tuple[str, str], ...] = ()
 
 
 class AppointmentSource(Protocol):
@@ -53,7 +54,10 @@ def consolidate_rows(rows):
         groups.setdefault((row.kind, row.external_id), set()).add(row)
     consolidated = []
     for values in groups.values():
-        ordered = sorted(values, key=lambda row: (row.patient, row.phone, row.procedure, row.arrival_time))
+        ordered = sorted(
+            values,
+            key=lambda row: (row.patient, row.phone, row.procedure, row.arrival_time),
+        )
         first = ordered[0]
         non_phone = {replace(row, phone="", phone_numbers=()) for row in ordered}
         phones = set()
@@ -69,7 +73,9 @@ def consolidate_rows(rows):
             first,
             phone=sorted(phones)[0] if phones else "",
             phone_numbers=tuple(sorted(phones)),
-            data_issue="ambiguous_source_record" if len(non_phone) > 1 else first.data_issue,
+            data_issue="ambiguous_source_record"
+            if len(non_phone) > 1
+            else first.data_issue,
         )
         consolidated.append(first)
     return sorted(consolidated, key=lambda row: (row.kind, row.external_id))
@@ -103,7 +109,11 @@ def normalize_row(row, kind, timezone):
         patient=str(row.get("CROSS") or row["PACIENTE"]).strip(),
         phone=phone,
         procedure=str(row.get("ESPECIALIDADE") or "Coleta de exame").strip(),
-        appointment_type=("DA SUA COLETA DE EXAME" if kind == "lab" else str(row.get("TIPO_CONSULTA") or "")),
+        appointment_type=(
+            "DA SUA COLETA DE EXAME"
+            if kind == "lab"
+            else str(row.get("TIPO_CONSULTA") or "")
+        ),
         scheduled_at=scheduled,
         arrival_time=arrival,
         patient_external_id=str(row.get("CD_PACIENTE") or ""),
@@ -123,8 +133,16 @@ class OracleSource:
         if payload:
             import oracledb
 
-            target = {"service_name" if payload["identifier_type"] == "service" else "sid": payload["identifier"]}
-            return oracledb.makedsn(payload["host"], payload["port"], **target), payload["username"], payload["password"]
+            target = {
+                "service_name"
+                if payload["identifier_type"] == "service"
+                else "sid": payload["identifier"]
+            }
+            return (
+                oracledb.makedsn(payload["host"], payload["port"], **target),
+                payload["username"],
+                payload["password"],
+            )
         if self.unit is None or self.unit.slug == "ame":
             return settings.ORACLE_DSN, settings.ORACLE_USER, settings.ORACLE_PASSWORD
         prefix = "ORACLE_" + re.sub(r"[^A-Z0-9]", "_", self.unit.slug.upper()) + "_"
@@ -152,7 +170,9 @@ class OracleSource:
         if self.unit is not None:
             from operations.models import SourceConfiguration
 
-            configuration = SourceConfiguration.objects.filter(unit=self.unit, kind=kind).first()
+            configuration = SourceConfiguration.objects.filter(
+                unit=self.unit, kind=kind
+            ).first()
             if configuration:
                 from operations.connectors import source_view
 
@@ -174,16 +194,21 @@ class OracleSource:
                     cursor.execute(f"SELECT * FROM {view} WHERE 1=0")
                     available = {col[0] for col in cursor.description}
                     optional_columns = ", ".join(
-                        f"v.{col}" for col in ["CD_PACIENTE", "MEDICO", "CIDADE"] if col in available
+                        f"v.{col}"
+                        for col in ["CD_PACIENTE", "MEDICO", "CIDADE"]
+                        if col in available
                     )
                     sql = sql.replace(
-                        "{optional_columns}", optional_columns + ", " if optional_columns else ""
+                        "{optional_columns}",
+                        optional_columns + ", " if optional_columns else "",
                     )
                     binds = {"target_date": datetime.combine(target_date, time.min)}
                     if external_ids is not None:
                         if not external_ids or len(external_ids) > 500:
                             raise ValueError("invalid_source_batch")
-                        binds = {f"id_{i}": value for i, value in enumerate(external_ids)}
+                        binds = {
+                            f"id_{i}": value for i, value in enumerate(external_ids)
+                        }
                         # Refresh only records already stored locally, independently of the legacy send log.
                         sql = (
                             sql[: sql.index("WHERE v.DTA_AGENDA")]
@@ -193,7 +218,10 @@ class OracleSource:
                         )
                     cursor.execute(sql, binds)
                     columns = [col[0] for col in cursor.description]
-                    rows = [normalize_row(dict(zip(columns, row)), kind, timezone) for row in cursor]
+                    rows = [
+                        normalize_row(dict(zip(columns, row)), kind, timezone)
+                        for row in cursor
+                    ]
                     return consolidate_rows(rows)
             finally:
                 connection.rollback()

@@ -214,7 +214,7 @@ class MetaReader:
         phone = next((p for p in phones if p.get("id") == self.config.phone_number_id), None)
         if phone is None:
             raise MetaReadError("phone_not_in_waba")
-        templates = self.collection("message_templates", "id,name,language,status,category,components")
+        templates = self.collection("message_templates", "id,name,language,status,category,components,parameter_format,quality_score")
         catalog = []
         for item in templates:
             if not all(
@@ -230,6 +230,8 @@ class MetaReader:
                 {
                     **{k: item[k] for k in ("id", "name", "language", "status", "category")},
                     "components": clean,
+                    "parameter_format": item.get("parameter_format", "POSITIONAL"),
+                    "quality_score": item.get("quality_score", {}),
                 }
             )
         return account, phone, catalog
