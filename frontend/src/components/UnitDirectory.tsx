@@ -5,13 +5,15 @@ import type { Paginated, Unit } from "../types";
 import FormAction from "./FormAction";
 import { Panel } from "./ui";
 
-type UnitRow = Unit & { timezone: string };
+type UnitRow = Unit & { timezone: string; version: number };
 
 export default function UnitDirectory({
   unit,
+  editable = true,
   onChanged,
 }: {
   unit: string;
+  editable?: boolean;
   onChanged?: () => Promise<void>;
 }) {
   const [rows, setRows] = useState<UnitRow[]>([]);
@@ -64,12 +66,25 @@ export default function UnitDirectory({
       setBusy(false);
     }
   }
+  async function configure(event: FormEvent<HTMLFormElement>, row: UnitRow) {
+    event.preventDefault();
+    const values = new FormData(event.currentTarget);
+    setBusy(true);setError("");
+    try {
+      await request(query(`units/${row.id}/configure`, {unit}), "POST", {
+        version:row.version, name:values.get("name"), timezone:values.get("timezone"),
+        response_hours:Number(values.get("response_hours")), paused:values.get("paused")==="on",
+        authorized_recipients:String(values.get("authorized_recipients")||"").split(/[\s,;]+/).filter(Boolean),
+      });
+      setRevision(v=>v+1); await onChanged?.();
+    } catch(e) {setError((e as Error).message);} finally {setBusy(false);}
+  }
   return (
     <Panel
       title="Unidades"
       className="unit-directory"
       action={
-        <FormAction
+        editable && <FormAction
           title="Nova unidade"
           label="Nova unidade"
           version={revision}
@@ -124,6 +139,7 @@ export default function UnitDirectory({
                 <th>Identificador</th>
                 <th>Fuso horário</th>
                 <th>Envios</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -144,6 +160,16 @@ export default function UnitDirectory({
                       {row.paused ? "Pausados" : "Ativos"}
                     </span>
                   </td>
+                  <td>{editable && <FormAction title="Editar unidade" label="Editar" version={revision} busy={busy} error={error}>
+                    <form className="op-form" onSubmit={e=>void configure(e,row)}>
+                      <label className="op-field">Nome<input name="name" required maxLength={150} defaultValue={row.name}/></label>
+                      <label className="op-field">Fuso horário<input name="timezone" required defaultValue={row.timezone}/></label>
+                      <label className="op-field">Prazo de resposta (horas)<input name="response_hours" type="number" required min={1} max={168} defaultValue={row.response_hours}/></label>
+                      <label className="checkbox-label"><input name="paused" type="checkbox" defaultChecked={row.paused}/>Envios pausados</label>
+                      <label className="op-field">Destinatários autorizados para teste<textarea name="authorized_recipients" defaultValue={row.effective_recipients?.join("\n") || ""} rows={4}/></label>
+                      <button type="submit" className="button primary" disabled={busy}>Salvar unidade</button>
+                    </form>
+                  </FormAction>}</td>
                 </tr>
               ))}
             </tbody>

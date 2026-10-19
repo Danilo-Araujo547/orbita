@@ -58,8 +58,8 @@ if os.getenv("DATABASE_ENGINE", "postgresql") == "postgresql":
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "HOST": os.getenv("DATABASE_HOST", "127.0.0.1"),
-            "NAME": os.getenv("DATABASE_NAME", "rob8"),
-            "USER": os.getenv("DATABASE_USER", "rob8"),
+            "NAME": os.getenv("DATABASE_NAME", "orbita"),
+            "USER": os.getenv("DATABASE_USER", "orbita"),
             "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
             "PORT": os.getenv("DATABASE_PORT", "5432"),
             "CONN_MAX_AGE": 60,
@@ -94,7 +94,7 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
 }
 SPECTACULAR_SETTINGS = {
-    "TITLE": "ROB8 Next API",
+    "TITLE": "Orbita API",
     "VERSION": "1.0.0",
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
     "ENUM_NAME_OVERRIDES": {
@@ -144,6 +144,14 @@ CELERY_BEAT_SCHEDULE = {
     "operations": {"task": "operations.tick", "schedule": 60.0},
 }
 SEND_MODE = os.getenv("SEND_MODE", "simulated")
+META_REAL_ENABLED = os.getenv("META_REAL_ENABLED", "0") == "1"
+META_PILOT_TEMPLATE = os.getenv("META_PILOT_TEMPLATE", "")
+META_PILOT_DAILY_LIMIT = int(os.getenv("META_PILOT_DAILY_LIMIT", "30"))
+META_INBOX_SSH_HOST = os.getenv("META_INBOX_SSH_HOST", "")
+META_INBOX_SSH_USER = os.getenv("META_INBOX_SSH_USER", "root")
+META_INBOX_CONTAINER = os.getenv("META_INBOX_CONTAINER", "meta-whatsapp-webhook")
+SIMULATED_SQLITE_PATH = os.getenv("SIMULATED_SQLITE_PATH", "")
+SIMULATED_SQLITE_UNIT = os.getenv("SIMULATED_SQLITE_UNIT", "ame")
 META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
 META_PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID", "")
 META_DISPLAY_PHONE_NUMBER = os.getenv("META_DISPLAY_PHONE_NUMBER", "")
@@ -165,4 +173,5 @@ AUTH_PASSWORD_VALIDATORS = [
 # Dedicated Fernet key: credential storage is independent of Django signing keys.
 META_CREDENTIALS_KEY = os.getenv("META_CREDENTIALS_KEY", "")
 INSTANCE_CREDENTIALS_KEY = os.getenv("INSTANCE_CREDENTIALS_KEY", "")
+ORACLE_CREDENTIALS_KEY = os.getenv("ORACLE_CREDENTIALS_KEY", "")
 ORBITA_INSTANCE_ID = os.getenv("ORBITA_INSTANCE_ID", "")

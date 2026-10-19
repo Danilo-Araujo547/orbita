@@ -89,6 +89,7 @@ export default function FormAction({
       <button
         type="button"
         className="button form-action-trigger"
+        disabled={locked}
         onClick={() => {
           started.current = currentVersion;
           setOpen(true);

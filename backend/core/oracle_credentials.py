@@ -1,4 +1,4 @@
-"""Password-protected database vault; unlocked keys are temporary, never stored in PostgreSQL."""
+"""Encrypted Oracle vault with a server-encrypted persistent service key."""
 
 import base64
 import hashlib
@@ -33,6 +33,29 @@ def decrypt(config, key):
         return json.loads(Fernet(key).decrypt(config.ciphertext.encode()))
     except (InvalidToken, ValueError):
         raise ValueError("oracle_locked") from None
+
+
+def service_cipher():
+    try:
+        return Fernet(settings.ORACLE_CREDENTIALS_KEY.encode())
+    except (ValueError, TypeError, AttributeError):
+        raise ValueError("oracle_service_key_unavailable") from None
+
+
+def wrap_service_key(key):
+    return service_cipher().encrypt(key).decode()
+
+
+def access(config):
+    if not config.operational_enabled:
+        return None
+    if config.service_key_ciphertext:
+        try:
+            key = service_cipher().decrypt(config.service_key_ciphertext.encode())
+        except (InvalidToken, UnicodeError):
+            raise ValueError("oracle_service_key_unavailable") from None
+        return key, None
+    return lease(config)
 
 
 def cache_name(config):
@@ -79,7 +102,7 @@ def lease(config, key=None, remove=False):
 
 
 def unlocked(config):
-    value = lease(config)
+    value = access(config)
     if not value:
         raise ValueError("oracle_locked")
     return decrypt(config, value[0])
@@ -88,7 +111,11 @@ def unlocked(config):
 def connection_payload(unit):
     from core.models import OracleConfiguration
 
-    config = OracleConfiguration.objects.select_related("owner").filter(unit__slug=unit.slug if unit else "ame").first()
+    config = (
+        OracleConfiguration.objects.select_related("owner")
+        .filter(unit__slug=unit.slug if unit else "ame")
+        .first()
+    )
     return unlocked(config) if config else None
 
 
@@ -100,6 +127,8 @@ def connect(payload):
     target = {"service_name" if payload["identifier_type"] == "service" else "sid": payload["identifier"]}
     dsn = oracledb.makedsn(payload["host"], payload["port"], **target)
     params = oracledb.ConnectParams(tcp_connect_timeout=5, retry_count=0)
-    connection = oracledb.connect(user=payload["username"], password=payload["password"], dsn=dsn, params=params)
+    connection = oracledb.connect(
+        user=payload["username"], password=payload["password"], dsn=dsn, params=params
+    )
     connection.call_timeout = payload["timeout_ms"]
     return connection

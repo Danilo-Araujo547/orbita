@@ -16,6 +16,7 @@ RANK = {"viewer": 0, "operator": 1, "admin": 2}
 RESOURCES = {
     "appointment-groups",
     "appointments",
+    "agenda-items",
     "messages",
     "replies",
     "issues",
@@ -23,6 +24,7 @@ RESOURCES = {
     "templates",
     "imports",
     "audit",
+    "logs",
     "cases",
     "contacts",
     "movements",

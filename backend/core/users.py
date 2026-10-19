@@ -38,7 +38,7 @@ def scope_options(user):
                 "remote": False,
                 "editable": level == "write",
                 "max_role": "admin",
-                "permissions": role_permissions("admin"),
+                "permissions": local_permissions(user, unit),
             }
         )
         for remote in RemoteInstance.objects.filter(local_unit=unit).order_by("name"):
@@ -218,7 +218,9 @@ class UserViewSet(viewsets.GenericViewSet):
 
             if RANK[grant["role"]] > RANK[option["max_role"]]:
                 raise ValidationError("O perfil excede a permissão da conexão remota.")
-            policy = role_permissions(grant["role"], grant["permissions"])
+            policy = role_permissions(
+                grant["role"], {**{section: "none" for section in SECTIONS}, **grant["permissions"]}
+            )
             for section, level in grant["permissions"].items():
                 if level == "write" and (
                     grant["role"] == "viewer" or (grant["role"] != "admin" and section in PRIVILEGED)
@@ -315,12 +317,22 @@ class UserViewSet(viewsets.GenericViewSet):
             )
             return user_output(user, options, request.user)
 
+        import hashlib
+        import hmac
+
+        from django.conf import settings
+
+        receipt_data = {**data}
+        if "password" in receipt_data:
+            receipt_data["password"] = hmac.new(
+                settings.SECRET_KEY.encode(), receipt_data["password"].encode(), hashlib.sha256
+            ).hexdigest()
         return Response(
             idempotent(
                 anchor,
                 request.user,
                 request.headers.get("Idempotency-Key"),
-                {"action": "user.configure", "user": pk, "data": data},
+                {"action": "user.configure", "user": pk, "data": receipt_data},
                 execute,
             )
         )

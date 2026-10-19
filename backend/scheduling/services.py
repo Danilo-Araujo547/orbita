@@ -10,7 +10,7 @@ from messaging.models import Message, Notification
 from responses.models import Issue
 
 from scheduling.connectors import normalize_phone
-from scheduling.models import Appointment, ImportRun
+from scheduling.models import Appointment, ImportRun, Rule
 
 PENDING = [Message.State.PREVIEW, Message.State.QUEUED, Message.State.BLOCKED]
 
@@ -233,7 +233,7 @@ def contact_numbers(numbers, primary=""):
     return sorted(result)
 
 
-def import_rule(rule, source, now=None, retry=False):
+def import_rule(rule, source, now=None, retry=False, refresh=False):
     now = now or timezone.now()
     local = now.astimezone(ZoneInfo(rule.unit.timezone))
     if not rule.enabled or local.weekday() not in rule.weekdays:
@@ -246,7 +246,14 @@ def import_rule(rule, source, now=None, retry=False):
             rule=rule, run_date=local.date(), defaults={"unit": rule.unit}
         )
         if not created:
-            if not retry or run.status != "failed":
+            if run.status == "running":
+                return run
+            elapsed = run.completed_at is None or now >= run.completed_at + timedelta(
+                minutes=rule.refresh_interval_minutes
+            )
+            if run.status == "completed" and not (refresh and elapsed):
+                return run
+            if run.status == "failed" and (not retry or (refresh and not elapsed)):
                 return run
             run.status = "running"
             run.error = ""
@@ -256,6 +263,9 @@ def import_rule(rule, source, now=None, retry=False):
         target = local.date() + timedelta(days=rule.days_before)
         rows = source.fetch(rule.kind, target, rule.unit.timezone)
         with transaction.atomic():
+            current = Rule.objects.select_for_update().get(pk=rule.pk)
+            if not current.enabled or current.version != rule.version:
+                raise ValueError("rule_changed_during_import")
             for data in rows:
                 if (
                     data.kind != rule.kind

@@ -1,4 +1,4 @@
-# Órbita — ROB8 Next
+# Órbita — Orbita
 
 Conexões por URL e chave, sem replicação de registros: veja
 [o guia de instâncias remotas](docs/REMOTE_INSTANCES.md).

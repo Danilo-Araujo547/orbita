@@ -23,7 +23,7 @@ OUTCOMES = {
     Purpose.WAITLIST: {"stay_waitlist", "leave_waitlist", "wrong_person", "opt_out", "review"},
     Purpose.SUMMONS: {"acknowledged", "declined", "wrong_person", "opt_out", "review"},
     Purpose.POSTOPERATIVE: {"well", "needs_attention", "wrong_person", "opt_out", "review"},
-    Purpose.ABSENCE: {"reason_received", "wrong_person", "opt_out", "review"},
+    Purpose.ABSENCE: {"reason_received", "confirmed", "wrong_person", "opt_out", "review"},
     Purpose.MOVEMENT: {"acknowledged", "wrong_person", "opt_out", "review"},
     Purpose.REPORT: {"acknowledged", "wrong_person", "opt_out", "review"},
 }
@@ -313,7 +313,9 @@ def apply_outcome(
     )
 
 
-def contextual_classify(text, purpose="appointment", button_id="", content_type="text"):
+def contextual_classify(
+    text, purpose="appointment", button_id="", content_type="text", response_policy="contextual"
+):
     import unicodedata
 
     if content_type not in {"text", "button", "interactive"}:
@@ -321,6 +323,9 @@ def contextual_classify(text, purpose="appointment", button_id="", content_type=
     clean = "".join(
         c for c in unicodedata.normalize("NFD", text.strip().lower()) if unicodedata.category(c) != "Mn"
     )
+    if response_policy == "confirmation_test" and purpose == "absence":
+        if clean in {"sim", "nao"} or button_id in {"confirmed", "declined"}:
+            return "confirmed"
     if button_id in OUTCOMES.get(purpose, set()):
         return button_id
     if clean in {"3", "nao conheco essa pessoa", "nao conheco esta pessoa"}:
@@ -344,7 +349,14 @@ def contextual_classify(text, purpose="appointment", button_id="", content_type=
 def preview_campaign(campaign):
     if campaign.state != "draft" or not campaign.template or campaign.template.unit_id != campaign.unit_id:
         raise ValidationError("Campanha deve estar em rascunho e possuir template da unidade.")
-    if campaign.template.purpose != campaign.purpose:
+    test_confirmation = campaign.response_policy == "confirmation_test"
+    if test_confirmation and (
+        campaign.purpose != "absence" or campaign.template.name != "confirmacao_consulta_sqlite_v1"
+    ):
+        raise ValidationError(
+            "Política de teste restrita ao template de confirmação da campanha de ausentes."
+        )
+    if campaign.template.purpose != campaign.purpose and not test_confirmation:
         raise ValidationError("Finalidade do template incompatível.")
     if not campaign.scheduled_for:
         raise ValidationError("Informe a data prevista.")
@@ -358,6 +370,11 @@ def preview_campaign(campaign):
             "date": timezone.localtime(event.occurred_at).strftime("%d/%m/%Y"),
             **event.data,
         }
+        if test_confirmation:
+            available.update(
+                appointment_type="DO SEU ATENDIMENTO",
+                arrival_time=timezone.localtime(event.occurred_at).strftime("%H:%M"),
+            )
         params = [str(available.get(field, "")) for field in campaign.template.fields]
         if any(not p.strip() for p in params):
             raise ValidationError("Parâmetros incompletos para um dos casos.")
@@ -406,6 +423,7 @@ def preview_campaign(campaign):
                     "state": "preview",
                     "snapshot": {
                         "campaign": campaign.pk,
+                        "response_policy": campaign.response_policy,
                         "version": campaign.version,
                         "event_revision": event.revision,
                         "synthetic": event.synthetic,

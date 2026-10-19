@@ -48,7 +48,17 @@ try {
     $nodePath = (Get-Command node.exe).Source
     $vitePath = Join-Path $projectRoot 'frontend\node_modules\vite\bin\vite.js'
     $panel = Start-Process -FilePath $nodePath -ArgumentList @($vitePath,'--host','0.0.0.0','--port','5173','--strictPort') -WorkingDirectory (Join-Path $projectRoot 'frontend') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtimeDir 'panel.log') -RedirectStandardError (Join-Path $runtimeDir 'panel-error.log')
-    @{api=$api.Id;panel=$panel.Id;project=$projectRoot} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeDir 'runtime.json') -Encoding UTF8
+    $dispatcherId = $null
+    if ($env:SEND_MODE -eq 'simulated' -or ($env:SEND_MODE -eq 'meta_test' -and $env:META_REAL_ENABLED -eq '1')) {
+        $dispatcher = Start-Process -FilePath $pythonPath -ArgumentList @('backend/manage.py','run_group_dispatcher') -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtimeDir 'dispatcher.log') -RedirectStandardError (Join-Path $runtimeDir 'dispatcher-error.log')
+        $dispatcherId = $dispatcher.Id
+    }
+    $inboxId = $null
+    if ($env:META_INBOX_SSH_HOST) {
+        $inbox = Start-Process -FilePath $pythonPath -ArgumentList @('backend/manage.py','run_meta_inbox') -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtimeDir 'inbox.log') -RedirectStandardError (Join-Path $runtimeDir 'inbox-error.log')
+        $inboxId = $inbox.Id
+    }
+    @{api=$api.Id;panel=$panel.Id;dispatcher=$dispatcherId;inbox=$inboxId;project=$projectRoot} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeDir 'runtime.json') -Encoding UTF8
     Write-Output 'Painel: http://127.0.0.1:5173'
     $networkOrigins | ForEach-Object { Write-Output "Rede: $_" }
     Write-Output 'Usuário: admin. Senha local: BOOTSTRAP_PASSWORD no arquivo .env (não versionado).'

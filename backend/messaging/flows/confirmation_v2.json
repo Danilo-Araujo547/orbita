@@ -1,0 +1,23 @@
+{
+  "version": "7.3",
+  "screens": [{
+    "id": "CONFIRMACAO", "title": "Confirmar agendamento", "terminal": true, "success": true,
+    "data": {
+      "medico": {"type": "string", "__example__": "Profissional de teste"},
+      "exame": {"type": "string", "__example__": "Procedimento de teste"},
+      "error_message": {"type": "string", "__example__": ""}
+    },
+    "layout": {"type": "SingleColumnLayout", "children": [{"type": "Form", "name": "confirmacao", "children": [
+      {"type": "TextSubheading", "text": "Profissional"},
+      {"type": "TextBody", "text": "${data.medico}"},
+      {"type": "TextSubheading", "text": "Procedimento"},
+      {"type": "TextBody", "text": "${data.exame}"},
+      {"type": "RadioButtonsGroup", "name": "decisao", "label": "Você confirma o agendamento?", "required": true,
+       "data-source": [{"id": "sim", "title": "Sim"}, {"id": "nao", "title": "Não"}]},
+      {"type": "TextArea", "name": "observacao", "label": "Observação", "required": false, "max-length": 600},
+      {"type": "Footer", "label": "Enviar resposta", "on-click-action": {"name": "complete", "payload": {
+        "formulario": "orbita_confirmacao_v2", "decisao": "${form.decisao}", "observacao": "${form.observacao}"
+      }}}
+    ]}]}
+  }]
+}

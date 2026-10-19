@@ -5,6 +5,8 @@ from django.db import models
 
 
 class Unit(models.Model):
+    version = models.PositiveIntegerField(default=1)
+    authorized_recipients = models.JSONField(null=True, default=None, blank=True)
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=150)
     timezone = models.CharField(max_length=50, default="America/Sao_Paulo")
@@ -115,6 +117,8 @@ class OracleConfiguration(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     salt = models.CharField(max_length=64, editable=False)
     ciphertext = models.TextField(editable=False)
+    service_key_ciphertext = models.TextField(blank=True, editable=False)
+    operational_enabled = models.BooleanField(default=True)
     version = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
     checked_at = models.DateTimeField(null=True)

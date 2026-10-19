@@ -61,7 +61,7 @@ MovementSerializer = model_serializer(
 PreparationSerializer = model_serializer(models.Preparation, ["version"])
 LayoutSerializer = model_serializer(models.ImportLayout, ["version"])
 PolicySerializer = model_serializer(models.PurposePolicy, ["version"])
-CampaignSerializer = model_serializer(models.Campaign, ["state", "version"])
+CampaignSerializer = model_serializer(models.Campaign, ["state", "version", "sends_enabled", "next_send_at"])
 ReportSerializer = model_serializer(models.ReportDefinition, ["version"])
 
 
@@ -129,6 +129,10 @@ class VersionInput(serializers.Serializer):
     version = serializers.IntegerField(min_value=1)
 
 
+class CampaignSendingInput(VersionInput):
+    enabled = serializers.BooleanField()
+
+
 class MovementConfirmInput(VersionInput):
     evidence = serializers.CharField(min_length=5, max_length=4000)
     final = serializers.JSONField(required=False, default=dict)
@@ -141,7 +145,7 @@ class SheetPreviewInput(serializers.Serializer):
 
 
 class SheetConfirmInput(serializers.Serializer):
-    purpose = serializers.ChoiceField(choices=["waitlist", "summons"])
+    purpose = serializers.ChoiceField(choices=["waitlist", "summons", "absence"])
 
 
 class ReportInput(serializers.Serializer):

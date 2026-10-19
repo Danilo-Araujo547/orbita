@@ -612,6 +612,30 @@ class ImportViewSet(ScopedReadViewSet):
     queryset = ImportRun.objects.select_related("rule").order_by("-started_at")
     serializer_class = ImportRunSerializer
 
+    @extend_schema(request=None, responses=dict)
+    @action(detail=False, methods=["post"])
+    def simulated(self, request):
+        from operations.services import idempotent
+        from scheduling.simulated import import_simulated
+
+        unit = get_unit(request, ["admin"])
+
+        def execute():
+            try:
+                return import_simulated(unit, request.user)
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from None
+
+        return Response(
+            idempotent(
+                unit,
+                request.user,
+                request.headers.get("Idempotency-Key"),
+                {"path": request.path, "data": request.data},
+                execute,
+            )
+        )
+
     @extend_schema(request=ImportInput, responses={200: ImportRunSerializer, 202: dict})
     @action(detail=False, methods=["post"])
     def run(self, request):
@@ -634,7 +658,9 @@ class ImportViewSet(ScopedReadViewSet):
                 unit=unit, actor=request.user, action="import.queued", object_id=str(rule.pk)
             )
             return Response({"status": "queued", "task_id": task.id}, status=202)
-        run = import_rule(rule, OracleSource(unit), retry=True)
+        from scheduling.connectors import appointment_source
+
+        run = import_rule(rule, appointment_source(unit), retry=True)
         Audit.objects.create(unit=unit, actor=request.user, action="import.requested", object_id=str(rule.pk))
         if run is None:
             return Response({"detail": "Regra fora do dia ou horário previsto."}, status=400)
@@ -650,8 +676,9 @@ class AuditViewSet(ScopedReadViewSet):
 @extend_schema(methods=["POST"], request=ControlInput, responses=ControlOutput)
 @api_view(["GET", "POST"])
 def control(request):
+    from messaging.pilot import authorized_recipients
+
     from core.models import OracleConfiguration
-    from scheduling.connectors import OracleSource
 
     unit = get_unit(request, ["admin"] if request.method == "POST" else None)
     if request.method == "POST":
@@ -666,6 +693,7 @@ def control(request):
                 if type(hours) is not int or not 1 <= hours <= 168:
                     raise ValidationError("Prazo deve estar entre 1 e 168 horas.")
                 unit.response_hours = hours
+            unit.version += 1
             unit.save()
             Audit.objects.create(
                 unit=unit,
@@ -677,7 +705,10 @@ def control(request):
         {
             "unit": UnitSerializer(unit).data,
             "mode": settings.SEND_MODE,
-            "test_recipients": settings.TEST_RECIPIENTS,
+            "appointment_source": "sqlite_simulated"
+            if settings.SIMULATED_SQLITE_PATH and unit.slug == settings.SIMULATED_SQLITE_UNIT
+            else "oracle",
+            "test_recipients": authorized_recipients(unit),
             "oracle_configured": OracleConfiguration.objects.filter(unit=unit).exists()
             or all(OracleSource(unit).credentials()),
             "meta_configured": MetaConfiguration.objects.filter(
@@ -746,8 +777,10 @@ def test_appointment(request):
         phone = normalize_phone(request.data.get("phone", ""))
     except ValueError:
         raise ValidationError("Telefone inválido.") from None
-    if phone not in settings.TEST_RECIPIENTS:
-        raise ValidationError("Número fora da lista autorizada. Configure TEST_RECIPIENTS no ambiente.")
+    from messaging.pilot import authorized_recipients
+
+    if phone not in authorized_recipients(unit):
+        raise ValidationError("Número fora da lista autorizada. Configure os destinatarios da unidade.")
     kind = request.data.get("kind", "consultation")
     rule = Rule.objects.filter(unit=unit, kind=kind, enabled=True).select_related("unit", "template").first()
     if not rule:

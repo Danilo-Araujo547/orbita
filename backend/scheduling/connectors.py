@@ -38,6 +38,14 @@ class AppointmentSource(Protocol):
     def fetch(self, kind: str, target_date, timezone: str) -> list[AppointmentData]: ...
 
 
+def appointment_source(unit):
+    if settings.SIMULATED_SQLITE_PATH and unit.slug == settings.SIMULATED_SQLITE_UNIT:
+        from scheduling.simulated import SQLiteSource
+
+        return SQLiteSource(unit)
+    return OracleSource(unit)
+
+
 def consolidate_rows(rows):
     """Consolidate the appointment, preserving each distinct contact as a recipient."""
     groups = {}

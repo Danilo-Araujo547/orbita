@@ -24,6 +24,7 @@ type Group = {
   messages_pending: number;
   paused: boolean;
   can_dispatch_now?: boolean;
+  dispatch_mode?: "simulated" | "real";
 };
 const day = (value: string) => value.split("-").reverse().join("/");
 const sendDate = (value: string) =>
@@ -198,7 +199,9 @@ function ScheduleDialog({
 
         <p className="group-edit-description">
           {group.can_dispatch_now
-            ? "Envio simulado"
+            ? group.dispatch_mode === "real"
+              ? "Envio real · destinatário de teste"
+              : "Envio simulado"
             : group.paused
               ? "Envios pausados."
               : ""}

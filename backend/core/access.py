@@ -11,7 +11,7 @@ SECTIONS = {
     "groups": "Grupos",
     "messages": "Mensagens",
     "issues": "Pendências",
-    "campaigns": "Campanhas",
+    "campaigns": "Importa CROSS",
     "reports": "Relatórios",
     "operationsAdmin": "Administração",
     "settings": "Configurações",
@@ -22,6 +22,7 @@ PRIVILEGED = {"operationsAdmin", "settings", "users"}
 RESOURCES = {
     "indicators": ["overview"],
     "appointments": ["appointments"],
+    "agenda-items": ["appointments"],
     "appointment-groups": ["groups"],
     "messages": ["messages"],
     "replies": ["messages"],
@@ -45,6 +46,7 @@ RESOURCES = {
     "templates": ["settings", "operationsAdmin", "campaigns"],
     "imports": ["settings"],
     "audit": ["settings"],
+    "logs": ["settings"],
     "control": ["settings"],
     "meta-configuration": ["settings"],
     "oracle-configuration": ["settings"],
@@ -127,7 +129,7 @@ def required_sections(resource, method, params):
     if method in {"GET", "HEAD", "OPTIONS"}:
         if root == "rules":
             sections.append("operationsAdmin")
-        if root == "appointments":
+        if root in {"appointments", "agenda-items"}:
             if params.get("group"):
                 sections.append("groups")
             if params.get("operational_pending") == "true":

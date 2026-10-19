@@ -410,6 +410,11 @@ export default function ModalContent({
           </label>
         </div>
         <label>Dias da semana</label>
+        <label>
+          Atualizar a view a cada (minutos)
+          <input type="number" min={1} max={1440} value={ruleForm.refresh_interval_minutes}
+            onChange={(e) => setRuleForm({ ...ruleForm, refresh_interval_minutes: Number(e.target.value) })} />
+        </label>
         <div className="weekday-picker">
           {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map(
             (day, index) => (
@@ -449,6 +454,7 @@ export default function ModalContent({
               {
                 name: ruleForm.name,
                 days_before: ruleForm.days_before,
+                refresh_interval_minutes: ruleForm.refresh_interval_minutes,
                 version: ruleForm.version,
                 send_time: ruleForm.send_time,
                 weekdays: ruleForm.weekdays,

@@ -1,3 +1,5 @@
+import FilterSelect from "./FilterSelect";
+import WhatsAppStatus from "./WhatsAppStatus";
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -5,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  MessageCircle,
   MessageSquare,
   Search,
   User,
@@ -24,6 +25,12 @@ const responseLabels: Record<string, string> = {
   not_requested: "Não solicitado",
   no_response: "Sem resposta no prazo",
   answered: "Respondido",
+  reason_received: "Motivo informado",
+  stay_waitlist: "Permanece na fila",
+  leave_waitlist: "Saiu da fila",
+  well: "Informou estar bem",
+  needs_attention: "Requer atendimento",
+  acknowledged: "Ciente",
   confirmed: "Confirmou",
   declined: "Recusou",
   review: "Revisar",
@@ -41,7 +48,7 @@ function responseLabel(item: Appointment, now: number) {
       return `Aguardando há ${hours} ${hours === 1 ? "hora" : "horas"}`;
     }
   }
-  return responseLabels[status] || status;
+  return responseLabels[status] || labels[status] || status;
 }
 
 function pendingIssueLabel(item: Appointment, now: number) {
@@ -66,6 +73,8 @@ export function isAppointmentIssue(item: Appointment): boolean {
 
   // 2. Outros problemas de resposta ou decisão
   if (
+    outcome === "needs_attention" ||
+    response === "needs_attention" ||
     outcome === "review" ||
     response === "review" ||
     outcome === "wrong_person" ||
@@ -150,6 +159,14 @@ export default function OperationalAppointments({
     corrections: "",
     observations: "",
   });
+  const [typeOptions, setTypeOptions] = useState<{value: string; label: string; group: string}[]>([]);
+  useEffect(() => {
+    let active = true;
+    request<{value: string; label: string; group: string}[]>(query("agenda-items/types", {unit}))
+      .then(options => {if (active) setTypeOptions(options);})
+      .catch(error => {if (active) setError(error.message);});
+    return () => {active = false;};
+  }, [unit, refreshKey]);
   const [issueFilter, setIssueFilter] = useState("all");
   const handleIssueFilterChange = (value: string) => {
     setIssueFilter(value);
@@ -239,7 +256,7 @@ export default function OperationalAppointments({
     let active = true;
     setLoading(true);
     request<Paginated<Appointment>>(
-      query("appointments", { ...params, page: String(page) }),
+      query("agenda-items", { ...params, page: String(page) }),
     )
       .then((result) => {
         if (active) {
@@ -256,7 +273,7 @@ export default function OperationalAppointments({
   useEffect(() => {
     if (!initialId) return;
     let active = true;
-    request<Appointment>(query(`appointments/${initialId}`, { unit }))
+    request<Appointment>(query(`agenda-items/${initialId}`, { unit }))
       .then((item) => {
         if (active) select(item.tracking?.id || null);
       })
@@ -287,9 +304,16 @@ export default function OperationalAppointments({
     [unit],
   );
   function filter(key: keyof typeof filters, value: string) {
-    setFilters((v) => ({ ...v, [key]: value }));
+    setFilters((v) => ({ ...v, [key]: value, ...(key === "kind" ? {response: "", outcome: ""} : {}) }));
     setPage(1);
   }
+  const contextualOutcomes: Record<string, string[]> = {
+    "cross:absence": ["reason_received"], "cross:waitlist": ["stay_waitlist", "leave_waitlist"],
+    "cross:summons": ["acknowledged"], "cross:postoperative": ["well", "needs_attention"],
+    "cross:movement": ["acknowledged"],
+  };
+  const responseOptions = [...new Set(["pending", "no_response", "answered", "confirmed", "declined", "review",
+    ...(filters.kind ? contextualOutcomes[filters.kind] || [] : typeOptions.flatMap(option => contextualOutcomes[option.value] || []))])];
   const displayedItems = issuesOnly
     ? items.results.filter(isAppointmentIssue)
     : items.results;
@@ -396,11 +420,11 @@ export default function OperationalAppointments({
                 ? items.count === 1
                   ? "pendência"
                   : "pendências"
-                : "agendamentos"}
+                : !filters.kind || filters.kind.startsWith("cross:") ? "registros" : "agendamentos"}
             </span>
             <div className="appointment-list-actions">
               {periodFilter}
-              <a className="button" href={query("appointments/export", params)}>
+              <a className="button" href={query("agenda-items/export", params)}>
                 <Download size={16} /> Exportar
               </a>
             </div>
@@ -418,33 +442,33 @@ export default function OperationalAppointments({
             </label>
             <label className="op-field">
               <span>Período referente a</span>
-              <select
+              <FilterSelect label="Período referente a"
                 value={filters.date_basis}
                 onChange={(e) => filter("date_basis", e.target.value)}
               >
-                <option value="appointment">Data do agendamento</option>
+                <option value="appointment">Data do agendamento / registro</option>
                 <option value="send">Data prevista do envio</option>
                 <option value="reply">Data da resposta</option>
-              </select>
+              </FilterSelect>
             </label>
             <label className="op-field">
               <span>Tipo</span>
-              <select
+              <FilterSelect label="Tipo"
                 value={filters.kind}
                 onChange={(e) => filter("kind", e.target.value)}
               >
                 <option value="">Todos</option>
-                {Object.entries(kinds).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
+                {typeOptions.map(option => (
+                  <option key={option.value} value={option.value} data-group={option.group}>
+                    {option.label}
                   </option>
                 ))}
-              </select>
+              </FilterSelect>
             </label>
             {issuesOnly ? (
               <label className="op-field">
                 <span>Tipo de pendência</span>
-                <select
+                <FilterSelect label="Tipo de pendência"
                   value={issueFilter}
                   onChange={(e) => handleIssueFilterChange(e.target.value)}
                 >
@@ -456,22 +480,22 @@ export default function OperationalAppointments({
                   <option value="review">Aguardando revisão</option>
                   <option value="corrections">Com correções abertas</option>
                   <option value="no_response">Sem resposta no prazo</option>
-                </select>
+                </FilterSelect>
               </label>
             ) : (
               <>
                 <label className="op-field">
                   <span>Resposta consolidada</span>
-                  <select
+                  <FilterSelect label="Resposta consolidada"
                     value={filters.outcome || filters.response}
                     onChange={(e) => {
                       const value = e.target.value;
                       setFilters((v) => ({
                         ...v,
-                        response: ["pending", "no_response"].includes(value)
+                        response: ["pending", "no_response", "answered"].includes(value)
                           ? value
                           : "",
-                        outcome: ["pending", "no_response"].includes(value)
+                        outcome: ["pending", "no_response", "answered"].includes(value)
                           ? ""
                           : value,
                       }));
@@ -479,22 +503,16 @@ export default function OperationalAppointments({
                     }}
                   >
                     <option value="">Todas</option>
-                    {[
-                      "pending",
-                      "no_response",
-                      "confirmed",
-                      "declined",
-                      "review",
-                    ].map((k) => (
+                    {responseOptions.map((k) => (
                       <option key={k} value={k}>
                         {responseLabels[k]}
                       </option>
                     ))}
-                  </select>
+                  </FilterSelect>
                 </label>
                 <label className="op-field">
                   <span>Entrega por contato</span>
-                  <select
+                  <FilterSelect label="Entrega por contato"
                     value={filters.delivery}
                     onChange={(e) => filter("delivery", e.target.value)}
                   >
@@ -513,13 +531,13 @@ export default function OperationalAppointments({
                         {labels[k] || k}
                       </option>
                     ))}
-                  </select>
+                  </FilterSelect>
                 </label>
               </>
             )}
             <label className="op-field">
               <span>Intervenções</span>
-              <select
+              <FilterSelect label="Intervenções"
                 value={
                   filters.corrections
                     ? "corrections"
@@ -547,7 +565,7 @@ export default function OperationalAppointments({
                 <option value="corrections">Com correções abertas</option>
                 <option value="observations">Com observação ou ligação</option>
                 <option value="no_observations">Sem observação</option>
-              </select>
+              </FilterSelect>
             </label>
           </div>
           <div className="op-card appointment-table-wrap" aria-busy={loading}>
@@ -597,7 +615,7 @@ export default function OperationalAppointments({
                       <strong>{item.procedure}</strong>
                       <small>
                         {dateTime(item.scheduled_at)} ·{" "}
-                        {kinds[item.kind] || item.kind}
+                        {item.kind_label || kinds[item.kind] || item.kind}
                       </small>
                       {item.professional && (
                         <small className="appointment-professional">
@@ -681,6 +699,7 @@ export default function OperationalAppointments({
                       </span>
                       {(role === "admin" || role === "operator") &&
                         item.tracking?.id &&
+                        item.record_type !== "cross" &&
                         ["pending", "no_response"].includes(
                           item.tracking.response,
                         ) && (
@@ -743,7 +762,7 @@ export default function OperationalAppointments({
                         className="button appointment-message-button"
                         onClick={() => setMessageItem(item)}
                       >
-                        <MessageCircle size={13} aria-hidden="true" />
+                        <WhatsAppStatus appointment={item} />
                         <span>Ver mensagem</span>
                       </button>
                       {!!item.tracking?.corrections && (

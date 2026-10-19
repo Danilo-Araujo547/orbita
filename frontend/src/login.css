@@ -1,0 +1,75 @@
+/* Tela de login Órbita (v2). Tudo escopado em .lg */
+.lg{
+  --lg-bg:#0a0e17; --lg-bg-2:#0f1626; --lg-surface:#111a2d; --lg-line:rgba(255,255,255,.09); --lg-line-strong:rgba(255,255,255,.2);
+  --lg-text:#e6ebf5; --lg-muted:#a3aec4; --lg-accent:#5ea8ff; --lg-accent-ink:#06101f; --lg-star:220,232,255; --lg-ring:rgba(94,168,255,.35);
+  --lg-horizon:rgba(70,120,255,.28);
+  --lg-sans:"Inter",system-ui,sans-serif; --lg-display:"Space Grotesk","Inter",system-ui,sans-serif;
+  position:fixed;inset:0;z-index:50;overflow:hidden;display:grid;grid-template-columns:1fr;
+  background:var(--lg-bg);color:var(--lg-text);font-family:var(--lg-sans);transition:background .4s,color .3s;
+}
+[data-theme="light"] .lg{
+  --lg-bg:#f7f9fc; --lg-bg-2:#eef2f7; --lg-surface:#ffffff; --lg-line:rgba(29,46,75,.15); --lg-line-strong:rgba(29,46,75,.29);
+  --lg-text:#17253a; --lg-muted:#56657a; --lg-accent:#1761bb; --lg-accent-ink:#fff; --lg-star:72,99,138; --lg-ring:rgba(23,97,187,.16);
+  --lg-horizon:rgba(61,93,138,.075);
+}
+.lg *{box-sizing:border-box}
+.lg-scene{position:absolute;inset:0;pointer-events:none;z-index:0}
+.lg-sky{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.lg-light{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity .35s ease}
+[data-theme="light"] .lg-light{opacity:1}
+[data-theme="light"] .lg-sky{opacity:0}
+.lg-comets{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.lg-horizon{position:absolute;left:-20%;right:-20%;bottom:-62vh;height:80vh;border-radius:50%;z-index:0;pointer-events:none;
+  background:radial-gradient(closest-side,var(--lg-bg-2) 70%,transparent 71%);
+  box-shadow:0 -2px 80px 6px var(--lg-horizon),inset 0 3px 1px -1px var(--lg-line-strong)}
+[data-theme="light"] .lg-horizon{
+  background:radial-gradient(closest-side,#f0f3f8 70%,transparent 71%);
+  box-shadow:0 -2px 34px 1px rgba(58,83,120,.055),inset 0 2px 1px -1px rgba(51,75,109,.18);
+}
+.lg-orb{position:absolute;left:0;top:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--lg-accent);z-index:1;pointer-events:none;box-shadow:0 0 8px 2px var(--lg-accent),0 0 18px 5px var(--lg-accent)}
+[data-theme="light"] .lg-orb{box-shadow:0 0 5px 1px rgba(23,97,187,.22),0 0 13px 2px rgba(23,97,187,.09)}
+.lg-flare{position:absolute;left:0;top:0;width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;pointer-events:none;z-index:1;opacity:0;
+  background:radial-gradient(circle,rgba(180,215,255,.46) 0%,rgba(94,168,255,.23) 18%,rgba(94,168,255,.08) 43%,rgba(94,168,255,0) 73%);
+  filter:blur(2px)}
+[data-theme="light"] .lg-flare{filter:blur(2px) saturate(1.3)}
+
+.lg-brand{position:absolute;top:0;left:0;right:0;z-index:2;padding:32px 40px;display:flex;align-items:center}
+.lg-theme{position:absolute;top:20px;right:24px;z-index:3}
+.lg-meta{position:absolute;bottom:24px;left:0;right:0;text-align:center;z-index:2;font-size:12px;color:var(--lg-muted);letter-spacing:.06em;text-transform:uppercase}
+
+.lg .orbita-logo{
+  --logo-color:#ffffff;--logo-accent:#34d399;--logo-background:var(--lg-bg);
+  display:inline-flex;align-items:center;gap:11px;
+  color:var(--logo-color);font-family:"Manrope",system-ui,sans-serif;
+  font-size:30px;font-weight:800;font-synthesis:none;line-height:1;letter-spacing:-1.7px;white-space:nowrap;
+}
+.lg .orbita-logo__symbol{
+  box-sizing:border-box;width:31px;height:31px;flex-shrink:0;position:relative;
+  border:4px solid var(--logo-color);border-radius:50%;transform:rotate(-35deg);
+}
+.lg .orbita-logo__symbol::after{
+  content:"";position:absolute;box-sizing:content-box;width:8px;height:8px;top:-4px;right:-6px;
+  background:var(--logo-accent);border:2px solid var(--logo-background);border-radius:50%;
+}
+.lg .orbita-logo__dot{color:var(--logo-accent)}
+[data-theme="light"] .lg .orbita-logo{--logo-color:#075b94;--logo-accent:#14b4cb}
+@media(max-width:640px){.lg-brand{padding:24px}}
+
+.lg-panel{position:relative;z-index:1;display:grid;place-items:center;padding:32px}
+.lg-form{width:min(360px,100%)}
+.lg-form h1{margin:0 0 28px;font-family:var(--lg-display);font-weight:500;font-size:28px;letter-spacing:-.01em;color:var(--lg-text)}
+.lg-label{display:block;font-size:12.5px;font-weight:500;color:var(--lg-muted);margin:0 0 7px}
+.lg-field{margin-bottom:18px}
+.lg-box{position:relative}
+.lg-input{width:100%;height:44px;padding:0 14px;background:color-mix(in srgb,var(--lg-surface) 80%,transparent);border:1px solid var(--lg-line);border-radius:8px;color:var(--lg-text);font:inherit;font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+[data-theme="light"] .lg-input{background:rgba(255,255,255,.84)}
+.lg-input:hover{border-color:var(--lg-line-strong)}
+.lg-input:focus{border-color:var(--lg-accent);box-shadow:0 0 0 4px var(--lg-ring)}
+.lg-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--lg-muted);font-size:12px;padding:8px;cursor:pointer;font-family:inherit}
+.lg-eye:hover{color:var(--lg-text)}
+.lg-form .inline-error{margin:0 0 16px}
+.lg-go{width:100%;height:44px;margin-top:6px;border:0;border-radius:8px;background:var(--lg-accent);color:var(--lg-accent-ink);font:600 14.5px var(--lg-sans);cursor:pointer;transition:filter .15s,transform .05s}
+.lg-go:hover{filter:brightness(1.1)} .lg-go:active{transform:translateY(1px)}
+.lg-go:disabled{opacity:.7;cursor:progress}
+
+@media(prefers-reduced-motion:reduce){.lg-comets,.lg-flare,.lg-light{display:none}}

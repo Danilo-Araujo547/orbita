@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ROB8 Next API
+  title: Orbita API
   version: 1.0.0
 paths:
   /api/v1/appointment-groups/:
@@ -38,6 +38,41 @@ paths:
         required: true
       tags:
       - appointment-groups
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+  /api/v1/appointment-groups/{id}/dispatch-now/:
+    post:
+      operationId: appointment_groups_dispatch_now_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este appointment group.
+        required: true
+      tags:
+      - appointment-groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupDispatchInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupDispatchInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupDispatchInput'
+        required: true
       security:
       - orbitaInstanceKey: []
       - cookieAuth: []
@@ -375,6 +410,74 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/VersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/campaigns/{id}/release/:
+    post:
+      operationId: campaigns_release_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este campaign.
+        required: true
+      tags:
+      - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/campaigns/{id}/sending/:
+    post:
+      operationId: campaigns_sending_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este campaign.
+        required: true
+      tags:
+      - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignSendingInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CampaignSendingInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CampaignSendingInput'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -923,6 +1026,22 @@ paths:
                 $ref: '#/components/schemas/ImportRun'
           description: ''
         '202':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/imports/simulated/:
+    post:
+      operationId: imports_simulated_create
+      tags:
+      - imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
           content:
             application/json:
               schema:
@@ -3486,6 +3605,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Unit'
           description: ''
+  /api/v1/units/{id}/configure/:
+    post:
+      operationId: units_configure_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este unit.
+        required: true
+      tags:
+      - units
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Unit'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Unit'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Unit'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Unit'
+          description: ''
   /api/v1/users/:
     get:
       operationId: users_list
@@ -3785,14 +3938,6 @@ components:
       - actor_name
       - created_at
       - id
-    CDRImportPurposeEnum:
-      enum:
-      - waitlist
-      - summons
-      type: string
-      description: |-
-        * `waitlist` - waitlist
-        * `summons` - summons
     CallResultEnum:
       enum:
       - answered
@@ -3807,6 +3952,16 @@ components:
         id:
           type: integer
           readOnly: true
+        sends_enabled:
+          type: boolean
+          readOnly: true
+        next_send_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        response_policy:
+          $ref: '#/components/schemas/ResponsePolicyEnum'
         name:
           type: string
           maxLength: 150
@@ -3842,9 +3997,22 @@ components:
       - created_at
       - id
       - name
+      - next_send_at
       - purpose
+      - sends_enabled
       - state
       - unit
+      - version
+    CampaignSendingInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        enabled:
+          type: boolean
+      required:
+      - enabled
       - version
     Case:
       type: object
@@ -4220,6 +4388,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        persistent_access:
+          type: boolean
         protected_by:
           type: string
         validation_state:
@@ -4238,6 +4408,7 @@ components:
       - configured
       - details
       - legacy_configured
+      - persistent_access
       - protected_by
       - unit
       - unlocked
@@ -4287,6 +4458,8 @@ components:
     ControlOutput:
       type: object
       properties:
+        appointment_source:
+          type: string
         unit:
           $ref: '#/components/schemas/Unit'
         mode:
@@ -4304,6 +4477,7 @@ components:
         legacy_exclusion:
           type: boolean
       required:
+      - appointment_source
       - legacy_exclusion
       - meta_configured
       - mode
@@ -4471,16 +4645,6 @@ components:
       - run_date
       - started_at
       - unit
-    FormatEnum:
-      enum:
-      - csv
-      - pdf
-      - text
-      type: string
-      description: |-
-        * `csv` - csv
-        * `pdf` - pdf
-        * `text` - text
     GrantInput:
       type: object
       properties:
@@ -4545,10 +4709,18 @@ components:
         paused:
           type: boolean
           readOnly: true
+        can_dispatch_now:
+          type: boolean
+          readOnly: true
+        dispatch_mode:
+          type: string
+          readOnly: true
       required:
       - appointment_date
       - appointments_sent
       - appointments_total
+      - can_dispatch_now
+      - dispatch_mode
       - id
       - kind
       - messages_delivered
@@ -4559,19 +4731,32 @@ components:
       - rule_name
       - rule_version
       - scheduled_for
+    GroupDispatchInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        delay_seconds:
+          type: integer
+          maximum: 3600
+          minimum: 0
+      required:
+      - delay_seconds
+      - version
     GroupScheduleInput:
       type: object
       properties:
         version:
           type: integer
           minimum: 1
-        scheduled_for:
-          type: string
-          format: date-time
         delay_seconds:
           type: integer
           maximum: 3600
           minimum: 0
+        scheduled_for:
+          type: string
+          format: date-time
       required:
       - delay_seconds
       - scheduled_for
@@ -4597,6 +4782,8 @@ components:
         id:
           type: integer
           readOnly: true
+        format:
+          $ref: '#/components/schemas/ImportLayoutFormatEnum'
         name:
           type: string
           maxLength: 120
@@ -4616,6 +4803,14 @@ components:
       - name
       - unit
       - version
+    ImportLayoutFormatEnum:
+      enum:
+      - table
+      - absence_html
+      type: string
+      description: |-
+        * `table` - CSV/XLSX
+        * `absence_html` - Ausentes HTML (.xls)
     ImportRun:
       type: object
       properties:
@@ -6260,10 +6455,20 @@ components:
         parameters: {}
         format:
           allOf:
-          - $ref: '#/components/schemas/FormatEnum'
+          - $ref: '#/components/schemas/ReportInputFormatEnum'
           default: csv
       required:
       - report
+    ReportInputFormatEnum:
+      enum:
+      - csv
+      - pdf
+      - text
+      type: string
+      description: |-
+        * `csv` - csv
+        * `pdf` - pdf
+        * `text` - text
     ReportRequest:
       type: object
       properties:
@@ -6391,6 +6596,14 @@ components:
         * `any` - Qualquer resposta
         * `unanswered` - Sem resposta
         * `confirmed` - Confirmados
+    ResponsePolicyEnum:
+      enum:
+      - contextual
+      - confirmation_test
+      type: string
+      description: |-
+        * `contextual` - Por finalidade
+        * `confirmation_test` - Teste: SIM e NÃO confirmam
     Rule:
       type: object
       properties:
@@ -6406,6 +6619,10 @@ components:
         kind:
           $ref: '#/components/schemas/AppointmentKindEnum'
         days_before:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        refresh_interval_minutes:
           type: integer
           maximum: 2147483647
           minimum: 0
@@ -6441,7 +6658,6 @@ components:
           nullable: true
       required:
       - code
-      - days_before
       - id
       - kind
       - legacy_report_id
@@ -6501,6 +6717,16 @@ components:
           type: integer
           maximum: 2147483647
           minimum: 0
+        version:
+          type: integer
+          readOnly: true
+        authorized_recipients:
+          nullable: true
+        effective_recipients:
+          type: array
+          items:
+            type: string
+          readOnly: true
         remote:
           type: boolean
         instance_id:
@@ -6517,9 +6743,11 @@ components:
           additionalProperties:
             type: string
       required:
+      - effective_recipients
       - id
       - name
       - slug
+      - version
     Sheet:
       type: object
       properties:
@@ -6553,9 +6781,19 @@ components:
       type: object
       properties:
         purpose:
-          $ref: '#/components/schemas/CDRImportPurposeEnum'
+          $ref: '#/components/schemas/SheetConfirmInputPurposeEnum'
       required:
       - purpose
+    SheetConfirmInputPurposeEnum:
+      enum:
+      - waitlist
+      - summons
+      - absence
+      type: string
+      description: |-
+        * `waitlist` - waitlist
+        * `summons` - summons
+        * `absence` - absence
     SheetPreviewInput:
       type: object
       properties:
@@ -6679,10 +6917,22 @@ components:
           type: integer
           maximum: 2147483647
           minimum: 0
+        version:
+          type: integer
+          readOnly: true
+        authorized_recipients:
+          nullable: true
+        effective_recipients:
+          type: array
+          items:
+            type: string
+          readOnly: true
       required:
+      - effective_recipients
       - id
       - name
       - slug
+      - version
     UserInput:
       type: object
       properties:

@@ -2,9 +2,12 @@ import FormAction from "./components/FormAction";
 import { Badge, Empty, Panel, Metric, SearchField } from "./components/ui";
 import OperationalAppointments from "./components/OperationalAppointments";
 import AppointmentGroups from "./components/AppointmentGroups";
+import ExecutionLogs from "./components/ExecutionLogs";
 import MetaConfiguration from "./components/MetaConfiguration";
 import OracleConfiguration from "./components/OracleConfiguration";
 import UnitDirectory from "./components/UnitDirectory";
+import UserDirectory from "./components/UserDirectory";
+import { canAccess, permissionsFor, reconcileSession } from "./permissions";
 import InlineDialog from "./components/InlineDialog";
 import RemoteInstances from "./components/RemoteInstances";
 import UnitSelector from "./components/UnitSelector";
@@ -13,9 +16,9 @@ import ModalContent from "./components/ModalContent";
 import OperationsWorkspace from "./components/OperationsWorkspace";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { ThemeProvider, useTheme } from "./ThemeContext";
+import Login from "./components/Login";
 import type { Modal } from "./types";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
 import {
   Activity,
   ArrowRight,
@@ -58,7 +61,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { initCsrf, query, request, signIn } from "./api";
+import { initCsrf, query, request } from "./api";
 import { dateOnly, dateTime, kinds, labels, percentage } from "./format";
 import type {
   Appointment,
@@ -82,7 +85,8 @@ const navigation: { id: PageName; label: string; icon: typeof Activity }[] = [
   { id: "messages", label: "Mensagens", icon: MessageCircle },
   { id: "groups", label: "Grupos", icon: CalendarDays },
   { id: "issues", label: "Pendências", icon: ClipboardList },
-  { id: "campaigns", label: "Campanhas", icon: Send },
+  { id: "campaigns", label: "Importa CROSS", icon: Send },
+  { id: "users", label: "Usuários", icon: User },
   { id: "reports", label: "Relatórios", icon: Activity },
   { id: "operationsAdmin", label: "Administração", icon: ShieldCheck },
   { id: "settings", label: "Configurações", icon: Settings2 },
@@ -118,6 +122,13 @@ function AppRoot() {
       .catch(() => {})
       .finally(() => setChecking(false));
   }, []);
+  useEffect(() => {
+    if (!session) return;
+    const refresh = () => { if (document.visibilityState === "visible") request<Session>("/api/v1/auth/session/").then(incoming => setSession(current => current ? reconcileSession(current, incoming) : null)).catch(() => setSession(null)); };
+    const timer = window.setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, [session?.username]);
   if (checking)
     return (
       <div className="boot">
@@ -126,6 +137,7 @@ function AppRoot() {
       </div>
     );
   if (!session) return <Login onLogin={setSession} />;
+  if (!session.units.length) return <div className="boot"><p>Seu usuário não tem acesso a unidades.</p><button className="button" onClick={() => {void request("/api/v1/auth/session/", "POST").finally(()=>setSession(null));}}>Sair</button></div>;
   return (
     <Workspace
       session={session}
@@ -134,97 +146,6 @@ function AppRoot() {
         setSession(await request<Session>("/api/v1/auth/session/"))
       }
     />
-  );
-}
-
-function Login({ onLogin }: { onLogin: (session: Session) => void }) {
-  const [username, setUsername] = useState("admin"),
-    [password, setPassword] = useState(""),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await signIn(username, password);
-      onLogin(await request<Session>("/api/v1/auth/session/"));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <main className="login">
-      <div className="login-theme">
-        <ThemeToggle />
-      </div>
-      <section className="login-story">
-        <div className="brand">
-          <div className="logo-symbol" />
-          <span>
-            órbita<span className="brand-dot">.</span>
-          </span>
-        </div>
-        <div>
-          <span className="eyebrow">ÓRBITA</span>
-          <h1>Gestão de agendamentos e mensagens</h1>
-          <div className="login-orbit">
-            <div />
-            <div />
-            <span>
-              <MessageCircle size={36} />
-            </span>
-            <i>
-              <Check size={18} />
-            </i>
-          </div>
-        </div>
-        <small>AME Votuporanga · Gestão de lembretes</small>
-      </section>
-      <section className="login-form">
-        <div className="login-card">
-          <span className="eyebrow">ACESSO AO SISTEMA</span>
-          <h2>Entrar</h2>
-          <p>Acesse para acompanhar os agendamentos e as respostas.</p>
-          <form onSubmit={submit}>
-            <label>
-              Usuário
-              <input
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-            </label>
-            <label>
-              Senha
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </label>
-            {error && (
-              <div className="inline-error" role="alert">
-                {error}
-              </div>
-            )}
-            <button className="button primary" disabled={busy}>
-              {busy ? "Entrando…" : "Acessar painel"}
-              <ArrowRight size={18} />
-            </button>
-          </form>
-          <div className="login-note">
-            <ShieldCheck size={18} />
-            <span>Ambiente de validação com envios controlados.</span>
-          </div>
-        </div>
-      </section>
-    </main>
   );
 }
 
@@ -300,8 +221,15 @@ function Workspace({
     [state, setState] = useState(""),
     [responseState, setResponseState] = useState(""),
     [listPage, setListPage] = useState(1);
-  const role = session.roles[unit],
-    canOperate = role === "admin" || role === "operator";
+  const policy = permissionsFor(session, unit);
+  const actualRole = session.roles[unit];
+  const visibleNavigation = navigation.filter(item => canAccess(session, unit, item.id) && !(unit.startsWith("remote:") && item.id === "users"));
+  const role = policy[page] === "write" ? actualRole : "viewer";
+  const canOperate = policy[page] === "write" && (actualRole === "admin" || actualRole === "operator");
+  useEffect(() => {
+    if (!session.units.some(u=>u.slug===unit)) { const next = session.units[0]?.slug; if(next) changeUnit(next); return; }
+    if (!visibleNavigation.some(item=>item.id===page) && visibleNavigation[0]) navigate(visibleNavigation[0].id);
+  }, [session, unit, page]);
   const selectedUnit = session.units.find((item) => item.slug === unit);
   const isRemote = unit.startsWith("remote:");
   useEffect(() => {
@@ -330,6 +258,9 @@ function Workspace({
     setError("");
     try {
       const filters = { unit, kind, start, end };
+      const empty = {count:0,next:null,previous:null,results:[]};
+      const read = <T,>(section: string, url:string, fallback:unknown): Promise<T> =>
+        session.permissions?.[unit]?.[section] && session.permissions[unit][section] !== "none" ? request<T>(url) : Promise.resolve(fallback as T);
       const [
         indicators,
         appointments,
@@ -342,15 +273,16 @@ function Workspace({
         audit,
         control,
       ] = await Promise.all([
-        request<Indicators>(query("indicators", filters)),
-        request<Paginated<Appointment>>(
+        read<Indicators>("overview", query("indicators", filters), {appointments:0,messages:0,accepted:0,delivered:0,confirmed:0,declined:0,no_response:0,issues:0,synthetic_appointments:0,states:{},responses:{},by_kind:[],trend:[],paused:true}),
+        read<Paginated<Appointment>>("appointments",
           query("appointments", {
             ...filters,
             page: String(page === "appointments" ? listPage : 1),
             search: page === "appointments" ? search : "",
           }),
+          empty,
         ),
-        request<Paginated<Message>>(
+        read<Paginated<Message>>("messages",
           query("messages", {
             ...filters,
             page: String(page === "messages" ? listPage : 1),
@@ -358,24 +290,27 @@ function Workspace({
             state: page === "messages" ? state : "",
             response_state: page === "messages" ? responseState : "",
           }),
+          empty,
         ),
-        request<Paginated<Reply>>(
+        read<Paginated<Reply>>("messages",
           query("replies", {
             ...filters,
             page: String(page === "responses" ? listPage : 1),
           }),
+          empty,
         ),
-        request<Paginated<Issue>>(
+        read<Paginated<Issue>>("issues",
           query("issues", {
             ...filters,
             page: String(page === "issues" ? listPage : 1),
           }),
+          empty,
         ),
-        request<Paginated<Rule>>(query("rules", { unit })),
-        request<Paginated<Template>>(query("templates", { unit })),
-        request<Paginated<ImportRun>>(query("imports", { unit })),
-        request<Paginated<Audit>>(query("audit", { unit })),
-        request<Control>(query("control", { unit })),
+        read<Paginated<Rule>>("settings", query("rules", { unit }), empty),
+        read<Paginated<Template>>("settings", query("templates", { unit }), empty),
+        read<Paginated<ImportRun>>("settings", query("imports", { unit }), empty),
+        read<Paginated<Audit>>("settings", query("audit", { unit }), empty),
+        request<Control>(query(session.permissions?.[unit]?.settings && session.permissions[unit].settings !== "none" ? "control" : "workspace", { unit })),
       ]);
       if (sequence !== loadSequence.current) return;
       setData({
@@ -398,7 +333,7 @@ function Workspace({
     } finally {
       if (sequence === loadSequence.current) setBusy(false);
     }
-  }, [unit, kind, start, end, listPage, search, state, responseState, page]);
+  }, [unit, kind, start, end, listPage, search, state, responseState, page, session.permissions]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -582,7 +517,7 @@ function Workspace({
           />
           <span className="nav-label">PRINCIPAL</span>
           <nav>
-            {navigation.map((item) => (
+            {visibleNavigation.map((item) => (
               <button
                 key={item.id}
                 onClick={() => navigate(item.id)}
@@ -720,6 +655,7 @@ function Workspace({
               </button>
             </div>
           )}
+          {page === "users" && !isRemote && <UserDirectory unit={unit} editable={canOperate} onChanged={onSessionRefresh} />}
           {["care", "campaigns", "reports", "operationsAdmin"].includes(page) &&
             !(isRemote && page === "operationsAdmin") && (
               <OperationsWorkspace
@@ -728,6 +664,7 @@ function Workspace({
                 unit={unit}
                 role={role}
                 username={session.username}
+                userAccess={policy.users === "write" || policy.users === "read"}
               />
             )}
           {isRemote && page === "operationsAdmin" && (
@@ -1197,6 +1134,7 @@ function Workspace({
                           : []),
                         ["rules", "Lembretes", Bell],
                         ["activity", "Atividades", Activity],
+                        ["logs", "Logs", ClipboardList],
                       ] as [string, string, typeof Activity][]
                     ).map(([id, label, Icon]) => (
                       <button
@@ -1211,6 +1149,7 @@ function Workspace({
                       </button>
                     ))}
                   </nav>
+                  {settingsTab === "logs" && <ExecutionLogs key={unit} unit={unit} />}
                   {settingsTab === "units" && role === "admin" && !isRemote && (
                     <UnitDirectory unit={unit} onChanged={onSessionRefresh} />
                   )}

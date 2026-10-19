@@ -217,7 +217,7 @@ export default function AppointmentMessagesModal({
     let active = true;
     setData(null);
     request<Communications>(
-      query(`appointments/${item.id}/communications`, {
+      query(`${item.record_type ? "agenda-items" : "appointments"}/${item.id}/communications`, {
         unit,
         page: String(page),
         group: groupId || "",

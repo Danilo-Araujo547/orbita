@@ -52,6 +52,7 @@ class ControlInput(serializers.Serializer):
 
 
 class ControlOutput(serializers.Serializer):
+    appointment_source = serializers.CharField()
     unit = UnitSerializer()
     mode = serializers.CharField()
     test_recipients = serializers.ListField(child=serializers.CharField())

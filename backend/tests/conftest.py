@@ -14,6 +14,10 @@ from scheduling.services import queue_appointment, upsert_appointment
 
 @pytest.fixture(autouse=True)
 def fast_test_passwords(settings):
+    settings.SIMULATED_SQLITE_PATH = ""
+    settings.META_REAL_ENABLED = False
+    settings.SEND_MODE = "simulated"
+    settings.META_INBOX_SSH_HOST = ""
     # Only test databases use this hasher; application password storage is unchanged.
     settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 

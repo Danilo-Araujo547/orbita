@@ -2,19 +2,19 @@
 
 Em **Configurações → Oracle → Adicionar conexão Oracle**, o administrador informa host, porta, service name ou SID, usuário, senha Oracle, limite de consulta e sua senha atual do Órbita. Os campos ficam em modal. A configuração é exclusiva da unidade selecionada.
 
-Todos os dados da conexão são armazenados em um único payload Fernet autenticado. A chave é derivada da senha atual do administrador com scrypt (N=32768, r=8, p=1, 32 bytes) e salt aleatório de 16 bytes por gravação. O PostgreSQL armazena somente ciphertext, salt, autor, versão e estados de validação. Nenhuma senha é escrita no histórico ou nos recibos de idempotência. A senha Oracle é somente de escrita na API.
+Todos os dados da conexão são armazenados em um único payload Fernet autenticado. A chave é derivada da senha atual do administrador com scrypt (N=32768, r=8, p=1, 32 bytes) e salt aleatório de 16 bytes por gravação. Para acesso contínuo, essa chave derivada é novamente criptografada por `ORACLE_CREDENTIALS_KEY`, exclusiva do servidor e mantida fora do banco. O PostgreSQL armazena apenas conteúdo e chave encapsulada criptografados, salt, autor, versão e estados. Nenhuma senha é escrita no histórico ou nos recibos de idempotência. A senha Oracle é somente de escrita na API.
 
 Salvar exige validar a senha do usuário autenticado e o papel administrador da unidade. Não basta conhecer a senha de outro usuário. A API usa versão concorrente, responde 409 para versão obsoleta e exige Idempotency-Key nas ações. Repetir uma ação não executa novamente nem renova o desbloqueio.
 
 ## Desbloqueio operacional
 
-Salvar desbloqueia por 12 horas. A senha do administrador é descartada; somente a chave derivada permanece em uma concessão temporária. No ambiente local sem Redis, a concessão fica apenas na memória do processo da API; expiração ou reinício bloqueiam a conexão. Outros processos locais não herdam essa memória.
+Salvar ativa o acesso contínuo, sem expiração. A senha do administrador é descartada; a chave derivada encapsulada permite que API e workers independentes consultem o Oracle após reinícios, sem Redis. A troca da senha do administrador não interrompe conexões com acesso contínuo.
 
-Quando ASYNC_TASKS/REDIS_URL estão configurados, API e workers compartilham a concessão via Redis com TTL. A chave temporária também é criptografada com INSTANCE_CREDENTIALS_KEY antes de entrar no Redis. É necessário manter o mesmo INSTANCE_CREDENTIALS_KEY e ORBITA_INSTANCE_ID nos processos da mesma instância. O Redis deve ser dedicado, protegido e acessível somente aos serviços. Um reinício da API não elimina concessões ainda válidas no Redis.
+Registros antigos, ainda sem chave encapsulada, mantêm compatibilidade com a concessão temporária de 12 horas em memória/Redis. A primeira ativação com a senha que protegeu o cadastro migra esse registro para acesso contínuo. A migração local autorizada também pode usar `scripts/enable_oracle_continuous_access.py`.
 
-Essa concessão permite consultas sem reintroduzir a senha a cada tarefa: durante sua validade, um servidor com acesso ao Redis e à chave da instância consegue consultar o Oracle. O banco PostgreSQL isoladamente não contém essa chave temporária. A concessão não transforma a senha do administrador em um segredo recuperável.
+O banco PostgreSQL isoladamente não contém a chave do servidor necessária para abrir a chave encapsulada. Não é armazenada uma senha recuperável do administrador. Chave do servidor ausente/incorreta ou dados corrompidos impedem o acesso, sem fallback silencioso.
 
-**Bloquear** remove a concessão: novas consultas falham; uma consulta já em andamento pode terminar. Mudar a senha do administrador invalida sua concessão. Será necessário recadastrar os dados Oracle com a senha nova, pois a senha antiga não é recuperável. Somente o autor pode desbloquear; outro administrador da unidade pode substituir a configuração completa usando sua própria senha e todos os dados Oracle.
+**Desativar conexão** é uma ação explícita, persistida e respeitada por todos os processos; uma consulta já em andamento pode terminar. **Ativar conexão** exige a senha atual do administrador responsável. Outro administrador da unidade pode substituir a configuração completa usando sua própria senha e todos os dados Oracle.
 
 Uma configuração cadastrada e bloqueada nunca usa silenciosamente a credencial antiga das variáveis de ambiente. Sem cadastro no painel, a integração existente por ambiente continua funcionando. Esta tela não migra automaticamente segredos do ambiente.
 
@@ -28,9 +28,9 @@ A configuração Oracle deve ser realizada diretamente na instância de origem, 
 
 ## API
 
-- GET /api/v1/oracle-configuration/?unit=slug: estado; host/usuário apenas enquanto desbloqueado; nunca senhas.
+- GET /api/v1/oracle-configuration/?unit=slug: estado e `persistent_access`; host/usuário apenas enquanto ativo; nunca senhas. `unlocked_until=null` no acesso contínuo.
 - POST configure/: version, host, port, identifier_type (service/sid), identifier, username, password, timeout_ms, admin_password.
 - POST unlock/: version, admin_password.
 - POST lock/ e test/: version.
 
-Use HTTPS ao disponibilizar o painel fora do desenvolvimento local: a senha precisa chegar ao servidor para a derivação. Backups devem preservar o ciphertext e salt. Após restauração, desbloqueie com a conta e senha que protegeram o cadastro ou recadastre todos os dados. Os envios reais do WhatsApp continuam bloqueados.
+Use HTTPS ao disponibilizar o painel fora do desenvolvimento local. Backups devem preservar ciphertext, chave encapsulada e salt, além de `ORACLE_CREDENTIALS_KEY` entre os segredos de implantação, separadamente do dump. Não substitua essa chave por uma aleatória ao restaurar. A configuração Oracle não altera o modo ou as permissões de envio WhatsApp.

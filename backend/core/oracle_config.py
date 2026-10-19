@@ -14,7 +14,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from core.models import Audit, OracleConfiguration
-from core.oracle_credentials import connect, decrypt, derive, encrypt, lease, unlocked
+from core.oracle_credentials import access, connect, decrypt, derive, encrypt, unlocked, wrap_service_key
 from core.permissions import get_unit
 
 
@@ -44,6 +44,7 @@ class ConfigurationOutput(serializers.Serializer):
     legacy_configured = serializers.BooleanField()
     unlocked = serializers.BooleanField()
     unlocked_until = serializers.DateTimeField(allow_null=True)
+    persistent_access = serializers.BooleanField()
     protected_by = serializers.CharField()
     validation_state = serializers.CharField()
     checked_at = serializers.DateTimeField(allow_null=True)
@@ -56,7 +57,8 @@ def receipt_payload(values):
     # bypass scrypt's protection against offline password guessing.
     return {
         key: hmac.new(settings.SECRET_KEY.encode(), (key + "\0" + value).encode(), hashlib.sha256).hexdigest()
-        if key in {"password", "admin_password"} else value
+        if key in {"password", "admin_password"}
+        else value
         for key, value in values.items()
     }
 
@@ -69,20 +71,26 @@ def output(config, unit):
     details = None
     if config:
         try:
-            active = lease(config)
+            active = access(config)
             if active:
                 details = {k: v for k, v in decrypt(config, active[0]).items() if k != "password"}
         except ValueError:
             active = None
     return {
-        "unit": unit.slug, "version": config.version if config else 0,
-        "configured": bool(config), "unlocked": bool(active),
+        "unit": unit.slug,
+        "version": config.version if config else 0,
+        "configured": bool(config),
+        "unlocked": bool(active),
         "legacy_configured": not config and all(OracleSource(unit).credentials()),
-        "unlocked_until": datetime.fromtimestamp(active[1], dt_timezone.utc) if active else None,
+        "unlocked_until": datetime.fromtimestamp(active[1], dt_timezone.utc)
+        if active and active[1] is not None
+        else None,
+        "persistent_access": bool(config and config.service_key_ciphertext),
         "protected_by": config.owner.get_username() if config else "",
         "validation_state": config.validation_state if config else "not_checked",
         "checked_at": config.checked_at if config else None,
-        "details": details, "client_mode": "Thick" if settings.ORACLE_THICK else "Thin",
+        "details": details,
+        "client_mode": "Thick" if settings.ORACLE_THICK else "Thin",
     }
 
 
@@ -97,7 +105,9 @@ class OracleConfigurationViewSet(viewsets.ViewSet):
     @extend_schema(responses=ConfigurationOutput)
     def list(self, request):
         unit = self.unit(request)
-        return Response(output(OracleConfiguration.objects.select_related("owner").filter(unit=unit).first(), unit))
+        return Response(
+            output(OracleConfiguration.objects.select_related("owner").filter(unit=unit).first(), unit)
+        )
 
     def password(self, request, values):
         if not request.user.check_password(values["admin_password"]):
@@ -119,25 +129,30 @@ class OracleConfigurationViewSet(viewsets.ViewSet):
                 raise Conflict()
             payload = {k: v for k, v in values.items() if k not in {"admin_password", "version"}}
             salt, ciphertext, key = encrypt(payload, values["admin_password"])
-            if config:
-                lease(config, remove=True)
-            else:
+            if not config:
                 config = OracleConfiguration(unit=unit, version=0)
             config.owner = request.user
             config.salt, config.ciphertext = salt, ciphertext
+            config.service_key_ciphertext = wrap_service_key(key)
+            config.operational_enabled = True
             config.version += 1
             config.checked_at = None
             config.validation_state = "not_checked"
             config.save()
-            lease(config, key)
-            Audit.objects.create(unit=unit, actor=request.user, action="oracle.configure", details={"version": config.version})
+            Audit.objects.create(
+                unit=unit, actor=request.user, action="oracle.configure", details={"version": config.version}
+            )
             # No decrypted connection data or passwords in idempotency receipts.
             return {"version": config.version}
 
         try:
-            idempotent(unit, request.user, request.headers.get("Idempotency-Key"), receipt_payload(values), execute)
+            idempotent(
+                unit, request.user, request.headers.get("Idempotency-Key"), receipt_payload(values), execute
+            )
         except ValueError:
-            raise ValidationError("O serviço de desbloqueio está indisponível. Nenhuma configuração foi salva.") from None
+            raise ValidationError(
+                "O serviço de desbloqueio está indisponível. Nenhuma configuração foi salva."
+            ) from None
         return self.list(request)
 
     @extend_schema(request=PasswordInput, responses=ConfigurationOutput)
@@ -166,20 +181,38 @@ class OracleConfigurationViewSet(viewsets.ViewSet):
                 raise Conflict()
             if operation == "unlock":
                 if config.owner_id != request.user.pk:
-                    raise ValidationError("Somente o administrador que protegeu esta configuração pode desbloqueá-la. Outro administrador pode substituir a configuração completa.")
-                key = derive(values["admin_password"], config.salt)
+                    raise ValidationError(
+                        "Somente o administrador que protegeu esta configuração pode desbloqueá-la. Outro administrador pode substituir a configuração completa."
+                    )
+                if config.service_key_ciphertext:
+                    # Reactivation uses the existing server-protected key, even after an admin password change.
+                    config.operational_enabled = True
+                    key = access(config)[0]
+                else:
+                    key = derive(values["admin_password"], config.salt)
                 try:
                     decrypt(config, key)
                 except ValueError:
-                    raise ValidationError("A senha mudou desde o cadastro. Configure novamente as credenciais Oracle com a senha atual.") from None
-                lease(config, key)
+                    raise ValidationError(
+                        "A senha mudou desde o cadastro. Configure novamente as credenciais Oracle com a senha atual."
+                    ) from None
+                config.service_key_ciphertext = wrap_service_key(key)
+                config.operational_enabled = True
             else:
-                lease(config, remove=True)
-            Audit.objects.create(unit=unit, actor=request.user, action=f"oracle.{operation}", details={"version": config.version})
+                config.operational_enabled = False
+            config.save(update_fields=["service_key_ciphertext", "operational_enabled", "updated_at"])
+            Audit.objects.create(
+                unit=unit,
+                actor=request.user,
+                action=f"oracle.{operation}",
+                details={"version": config.version},
+            )
             return {"version": config.version}
 
         try:
-            idempotent(unit, request.user, request.headers.get("Idempotency-Key"), receipt_payload(values), execute)
+            idempotent(
+                unit, request.user, request.headers.get("Idempotency-Key"), receipt_payload(values), execute
+            )
         except ValueError:
             raise ValidationError("O serviço de desbloqueio está indisponível.") from None
         return self.list(request)
@@ -200,7 +233,7 @@ class OracleConfigurationViewSet(viewsets.ViewSet):
             try:
                 payload = unlocked(config)
             except ValueError:
-                raise ValidationError("Desbloqueie a configuração antes de testar.") from None
+                raise ValidationError("Ative a conexão antes de testar.") from None
             try:
                 with connect(payload) as connection:
                     try:
@@ -217,9 +250,15 @@ class OracleConfigurationViewSet(viewsets.ViewSet):
                 config.validation_state = "connection_failed"
             config.checked_at = timezone.now()
             config.save(update_fields=["validation_state", "checked_at"])
-            Audit.objects.create(unit=unit, actor=request.user, action="oracle.test", details={"state": config.validation_state})
+            Audit.objects.create(
+                unit=unit,
+                actor=request.user,
+                action="oracle.test",
+                details={"state": config.validation_state},
+            )
             return {"state": config.validation_state}
 
-        idempotent(unit, request.user, request.headers.get("Idempotency-Key"), receipt_payload(values), execute)
+        idempotent(
+            unit, request.user, request.headers.get("Idempotency-Key"), receipt_payload(values), execute
+        )
         return self.list(request)
-

@@ -13,6 +13,7 @@ for name, value in (
     ("ORBITA_INSTANCE_ID", str(uuid4())),
     ("INSTANCE_CREDENTIALS_KEY", Fernet.generate_key().decode()),
     ("META_CREDENTIALS_KEY", Fernet.generate_key().decode()),
+    ("ORACLE_CREDENTIALS_KEY", Fernet.generate_key().decode()),
 ):
     # Never replace an existing setting, even an explicitly blank one.
     if name not in defined:

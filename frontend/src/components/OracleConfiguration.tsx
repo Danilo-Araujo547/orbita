@@ -21,6 +21,7 @@ export type OracleConfig = {
   legacy_configured: boolean;
   unlocked: boolean;
   unlocked_until: string | null;
+  persistent_access: boolean;
   protected_by: string;
   validation_state: string;
   checked_at: string | null;
@@ -108,14 +109,14 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                   onClick={() => void action("lock")}
                 >
                   <LockKeyhole size={14} />
-                  <span>Bloquear</span>
+                  <span>Desativar conexão</span>
                 </button>
               </>
             )}
             {config.configured && !config.unlocked && (
               <FormAction
-                title="Desbloquear Oracle"
-                label="Desbloquear"
+                title="Ativar conexão Oracle"
+                label="Ativar conexão"
                 version={revision}
                 error={error}
                 busy={busy}
@@ -148,11 +149,7 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
             )}
             <FormAction
               title="Configuração Oracle"
-              label={
-                config.configured
-                  ? "Editar conexão"
-                  : "Adicionar conexão"
-              }
+              label={config.configured ? "Editar conexão" : "Adicionar conexão"}
               version={revision}
               error={error}
               busy={busy}
@@ -281,8 +278,8 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
               >
                 {config.configured
                   ? config.unlocked
-                    ? "Desbloqueada"
-                    : "Bloqueada"
+                    ? "Ativa"
+                    : "Desativada"
                   : config.legacy_configured
                     ? "Ativa · Configuração do servidor"
                     : "Não configurada"}
@@ -321,6 +318,12 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
               <div className="overview-item">
                 <span className="overview-label">Desbloqueada até</span>
                 <strong>{dateTime(config.unlocked_until)}</strong>
+              </div>
+            )}
+            {config.persistent_access && config.unlocked && (
+              <div className="overview-item">
+                <span className="overview-label">Disponibilidade</span>
+                <strong>Contínua</strong>
               </div>
             )}
           </div>

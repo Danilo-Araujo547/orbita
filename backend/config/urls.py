@@ -1,4 +1,6 @@
 from core import views
+from core.agenda import AgendaViewSet
+from core.logs import LogViewSet
 from core.federation import InstanceKeyViewSet, ManifestView, RemoteInstanceViewSet, RemoteProxyView
 from core.oracle_config import OracleConfigurationViewSet
 from core.users import UserViewSet
@@ -20,6 +22,7 @@ for prefix, view in [
     ("meta-configuration", MetaConfigurationViewSet),
     ("appointment-groups", AppointmentGroupViewSet),
     ("appointments", views.AppointmentViewSet),
+    ("agenda-items", AgendaViewSet),
     ("messages", views.MessageViewSet),
     ("replies", views.ReplyViewSet),
     ("issues", views.IssueViewSet),
@@ -27,6 +30,7 @@ for prefix, view in [
     ("templates", views.TemplateViewSet),
     ("imports", views.ImportViewSet),
     ("audit", views.AuditViewSet),
+    ("logs", LogViewSet),
     ("cases", operations.CaseViewSet),
     ("contacts", operations.ContactViewSet),
     ("movements", operations.MovementViewSet),

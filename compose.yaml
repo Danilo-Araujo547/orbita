@@ -1,10 +1,10 @@
-name: rob8-next
+name: orbita
 services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: ${DATABASE_NAME:-rob8}
-      POSTGRES_USER: ${DATABASE_USER:-rob8}
+      POSTGRES_DB: ${DATABASE_NAME:-orbita}
+      POSTGRES_USER: ${DATABASE_USER:-orbita}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Configure DATABASE_PASSWORD no .env}
     volumes: ["postgres_data:/var/lib/postgresql/data"]
     healthcheck:
@@ -57,7 +57,7 @@ services:
     restart: unless-stopped
   panel:
     build: ./frontend
-    ports: ["127.0.0.1:8080:80"]
+    ports: ["${PANEL_PORT:-8080}:80"]
     depends_on:
       api: {condition: service_healthy}
     restart: unless-stopped
@@ -71,4 +71,8 @@ services:
       api: {condition: service_healthy}
 volumes:
   postgres_data:
+    external: true
+    name: orbita_postgres_data
   redis_data:
+    external: true
+    name: orbita_redis_data

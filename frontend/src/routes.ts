@@ -7,6 +7,7 @@ const pages: Record<string, PageName> = {
   "/responses": "groups",
   "/mensagens": "messages",
   "/pendencias": "issues",
+  "/importa-cross": "campaigns",
   "/campanhas": "campaigns",
   "/relatorios": "reports",
   "/administracao": "operationsAdmin",

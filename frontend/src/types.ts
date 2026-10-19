@@ -14,6 +14,9 @@ export type PageName =
 export type SectionLevel = "none" | "read" | "write";
 export type SectionPermissions = Record<string, SectionLevel>;
 export interface Unit {
+  version?: number;
+  authorized_recipients?: string[] | null;
+  effective_recipients?: string[];
   id: number | string;
   slug: string;
   name: string;
@@ -33,6 +36,9 @@ export interface Session {
   permissions?: Record<string, SectionPermissions>;
 }
 export interface Appointment {
+  record_type?: "appointment" | "cross";
+  purpose?: string;
+  kind_label?: string;
   patient_external_id?: string;
   professional?: string;
   city?: string;
@@ -54,7 +60,7 @@ export interface Appointment {
       channel?: string;
     }[];
   };
-  id: number;
+  id: number | string;
   external_id: string;
   kind: string;
   patient: string;
@@ -141,6 +147,8 @@ export interface Rule {
   name: string;
   kind: string;
   days_before: number;
+  refresh_interval_minutes: number;
+  evidence?: string;
   send_time: string;
   weekdays: number[];
   enabled: boolean;

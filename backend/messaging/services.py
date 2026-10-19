@@ -8,7 +8,17 @@ from django.utils import timezone
 from responses.models import Issue
 
 from messaging.models import Attempt, Message
-from messaging.transports import SendError, get_transport
+from messaging.transports import MetaTransport, SendError, SimulatedTransport, get_transport
+
+
+def manual_simulation(message):
+    return bool(
+        settings.SEND_MODE == "simulated"
+        and message.snapshot.get("manual_group_simulation")
+        and message.appointment_id
+        and message.appointment.synthetic
+        and message.appointment.source in {"synthetic", "sqlite_simulated"}
+    )
 
 
 def issue_once(message, code, description):
@@ -35,9 +45,18 @@ def issue_once(message, code, description):
 
 
 def send_guard(message):
+    from messaging.pilot import authorized_recipients
+
+    real = False
     if settings.SEND_MODE != "simulated":
-        return "meta_sending_disabled"
-    if message.unit.paused:
+        from messaging.pilot import guard
+
+        error = guard(message)
+        if error:
+            return error
+        real = True
+    manual = manual_simulation(message)
+    if message.unit.paused and not manual:
         return "paused"
     if message.snapshot.get("report_request"):
         from operations.models import ReportRequest
@@ -50,7 +69,8 @@ def send_guard(message):
             check_access(job)
         except Exception:
             return "report_access_revoked"
-    if message.template.purpose != message.purpose:
+    campaign_real = real and bool(message.snapshot.get("manual_campaign_real"))
+    if message.template.purpose != message.purpose and not campaign_real:
         return "template_purpose_mismatch"
     if message.case_id:
         if message.case.outcome in {"declined", "leave_waitlist"}:
@@ -83,9 +103,13 @@ def send_guard(message):
             return "unit_mismatch"
         if message.case.event.revision != message.appointment_revision or message.case.state == "closed":
             return "source_changed"
+        if campaign_real:
+            if message.template.unit_id != message.unit_id or not message.template.approved_for_test:
+                return "template_not_validated"
+            return ""
         if not message.case.event.synthetic or message.case.event.source != "synthetic":
             return "real_event_blocked"
-        if message.recipient not in settings.TEST_RECIPIENTS:
+        if message.recipient not in authorized_recipients(message.unit):
             return "recipient_not_allowed"
         if settings.SEND_MODE == "meta_test" and message.unit.slug != settings.META_UNIT_SLUG:
             return "channel_unit_not_configured"
@@ -96,18 +120,23 @@ def send_guard(message):
         return message.appointment.data_issue
     if settings.SEND_MODE == "meta_test" and message.unit.slug != settings.META_UNIT_SLUG:
         return "channel_unit_not_configured"
-    if not message.appointment.synthetic or message.appointment.source != "synthetic":
+    if not message.appointment.synthetic or message.appointment.source not in {
+        "synthetic",
+        "sqlite_simulated",
+    }:
         return "real_appointment_blocked"
-    if message.recipient not in settings.TEST_RECIPIENTS:
+    if message.recipient not in authorized_recipients(message.unit) and not manual:
         return "recipient_not_allowed"
     if (
         message.appointment.status != "scheduled"
         or message.appointment_revision != message.appointment.revision
     ):
         return "appointment_changed"
-    if message.rule_id and (not message.rule.enabled or message.rule.version != message.rule_version):
+    if message.rule_id and (
+        (not message.rule.enabled and not manual and not real) or message.rule.version != message.rule_version
+    ):
         return "rule_changed"
-    if not message.template.approved_for_test:
+    if not message.template.approved_for_test and not manual:
         return "template_not_validated"
     if message.template.unit_id != message.unit_id or (
         message.rule_id and message.rule.unit_id != message.unit_id
@@ -136,6 +165,12 @@ def dispatch(message_id, transport=None, now=None):
             .get(pk=message_id)
         )
         message.unit = unit
+        if settings.SEND_MODE == "meta_test" and settings.META_REAL_ENABLED:
+            if type(transport) is not MetaTransport:
+                raise ValueError("meta_transport_required")
+            transport.unit_id = unit.pk
+        if manual_simulation(message) and type(transport) is not SimulatedTransport:
+            raise ValueError("simulation_transport_required")
         if message.state != Message.State.QUEUED:
             return message
         group = None
@@ -167,7 +202,9 @@ def dispatch(message_id, transport=None, now=None):
             message.save()
             return message
         error = send_guard(message)
-        if error == "paused":
+        if error in {"paused", "campaign_sending_disabled"} or (
+            error == "pilot_daily_limit" and message.snapshot.get("manual_campaign_real")
+        ):
             return message
         if error:
             message.state, message.error_code = Message.State.BLOCKED, error
@@ -178,6 +215,14 @@ def dispatch(message_id, transport=None, now=None):
             message.state = Message.State.FAILED
             message.save()
             return message
+        if message.snapshot.get("manual_campaign_real"):
+            from operations.models import Campaign
+
+            campaign = Campaign.objects.select_for_update().get(pk=message.snapshot["campaign"], unit=unit)
+            if campaign.next_send_at and campaign.next_send_at > now:
+                return message
+            campaign.next_send_at = now + timedelta(seconds=5)
+            campaign.save(update_fields=["next_send_at"])
         if group:
             if group.next_send_at and group.next_send_at > now:
                 return message

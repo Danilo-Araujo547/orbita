@@ -9,9 +9,43 @@ from core.models import Audit, Unit
 
 
 class UnitSerializer(serializers.ModelSerializer):
+    effective_recipients = serializers.SerializerMethodField()
+
+    def get_effective_recipients(self, obj) -> list[str]:
+        from messaging.pilot import authorized_recipients
+
+        return list(authorized_recipients(obj))
+
+    def validate_authorized_recipients(self, value):
+        from scheduling.connectors import normalize_phone
+
+        if value is None:
+            return None
+        if (
+            not isinstance(value, list)
+            or len(value) > 200
+            or any(not isinstance(phone, str) for phone in value)
+        ):
+            raise serializers.ValidationError("Informe uma lista de até 200 telefones.")
+        try:
+            return sorted(set(normalize_phone(phone) for phone in value))
+        except ValueError:
+            raise serializers.ValidationError("Telefone inválido na lista autorizada.") from None
+
     class Meta:
         model = Unit
-        fields = ["id", "slug", "name", "timezone", "paused", "response_hours"]
+        fields = [
+            "id",
+            "slug",
+            "name",
+            "timezone",
+            "paused",
+            "response_hours",
+            "version",
+            "authorized_recipients",
+            "effective_recipients",
+        ]
+        read_only_fields = ["version"]
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
@@ -65,11 +99,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "outcome": case.outcome if case else "",
             "response": case.response_state if case else "pending",
             "awaiting_since": min(
-                (
-                    m.delivered_at
-                    for m in current
-                    if m.delivered_at and m.response_state == "pending"
-                ),
+                (m.delivered_at for m in current if m.delivered_at and m.response_state == "pending"),
                 default=None,
             ).isoformat()
             if any(m.delivered_at and m.response_state == "pending" for m in current)
@@ -337,6 +367,7 @@ class RuleSerializer(serializers.ModelSerializer):
             "name",
             "kind",
             "days_before",
+            "refresh_interval_minutes",
             "response_condition",
             "validity_hours",
             "evidence",
@@ -370,6 +401,11 @@ class RuleSerializer(serializers.ModelSerializer):
     def validate_days_before(self, value):
         if not 1 <= value <= 365:
             raise serializers.ValidationError("Antecedência deve estar entre 1 e 365 dias.")
+        return value
+
+    def validate_refresh_interval_minutes(self, value):
+        if not 1 <= value <= 1440:
+            raise serializers.ValidationError("Atualização deve estar entre 1 e 1440 minutos.")
         return value
 
     def validate_validity_hours(self, value):

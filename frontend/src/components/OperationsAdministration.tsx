@@ -1,6 +1,8 @@
-import FormAction from "./FormAction";
+import FormAction, { FormActionContext } from "./FormAction";
 import UnitDirectory from "./UnitDirectory";
-import { useEffect, useState } from "react";
+import UserDirectory from "./UserDirectory";
+import ConfigurationEditor from "./ConfigurationEditor";
+import { useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { query, request } from "../api";
 import type { Paginated, Rule as AppointmentRule } from "../types";
@@ -22,6 +24,7 @@ type Access = {
   active: boolean;
   verified_at: string | null;
   version: number;
+  reports: number[];
 };
 type Source = {
   id: number;
@@ -45,13 +48,17 @@ export default function OperationsAdministration({
   unit,
   revision,
   act,
-  busy,
+  busy: actionBusy,
   onError,
   activeTab,
-}: Common & { activeTab?: string }) {
+  editable = true,
+  userAccess = false,
+}: Common & { activeTab?: string; editable?: boolean; userAccess?: boolean }) {
+  const busy = actionBusy || !editable;
+  const parentContext = useContext(FormActionContext);
   const [internalTab, setTab] = useState("sources"),
     [schedules, setSchedules] = useState<
-      { id: number; report: number; send_time: string; enabled: boolean }[]
+      { id: number; report: number; access: number; send_time: string; enabled: boolean; weekdays: number[]; version: number }[]
     >([]),
     [members, setMembers] = useState<Member[]>([]),
     [reports, setReports] = useState<Report[]>([]),
@@ -62,9 +69,6 @@ export default function OperationsAdministration({
     [templates, setTemplates] = useState<
       { id: number; name: string; purpose: string }[]
     >([]);
-  const [username, setUsername] = useState(""),
-    [password, setPassword] = useState(""),
-    [role, setRole] = useState("operator");
   const [user, setUser] = useState(""),
     [phone, setPhone] = useState(""),
     [allowed, setAllowed] = useState<number[]>([]),
@@ -116,12 +120,14 @@ export default function OperationsAdministration({
   }, [unit, revision, onError]);
   const tab = activeTab || internalTab;
   return (
-    <div className="admin-records">
+    <FormActionContext.Provider value={{busy: busy || !editable, error:parentContext.error, revision}}>
+    <div className={`admin-records ${editable ? "" : "config-read-only"}`}>
       {!activeTab && (
         <div className="op-toolbar">
           {[
             ["units", "Unidades"],
             ["sources", "Origens e regras"],
+            ["team", "Equipe"],
             ["access", "Acesso a relatórios"],
             ["schedules", "Relatórios agendados"],
           ].map(([id, label]) => (
@@ -136,94 +142,9 @@ export default function OperationsAdministration({
         </div>
       )}
 
-      {tab === "team" && (
-        <Panel
-          title="Equipe da unidade"
-          action={
-            <FormAction title="Novo usuário da unidade" label="Adicionar usuário">
-              <form
-                className="op-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void act("members", { username, password, role })
-                    .then(() => {
-                      setPassword("");
-                      setUsername("");
-                    })
-                    .catch(catchAction);
-                }}
-              >
-                <h3>Novo usuário da unidade</h3>
-                <Field label="Usuário">
-                  <input
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    autoComplete="off"
-                  />
-                </Field>
-                <Field label="Senha inicial">
-                  <input
-                    required
-                    type="password"
-                    minLength={12}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                  />
-                </Field>
-                <Field label="Perfil">
-                  <select value={role} onChange={(e) => setRole(e.target.value)}>
-                    <option value="operator">Operador</option>
-                    <option value="viewer">Consulta</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                </Field>
-                <button type="submit" className="button primary" disabled={busy}>
-                  Cadastrar usuário
-                </button>
-              </form>
-            </FormAction>
-          }
-        >
-          {members.length ? (
-            <div className="table-scroll">
-              <table className="directory-table">
-                <thead>
-                  <tr>
-                    <th>Usuário</th>
-                    <th>Perfil</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((m) => (
-                    <tr key={m.id}>
-                      <td>
-                        <strong>{m.username}</strong>
-                      </td>
-                      <td>
-                        <span className="directory-kind">
-                          {
-                            {
-                              admin: "Administrador",
-                              operator: "Operador",
-                              viewer: "Consulta",
-                            }[m.role] || m.role
-                          }
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Empty text="Nenhum usuário cadastrado na unidade." />
-          )}
-        </Panel>
-      )}
+      {tab === "team" && (userAccess ? <UserDirectory unit={unit} editable={editable} /> : <Panel title="Equipe da unidade"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Usuário</th><th>Perfil</th></tr></thead><tbody>{members.map(m=><tr key={m.id}><td>{m.username}</td><td>{m.role}</td></tr>)}</tbody></table></div></Panel>)}
 
-      {tab === "units" && <UnitDirectory unit={unit} />}
+      {tab === "units" && <UnitDirectory unit={unit} editable={editable} />}
 
       {tab === "sources" && (
         <>
@@ -339,11 +260,13 @@ export default function OperationsAdministration({
                                 const values = new FormData(event.currentTarget);
                                 void act(`sources/${s.id}/configure`, {
                                   version: s.version,
+                                  view_name: String(values.get("view_name") || ""),
                                   verified: values.get("verified") === "on",
                                   evidence: String(values.get("evidence") || ""),
                                 }).catch(catchAction);
                               }}
                             >
+                              <Field label="View"><input name="view_name" required defaultValue={s.view_name}/></Field>
                               <Field label="Evidência da validação">
                                 <textarea
                                   name="evidence"
@@ -519,48 +442,17 @@ export default function OperationsAdministration({
                           </span>
                         </td>
                         <td style={{ textAlign: "right" }}>
-                          <FormAction
-                            title="Configurar regra"
-                            label="Configurar"
-                            description={r.name}
-                          >
-                            <form
-                              className="op-form"
-                              onSubmit={(event) => {
-                                event.preventDefault();
-                                const values = new FormData(event.currentTarget);
-                                void act(`flow-rules/${r.id}/configure`, {
-                                  version: r.version,
-                                  enabled: values.get("enabled") === "on",
-                                  evidence: String(values.get("evidence") || ""),
-                                }).catch(catchAction);
-                              }}
-                            >
-                              <Field label="Evidência da regra">
-                                <textarea
-                                  name="evidence"
-                                  required
-                                  maxLength={4000}
-                                  rows={4}
-                                />
-                              </Field>
-                              <label className="op-check">
-                                <input
-                                  type="checkbox"
-                                  name="enabled"
-                                  defaultChecked={r.enabled}
-                                />
-                                Ativa para análise
-                              </label>
-                              <button
-                                type="submit"
-                                className="button primary"
-                                disabled={busy}
-                              >
-                                Salvar configuração
-                              </button>
-                            </form>
-                          </FormAction>
+                          <ConfigurationEditor record={{...r}} path={`flow-rules/${r.id}/configure`} act={act} busy={busy} fields={[
+                            {key:"name",label:"Nome",required:true},
+                            {key:"source",label:"Origem",type:"select",options:sources.map(s=>({value:s.id,label:s.view_name}))},
+                            {key:"template",label:"Template",type:"select",options:templates.map(t=>({value:t.id,label:t.name}))},
+                            {key:"days_after",label:"Dias apos o evento",type:"number"},
+                            {key:"send_time",label:"Horario",type:"time"},
+                            {key:"weekdays",label:"Dias",type:"weekdays"},
+                            {key:"evidence",label:"Referencia da validacao",type:"textarea"},
+                            {key:"enabled",label:"Ativa",type:"checkbox"},
+                          ]}/>
+
                         </td>
                       </tr>
                     ))}
@@ -584,8 +476,10 @@ export default function OperationsAdministration({
                       <th>Regra</th>
                       <th>Template</th>
                       <th>Antecedência</th>
+                      <th>Atualização</th>
                       <th>Horário</th>
                       <th>Situação</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -599,6 +493,7 @@ export default function OperationsAdministration({
                         </td>
                         <td>{rule.template_name}</td>
                         <td>{rule.days_before} dias</td>
+                        <td>{rule.refresh_interval_minutes} min</td>
                         <td>{rule.send_time.slice(0, 5)}</td>
                         <td>
                           <span
@@ -607,6 +502,7 @@ export default function OperationsAdministration({
                             {rule.enabled ? "Ativa" : "Pausada"}
                           </span>
                         </td>
+                        <td><AgendaRuleForm key={`${rule.id}:${rule.version}`} rule={rule} act={act} busy={busy} templates={templates} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -729,6 +625,12 @@ export default function OperationsAdministration({
                         </td>
                         <td style={{ textAlign: "right" }}>
                           <div style={{ display: "inline-flex", gap: "8px" }}>
+                            <ConfigurationEditor record={{...a}} path={`report-access/${a.id}/configure`} act={act} busy={busy} fields={[
+                              {key:"user",label:"Usuário",type:"select",options:members.map(m=>({value:m.user,label:m.username}))},
+                              {key:"phone",label:"WhatsApp",required:true},
+                              {key:"reports",label:"Relatórios autorizados",type:"multiple",options:reports.map(r=>({value:r.id,label:r.name}))},
+                              {key:"active",label:"Autorização ativa",type:"checkbox"},
+                            ]} />
                             {a.active && !a.verified_at && (
                               <FormAction
                                 title="Confirmar titularidade"
@@ -874,6 +776,7 @@ export default function OperationsAdministration({
                     <th>Horário de envio</th>
                     <th>Dias</th>
                     <th>Situação</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -886,14 +789,19 @@ export default function OperationsAdministration({
                         </strong>
                       </td>
                       <td>{job.send_time.slice(0, 5)}</td>
-                      <td>Segunda a sexta</td>
+                      <td>{job.weekdays.map(d=>["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][d]).join(", ")}</td>
                       <td>
                         <span
                           className={`directory-status ${job.enabled ? "active" : "paused"}`}
                         >
                           {job.enabled ? "Ativo" : "Desativado"}
                         </span>
-                      </td>
+                      </td><td><ConfigurationEditor record={{...job}} path={`report-schedules/${job.id}/configure`} act={act} busy={busy} fields={[
+                        {key:"access",label:"Destinatário",type:"select",options:accesses.filter(a=>a.active&&a.verified_at).map(a=>({value:a.id,label:a.phone}))},
+                        {key:"report",label:"Relatório",type:"select",options:reports.map(r=>({value:r.id,label:r.name}))},
+                        {key:"send_time",label:"Horário",type:"time"},{key:"weekdays",label:"Dias",type:"weekdays"},
+                        {key:"enabled",label:"Ativo",type:"checkbox"},
+                      ]}/></td>
                     </tr>
                   ))}
                 </tbody>
@@ -905,6 +813,7 @@ export default function OperationsAdministration({
         </Panel>
       )}
     </div>
+    </FormActionContext.Provider>
   );
 }
 
@@ -912,41 +821,47 @@ function AgendaRuleForm({
   act,
   busy,
   templates,
+  rule,
 }: {
+  rule?: AppointmentRule;
   act: Common["act"];
   busy: boolean;
   templates: { id: number; name: string; purpose: string }[];
 }) {
-  const [name, setName] = useState(""),
-    [code, setCode] = useState(""),
-    [kind, setKind] = useState("consultation"),
-    [template, setTemplate] = useState(""),
-    [days, setDays] = useState(7),
-    [time, setTime] = useState("07:15"),
-    [evidence, setEvidence] = useState("");
+  const [name, setName] = useState(rule?.name || ""),
+    [code, setCode] = useState(rule?.code || ""),
+    [kind, setKind] = useState(rule?.kind || "consultation"),
+    [template, setTemplate] = useState(rule ? String(rule.template) : ""),
+    [days, setDays] = useState(rule?.days_before ?? 5),
+    [refresh, setRefresh] = useState(rule?.refresh_interval_minutes ?? 5),
+    [weekdays, setWeekdays] = useState(rule?.weekdays || [0,1,2,3,4,5,6]),
+    [enabled, setEnabled] = useState(rule?.enabled ?? false),
+    [time, setTime] = useState(rule?.send_time.slice(0,5) || "07:15"),
+    [evidence, setEvidence] = useState(rule?.evidence || "");
   return (
     <FormAction
-      title="Nova regra de agendamento"
-      label="Adicionar regra de agendamento"
+      title={rule ? "Editar regra de agendamento" : "Nova regra de agendamento"}
+      label={rule ? "Editar" : "Adicionar regra de agendamento"}
     >
       <form
         className="op-form"
         onSubmit={(e) => {
           e.preventDefault();
-          void act("rules", {
-            code,
+          void act(rule ? `rules/${rule.id}/configure` : "rules", {
+            ...(rule ? {version: rule.version} : {code}),
             name,
             kind,
             template: Number(template),
             days_before: days,
+            refresh_interval_minutes: refresh,
             send_time: time,
-            weekdays: [0, 1, 2, 3, 4, 5],
+            weekdays,
             evidence,
-            enabled: false,
+            enabled,
           }).catch(catchAction);
         }}
       >
-        <h3>Nova regra de agendamento</h3>
+        <h3>{rule ? "Editar regra de agendamento" : "Nova regra de agendamento"}</h3>
 
         <div className="op-two">
           <Field label="Nome">
@@ -960,6 +875,7 @@ function AgendaRuleForm({
             <input
               required
               pattern="[a-z0-9-]{3,80}"
+              disabled={!!rule}
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
@@ -996,7 +912,11 @@ function AgendaRuleForm({
               onChange={(e) => setDays(Number(e.target.value))}
             />
           </Field>
-          <Field label="Horário (segunda a sábado)">
+          <Field label="Atualizar a view a cada (minutos)">
+            <input type="number" min={1} max={1440} required value={refresh}
+              onChange={(e) => setRefresh(Number(e.target.value))} />
+          </Field>
+          <Field label="Horário">
             <input
               type="time"
               value={time}
@@ -1004,6 +924,17 @@ function AgendaRuleForm({
             />
           </Field>
         </div>
+        <div className="op-field">
+          <span>Dias da semana</span>
+          <div className="op-checklist">
+            {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day, index) => (
+              <label key={day}><input type="checkbox" checked={weekdays.includes(index)}
+                onChange={(e) => setWeekdays((v) => e.target.checked ? [...v, index] : v.filter((d) => d !== index))} />{day}</label>
+            ))}
+          </div>
+        </div>
+        {rule && <label className="checkbox-label"><input type="checkbox" checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)} />Regra ativa</label>}
         <Field label="Referência da validação">
           <textarea
             required
@@ -1013,8 +944,8 @@ function AgendaRuleForm({
             onChange={(e) => setEvidence(e.target.value)}
           />
         </Field>
-        <button type="submit" className="button primary" disabled={busy}>
-          Cadastrar regra desabilitada
+        <button type="submit" className="button primary" disabled={busy || !weekdays.length}>
+          {rule ? "Salvar" : "Cadastrar regra desabilitada"}
         </button>
       </form>
     </FormAction>

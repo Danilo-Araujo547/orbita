@@ -159,6 +159,11 @@ def apply_reply(event, unit):
         message.purpose if message else "appointment",
         data.get("button_id", ""),
         data.get("content_type", "text"),
+        response_policy=(
+            message.snapshot.get("response_policy", "contextual")
+            if message and message.template_name == "confirmacao_consulta_sqlite_v1"
+            else "contextual"
+        ),
     )
     reply = Reply.objects.create(
         unit=unit, event=event, message=message, sender=sender, text=text, classification=classification
@@ -174,6 +179,17 @@ def apply_reply(event, unit):
             apply_outcome(
                 case, classification, channel="whatsapp", occurred_at=event.occurred_at, reply_id=reply.pk
             )
+            if data.get("flow_observation"):
+                from operations.services import log
+
+                log(
+                    case,
+                    "observation",
+                    data["flow_observation"],
+                    channel="whatsapp",
+                    occurred_at=event.occurred_at,
+                    data={"reply_id": reply.pk, "sender": sender, "sender_name": data.get("sender_name", "")},
+                )
         else:
             from operations.services import log
 
@@ -214,15 +230,18 @@ def apply_reply(event, unit):
     event.save(update_fields=["processed"])
 
 
-def ingest_webhook(payload):
+def ingest_webhook(payload, unit=None, channel_id=None, waba_id=None):
     if payload.get("object") != "whatsapp_business_account":
         raise ValueError("invalid_webhook_object")
-    unit = Unit.objects.get(slug=settings.META_UNIT_SLUG)
+    unit = unit or Unit.objects.get(slug=settings.META_UNIT_SLUG)
+    expected_channel = channel_id or settings.META_PHONE_NUMBER_ID
     for entry in payload.get("entry", []):
+        if waba_id and str(entry.get("id", "")) != waba_id:
+            continue
         for change in entry.get("changes", []):
             value = change.get("value", {})
             channel = str(value.get("metadata", {}).get("phone_number_id", ""))
-            if channel != settings.META_PHONE_NUMBER_ID or not channel:
+            if channel != expected_channel or not channel:
                 continue
             for status in value.get("statuses", []):
                 errors = status.get("errors") or [{}]
@@ -238,12 +257,19 @@ def ingest_webhook(payload):
                 )
                 apply_status(event)
             for msg in value.get("messages", []):
+                flow_data = {}
+                context_id = msg.get("context", {}).get("id")
+                flow_button_id = ""
                 text = msg.get("text", {}).get("body", "")
                 if msg.get("type") == "button":
                     text = msg.get("button", {}).get("text", "")
                 if msg.get("type") == "interactive":
                     button = msg.get("interactive", {}).get("button_reply", {})
                     text = button.get("title", "")
+                    if msg.get("interactive", {}).get("type") == "nfm_reply":
+                        from responses.flows import parse_flow_reply
+
+                        text, context_id, flow_button_id, flow_data = parse_flow_reply(msg, unit, channel)
                 if not text:
                     text = "[Conteúdo não textual]"
                 event = store_event(
@@ -263,13 +289,15 @@ def ingest_webhook(payload):
                         ),
                         "display_phone_number": value.get("metadata", {}).get("display_phone_number", ""),
                         "text": text[:8000],
-                        "context_id": msg.get("context", {}).get("id"),
+                        "context_id": context_id,
                         "content_type": msg.get("type", "text"),
-                        "button_id": msg.get("button", {}).get("payload", "")
+                        "button_id": flow_button_id
+                        or msg.get("button", {}).get("payload", "")
                         or msg.get("interactive", {}).get("button_reply", {}).get("id", ""),
                         "media_id": (msg.get(msg.get("type", "")) or {}).get("id")
                         if isinstance(msg.get(msg.get("type", "")), dict)
                         else None,
+                        **flow_data,
                     },
                 )
                 apply_reply(event, unit)

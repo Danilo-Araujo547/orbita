@@ -20,6 +20,7 @@ import type { Issue, Paginated, PageName } from "../types";
 import "../operations.css";
 import ObservationModal from "./ObservationModal";
 import OperationsAdministration from "./OperationsAdministration";
+import ConfigurationEditor from "./ConfigurationEditor";
 import { Panel, Empty } from "./ui";
 
 type Origin = {
@@ -59,6 +60,7 @@ type Interaction = {
   occurred_at: string;
 };
 type Row = {
+  sends_enabled?: boolean;
   id: string | number;
   name?: string;
   code?: string;
@@ -123,6 +125,7 @@ const status: Record<string, string> = {
   answered: "Respondido",
   preview: "Somente análise",
   draft: "Rascunho",
+  released: "Envio liberado",
   confirmed: "Importação confirmada",
   pending_external: "Aguardando hospitalar",
   confirmed_external: "Execução confirmada",
@@ -181,11 +184,13 @@ export default function OperationsWorkspace({
   unit,
   role,
   username,
+  userAccess = false,
 }: {
   page: PageName;
   unit: string;
   role: string;
   username: string;
+  userAccess?: boolean;
 }) {
   const [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
@@ -243,6 +248,7 @@ export default function OperationsWorkspace({
         {page === "campaigns" && (
           <Campaigns
             unit={unit}
+            admin={role === "admin"}
             operate={operate}
             revision={revision}
             act={act}
@@ -264,6 +270,7 @@ export default function OperationsWorkspace({
           <Administration
             unit={unit}
             admin={role === "admin"}
+            userAccess={userAccess}
             revision={revision}
             act={act}
             busy={busy}
@@ -844,13 +851,14 @@ function useRows<T>(
 }
 
 function Campaigns({
+  admin,
   unit,
   operate,
   revision,
   act,
   busy,
   onError,
-}: Common & { operate: boolean }) {
+}: Common & { operate: boolean; admin: boolean }) {
   const campaigns = useRows<Row>("campaigns", unit, revision, onError),
     batches = useRows<Row>("sheet-imports", unit, revision, onError),
     layouts = useRows<Row>("layouts", unit, revision, onError),
@@ -868,6 +876,22 @@ function Campaigns({
     onError,
   );
   const [preview, setPreview] = useState<Record<string, string>[]>([]);
+  const [previewBatch, setPreviewBatch] = useState<string | number>("");
+  const [previewPage, setPreviewPage] = useState(1);
+  const [previewCount, setPreviewCount] = useState(0);
+  async function loadPreview(id: string | number, page = 1) {
+    try {
+      const result = await request<Paginated<Record<string, string>>>(
+        query(`sheet-imports/${id}/rows`, { unit, page: String(page) }),
+      );
+      setPreview(result.results);
+      setPreviewBatch(id);
+      setPreviewPage(page);
+      setPreviewCount(result.count);
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  }
   async function upload(file?: File) {
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -885,17 +909,12 @@ function Campaigns({
   }
   return (
     <div className="op-stack">
-      <Notice>
-        Importar uma lista cria acompanhamentos. A prévia da campanha prepara
-        mensagens em análise; nenhuma destas ações libera envio real.
-      </Notice>
       {operate && (
         <div className="op-two">
-          <FormAction title="Importar CROSS" label="Adicionar importação">
-            {" "}
+          <FormAction title="Importar planilha" label="Adicionar importação">
             <article className="op-card op-form">
               <h3>
-                <FileSpreadsheet size={18} /> Importar CROSS
+                <FileSpreadsheet size={18} /> Importar planilha
               </h3>
               <Field label="Layout validado">
                 <select
@@ -912,10 +931,10 @@ function Campaigns({
                     ))}
                 </select>
               </Field>
-              <Field label="Planilha CSV ou XLSX">
+              <Field label="Planilha CSV, XLSX ou HTML .xls">
                 <input
                   type="file"
-                  accept=".csv,.xlsx"
+                  accept=".csv,.xlsx,.xls"
                   disabled={!layout || busy}
                   onChange={(e) =>
                     void upload(e.target.files?.[0]).catch(() => {})
@@ -929,7 +948,7 @@ function Campaigns({
               )}
             </article>
           </FormAction>
-          <FormAction title="Nova campanha" label="Adicionar campanha">
+          <FormAction title="Nova importação CROSS" label="Adicionar importação CROSS">
             <form
               className="op-card op-form"
               onSubmit={(e) => {
@@ -938,8 +957,8 @@ function Campaigns({
                   name,
                   purpose,
                   cases: selected,
-                  template: Number(template),
-                  scheduled_for: new Date(sendAt).toISOString(),
+                  template: template ? Number(template) : null,
+                  scheduled_for: sendAt ? new Date(sendAt).toISOString() : null,
                 })
                   .then(() => {
                     setName("");
@@ -948,7 +967,7 @@ function Campaigns({
                   .catch(() => {});
               }}
             >
-              <h3>Nova campanha</h3>
+              <h3>Nova importação CROSS</h3>
               <Field label="Nome">
                 <input
                   required
@@ -971,7 +990,6 @@ function Campaigns({
               </Field>
               <Field label="Template">
                 <select
-                  required
                   value={template}
                   onChange={(e) => setTemplate(e.target.value)}
                 >
@@ -987,7 +1005,6 @@ function Campaigns({
               </Field>
               <Field label="Data prevista">
                 <input
-                  required
                   type="datetime-local"
                   value={sendAt}
                   onChange={(e) => setSendAt(e.target.value)}
@@ -1009,7 +1026,7 @@ function Campaigns({
                           )
                         }
                       />
-                      {c.event.patient}
+                      {c.event.patient} · {dateTime(c.event.occurred_at)}
                     </label>
                   ))}
               </div>
@@ -1017,7 +1034,7 @@ function Campaigns({
                 className="button primary"
                 disabled={busy || !selected.length}
               >
-                Criar rascunho · {selected.length} casos
+                Criar rascunho · {selected.length} registros
               </button>
             </form>
           </FormAction>
@@ -1040,16 +1057,7 @@ function Campaigns({
                 </small>
               ))}
             </div>
-            <button
-              className="button"
-              onClick={() =>
-                request<Paginated<Record<string, string>>>(
-                  query(`sheet-imports/${b.id}/rows`, { unit }),
-                )
-                  .then((v) => setPreview(v.results))
-                  .catch((e) => onError(e.message))
-              }
-            >
+            <button className="button" onClick={() => void loadPreview(b.id)}>
               Ver prévia
             </button>
             {operate && b.state === "preview" && !b.errors?.length && (
@@ -1082,6 +1090,25 @@ function Campaigns({
         )}
         {preview.length > 0 && (
           <div className="op-table">
+            <div className="op-list-row">
+              <span>
+                {previewCount} registros · Página {previewPage}
+              </span>
+              <button
+                className="button"
+                disabled={previewPage <= 1}
+                onClick={() => void loadPreview(previewBatch, previewPage - 1)}
+              >
+                Anterior
+              </button>
+              <button
+                className="button"
+                disabled={previewPage * 50 >= previewCount}
+                onClick={() => void loadPreview(previewBatch, previewPage + 1)}
+              >
+                Próxima
+              </button>
+            </div>
             <table>
               <thead>
                 <tr>
@@ -1089,15 +1116,23 @@ function Campaigns({
                   <th>Contato</th>
                   <th>Referência</th>
                   <th>Data</th>
+                  <th>Motivo de origem</th>
+                  <th>Observação de origem</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.map((r, i) => (
                   <tr key={i}>
                     <td>{r.patient}</td>
-                    <td>{r.phone}</td>
+                    <td>
+                      {Array.isArray(r.phone_numbers)
+                        ? r.phone_numbers.join(", ")
+                        : r.phone}
+                    </td>
                     <td>{r.external_id}</td>
                     <td>{dateTime(r.occurred_at)}</td>
+                    <td>{r.source_reason || "—"}</td>
+                    <td>{r.source_observation || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1106,16 +1141,57 @@ function Campaigns({
         )}
       </article>
       <article className="op-card">
-        <h3>Campanhas</h3>
+        <h3>Importa CROSS</h3>
         {campaigns.map((c) => (
           <div className="op-list-row" key={c.id}>
             <div>
               <strong>{c.name}</strong>
               <small>
-                {purposes[c.purpose || ""]} · {c.cases?.length || 0} casos ·{" "}
+                {purposes[c.purpose || ""]} · {c.cases?.length || 0} registros ·{" "}
                 {status[c.state || ""]}
               </small>
+              <small>Envio {c.sends_enabled ? "ativado" : "desativado"}</small>
             </div>
+            {admin && (
+              <button
+                className="button"
+                disabled={busy}
+                onClick={() =>
+                  void act(`campaigns/${c.id}/sending`, {
+                    version: c.version,
+                    enabled: !c.sends_enabled,
+                  }).catch(() => {})
+                }
+              >
+                {c.sends_enabled ? "Desativar envio" : "Ativar envio"}
+              </button>
+            )}
+            {admin &&
+              c.sends_enabled &&
+              ["draft", "preview"].includes(c.state || "") && (
+                <FormAction title="Enviar importação CROSS" label="Enviar agora">
+                  <form
+                    className="op-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void act(`campaigns/${c.id}/release`, {
+                        version: c.version,
+                      }).catch(() => {});
+                    }}
+                  >
+                    <p>
+                      {c.name} · {c.cases?.length || 0} registros
+                    </p>
+                    <p>
+                      Envio real aos contatos da importação CROSS, com intervalo de 5
+                      segundos.
+                    </p>
+                    <button className="button primary" disabled={busy}>
+                      Liberar envio
+                    </button>
+                  </form>
+                </FormAction>
+              )}
             {operate && c.state === "draft" && (
               <button
                 className="button"
@@ -1132,7 +1208,7 @@ function Campaigns({
           </div>
         ))}
         {!campaigns.length && (
-          <p className="op-muted">Nenhuma campanha cadastrada.</p>
+          <p className="op-muted">Nenhuma importação CROSS cadastrada.</p>
         )}
       </article>
     </div>
@@ -1273,13 +1349,16 @@ function Reports({
 function Administration({
   unit,
   admin,
+  userAccess,
   revision,
   act,
   busy,
   onError,
-}: Common & { admin: boolean }) {
+}: Common & { admin: boolean; userAccess: boolean }) {
   const preparations = useRows<Row>("preparations", unit, revision, onError),
-    layouts = useRows<Row>("layouts", unit, revision, onError);
+    layouts = useRows<Row>("layouts", unit, revision, onError),
+    reportDefinitions = useRows<Row>("reports", unit, revision, onError),
+    policies = useRows<Row>("policies", unit, revision, onError);
   const [code, setCode] = useState(""),
     [name, setName] = useState(""),
     [text, setText] = useState("");
@@ -1301,17 +1380,17 @@ function Administration({
   const [category, setCategory] = useState(admin ? "sources" : "preparations");
   type CategoryTab = [string, string, typeof Database];
   const categories: CategoryTab[] = [
-    ...(admin
-      ? ([
+    ...([
           ["sources", "Origens e regras", Database],
           ["units", "Unidades", Building2],
           ["team", "Equipe da unidade", UserRound],
           ["access", "Acesso a relatórios", ShieldCheck],
           ["schedules", "Relatórios agendados", Clock3],
-        ] as CategoryTab[])
-      : []),
+        ] as CategoryTab[]),
     ["preparations", "Preparos", ClipboardList],
     ["layouts", "Layouts CROSS", FileSpreadsheet],
+    ["reportDefinitions", "Catálogo de relatórios", ClipboardList],
+    ["policies", "Prazos de resposta", Clock3],
   ];
   return (
     <div className="admin-workspace">
@@ -1333,8 +1412,16 @@ function Administration({
         ))}
       </nav>
       <div className="admin-category-content" key={category}>
-        {admin &&
-          ["sources", "units", "team", "access", "schedules"].includes(category) && (
+        {category === "reportDefinitions" && <Panel title="Catálogo de relatórios"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Relatório</th><th>Palavra-chave</th><th>Situação</th><th>Ações</th></tr></thead><tbody>{reportDefinitions.map(record=><tr key={record.id}><td>{record.name}</td><td>{String((record as Record<string,unknown>).keyword||"")}</td><td>{record.enabled?"Ativo":"Desativado"}</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`reports/${record.id}/configure`} act={act} busy={busy} fields={[
+          {key:"name",label:"Nome",required:true},{key:"keyword",label:"Palavra-chave",required:true},
+          {key:"enabled",label:"Ativo",type:"checkbox"},{key:"unavailable_reason",label:"Motivo de indisponibilidade",type:"textarea"},
+        ]}/>}</td></tr>)}</tbody></table></div></Panel>}
+        {category === "policies" && <Panel title="Prazos de resposta"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Finalidade</th><th>Prazo</th><th>Ações</th></tr></thead><tbody>{policies.map(record=><tr key={record.id}><td>{purposes[record.purpose||""]}</td><td>{String((record as Record<string,unknown>).response_hours)} horas</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`policies/${record.id}/configure`} act={act} busy={busy} fields={[
+          {key:"response_hours",label:"Prazo em horas",type:"number"},{key:"enabled",label:"Ativo",type:"checkbox"},{key:"evidence",label:"Referência da validação",type:"textarea"},
+        ]}/>}</td></tr>)}</tbody></table></div></Panel>}
+        {["sources", "units", "team", "access", "schedules"].includes(
+            category,
+          ) && (
             <OperationsAdministration
               unit={unit}
               revision={revision}
@@ -1342,6 +1429,8 @@ function Administration({
               busy={busy}
               onError={onError}
               activeTab={category}
+              editable={admin}
+              userAccess={userAccess}
             />
           )}
         {category === "preparations" && (
@@ -1349,7 +1438,10 @@ function Administration({
             title="Preparos de procedimentos"
             action={
               admin ? (
-                <FormAction title="Cadastro de preparo" label="Adicionar preparo">
+                <FormAction
+                  title="Cadastro de preparo"
+                  label="Adicionar preparo"
+                >
                   <form
                     className="op-form"
                     onSubmit={(e) => {
@@ -1408,6 +1500,7 @@ function Administration({
                       <th>Versão</th>
                       <th>Situação</th>
                       <th>Orientações</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1417,10 +1510,15 @@ function Administration({
                           <strong>{p.name}</strong>
                         </td>
                         <td>
-                          <span className="directory-code">{p.procedure_code}</span>
+                          <span className="directory-code">
+                            {p.procedure_code}
+                          </span>
                         </td>
                         <td>
-                          <span className="directory-detail" style={{ margin: 0 }}>
+                          <span
+                            className="directory-detail"
+                            style={{ margin: 0 }}
+                          >
                             v{p.version}
                           </span>
                         </td>
@@ -1437,6 +1535,12 @@ function Administration({
                             <p className="op-prewrap">{p.text}</p>
                           </details>
                         </td>
+                        <td>{admin && <ConfigurationEditor record={{...p}} path="preparations" title="Nova versão do preparo" label="Editar" act={act} busy={busy} fields={[
+                          {key:"procedure_code",label:"Código do procedimento",required:true},
+                          {key:"name",label:"Nome",required:true},
+                          {key:"text",label:"Orientações",type:"textarea",required:true},
+                          {key:"active",label:"Ativo",type:"checkbox"},
+                        ]}/>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1522,6 +1626,7 @@ function Administration({
                       <th>Nome do layout</th>
                       <th>Mapeamento de colunas</th>
                       <th>Validação</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1549,6 +1654,13 @@ function Administration({
                             {l.verified ? "Validado" : "Pendente de validação"}
                           </span>
                         </td>
+                        <td>{admin && <ConfigurationEditor record={{...l}} path="layouts" act={act} busy={busy} title="Nova versão do layout" label="Editar" fields={[
+                          {key:"name",label:"Nome",required:true},
+                          {key:"format",label:"Formato",type:"select",options:[{value:"table",label:"CSV / XLSX"},{value:"absence_html",label:"Ausentes HTML (.xls)"}]},
+                          {key:"mapping",label:"Colunas",type:"mapping"},
+                          {key:"evidence",label:"Referência da validação",type:"textarea"},
+                          {key:"verified",label:"Validado",type:"checkbox"},
+                        ]}/>}</td>
                       </tr>
                     ))}
                   </tbody>

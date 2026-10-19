@@ -148,6 +148,11 @@ class Preparation(models.Model):
 
 
 class ImportLayout(models.Model):
+    format = models.CharField(
+        max_length=30,
+        choices=[("table", "CSV/XLSX"), ("absence_html", "Ausentes HTML (.xls)")],
+        default="table",
+    )
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     name = models.CharField(max_length=120)
     version = models.PositiveIntegerField(default=1)
@@ -175,6 +180,13 @@ class SheetImport(models.Model):
 
 
 class Campaign(models.Model):
+    sends_enabled = models.BooleanField(default=False)
+    next_send_at = models.DateTimeField(null=True, blank=True)
+    response_policy = models.CharField(
+        max_length=40,
+        default="contextual",
+        choices=[("contextual", "Por finalidade"), ("confirmation_test", "Teste: SIM e NÃO confirmam")],
+    )
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     name = models.CharField(max_length=150)
     purpose = models.CharField(max_length=30, choices=Purpose.choices)

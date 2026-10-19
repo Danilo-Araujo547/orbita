@@ -227,3 +227,8 @@ describe("isAppointmentIssue", () => {
     expect(isAppointmentIssue(itemPending)).toBe(false);
   });
 });
+
+it("mantém pós-cirúrgico que requer atendimento na lista de pendências", () => {
+  const item = mockAppointment({kind: "postoperative", record_type: "cross", tracking: {id: "postoperative-case", version: 1, outcome: "needs_attention", response: "answered", corrections: 0, observations: 0, messages: 1, contacts: []}});
+  expect(isAppointmentIssue(item)).toBe(true);
+});

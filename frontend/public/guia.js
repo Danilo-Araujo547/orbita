@@ -120,16 +120,16 @@ const guides = {
     ],
   },
   campaigns: {
-    title: "Campanhas",
-    path: "/campanhas",
+    title: "Importa CROSS",
+    path: "/importa-cross",
     sections: [
       [
         "Importar planilha",
         "Adicionar importação abre layout e arquivo CSV/XLSX. O layout precisa estar validado para a unidade. Revise erros, totais e duplicidades antes de confirmar.",
       ],
       [
-        "Campanhas",
-        "Adicionar campanha define finalidade, template e programação. Importar dados, criar campanha e liberar notificações são etapas distintas.",
+        "Importa CROSS",
+        "Adicionar importação CROSS define finalidade, template e programação. Importar dados, criar importação CROSS e liberar notificações são etapas distintas.",
       ],
       [
         "CROSS e busca ativa",

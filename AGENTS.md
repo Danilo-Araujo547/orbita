@@ -9,3 +9,9 @@
 - Configurações e administração devem priorizar listas de registros existentes, com estado e ações por registro. Novos cadastros usam botões compactos no cabeçalho; evitar cartões grandes de ação, ícones decorativos repetidos e setas sem função. O tema usa um único botão que alterna claro, escuro e sistema.
 - Nos modais, usar `InlineDialog`: cabeçalho e ações na prop `footer` ficam fora do corpo rolável. Ao mover submit para o rodapé, associar ao formulário por `id`/`form`. Manter grids e fieldsets com `min-width: 0`; não aplicar estilos de inputs de texto a checkbox ou radio; evitar padding duplicado em `FormAction`.
 - A seleção de unidade deve existir somente no topo da barra lateral. Não repetir seletores no cabeçalho, filtros ou ações da lista de unidades.
+
+
+## Ambiente de trabalho
+
+- Work exclusively on the remote server root@172.16.0.59, project /opt/orbita. Do not develop or synchronize a local checkout unless the user explicitly changes this instruction.
+- Preserve the login customized on this server and the existing runtime configuration and encrypted credentials.

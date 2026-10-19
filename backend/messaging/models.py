@@ -161,3 +161,9 @@ class ProviderEvent(models.Model):
     data = models.JSONField(default=dict)
     processed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class MetaInboxCursor(models.Model):
+    unit = models.OneToOneField("core.Unit", on_delete=models.PROTECT)
+    position = models.PositiveBigIntegerField(default=0)
+    last_sync_at = models.DateTimeField(null=True)

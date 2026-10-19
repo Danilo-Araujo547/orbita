@@ -6,6 +6,12 @@ export const kinds: Record<string, string> = {
   postoperative: "Pós-cirúrgico",
 };
 export const labels: Record<string, string> = {
+  recorded: "Registrada",
+  started: "Iniciada",
+  success: "Sucesso",
+  error: "Erro",
+  simulated: "Simulada",
+  succeeded: "Concluída",
   not_requested: "Sem envio confirmado",
   delivered_or_read: "Entregues e lidas",
   preview: "Somente análise",

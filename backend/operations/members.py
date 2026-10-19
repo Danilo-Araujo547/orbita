@@ -32,7 +32,7 @@ class MemberViewSet(ScopedRead):
     serializer_class = MemberSerializer
 
     def get_queryset(self):
-        get_unit(self.request, ["admin"])
+        get_unit(self.request)
         return super().get_queryset()
 
     @extend_schema(request=MemberInput, responses=MemberSerializer)

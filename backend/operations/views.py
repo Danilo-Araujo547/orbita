@@ -60,8 +60,12 @@ class CaseViewSet(ScopedRead):
         qs = super().get_queryset()
         from core.access import local_permissions
 
-        if local_permissions(self.request.user, get_unit(self.request))["campaigns"] == "none":
-            qs = qs.filter(purpose__in=["appointment", "absence", "movement"])
+        policy = local_permissions(self.request.user, get_unit(self.request))
+        if policy["campaigns"] == "none":
+            allowed = ["appointment", "absence", "movement"]
+            if policy["appointments"] != "none":
+                allowed += ["waitlist", "summons", "postoperative"]
+            qs = qs.filter(purpose__in=allowed)
         for field in ["state", "purpose", "assignee", "response_state", "outcome", "priority"]:
             if self.request.query_params.get(field):
                 value = self.request.query_params[field]
@@ -360,12 +364,15 @@ class ConfigViewSet(ScopedRead, viewsets.GenericViewSet):
         if isinstance(obj, m.ImportLayout):
             if obj.verified and not obj.evidence.strip():
                 raise ValidationError("Layout validado exige referência da evidência.")
-            if not isinstance(obj.mapping, dict) or not {
-                "external_id",
-                "patient",
-                "phone",
-                "occurred_at",
-            }.issubset(obj.mapping):
+            if not isinstance(obj.mapping, dict) or (
+                obj.format != "absence_html"
+                and not {
+                    "external_id",
+                    "patient",
+                    "phone",
+                    "occurred_at",
+                }.issubset(obj.mapping)
+            ):
                 raise ValidationError("Mapeamento de colunas incompleto.")
             if any(
                 not isinstance(value, str) or not value.strip() or len(value) > 200
@@ -454,7 +461,7 @@ class ContactViewSet(ScopedRead):
         qs = super().get_queryset()
         from core.access import local_permissions
 
-        if local_permissions(self.request.user, get_unit(self.request))["campaigns"] == "none":
+        if all(local_permissions(self.request.user, get_unit(self.request))[section] == "none" for section in ["campaigns", "appointments"]):
             qs = qs.filter(event__appointment__isnull=False)
         return (
             qs.filter(event_id=self.request.query_params["event"])
@@ -683,6 +690,114 @@ class SheetViewSet(ScopedRead):
 
 
 class CampaignViewSet(ScopedRead):
+    @extend_schema(request=s.CampaignSendingInput)
+    @action(detail=True, methods=["post"])
+    def sending(self, request, pk=None):
+        values = s.CampaignSendingInput(data=request.data)
+        values.is_valid(raise_exception=True)
+
+        def execute():
+            from core.models import Unit
+
+            unit = get_unit(request, ["admin"])
+            unit = Unit.objects.select_for_update(no_key=True).get(pk=unit.pk)
+            campaign = m.Campaign.objects.select_for_update().get(pk=self.get_object().pk, unit=unit)
+            if campaign.version != values.validated_data["version"]:
+                raise Conflict()
+            enabled = values.validated_data["enabled"]
+            if enabled:
+                from messaging.pilot import catalog_template, configuration
+
+                if (
+                    campaign.purpose != "absence"
+                    or campaign.response_policy != "confirmation_test"
+                    or not campaign.template
+                    or campaign.template.name != "confirmacao_consulta_sqlite_v1"
+                ):
+                    raise ValidationError("Configure o template e a política de teste da campanha.")
+                try:
+                    catalog_template(configuration(unit), campaign.template.name)
+                except ValueError as error:
+                    raise ValidationError(str(error)) from None
+                if unit.paused:
+                    # Preserve old group queues without releasing them when restoring transport.
+                    for pending in Message.objects.filter(
+                        unit=unit, attempt_count=0, snapshot__manual_group_real=True
+                    ):
+                        pending.snapshot["manual_group_real"] = False
+                        pending.save(update_fields=["snapshot"])
+                    unit.paused = False
+                    unit.save(update_fields=["paused"])
+            campaign.sends_enabled = enabled
+            campaign.version += 1
+            campaign.save(update_fields=["sends_enabled", "version"])
+            Audit.objects.create(
+                unit=unit,
+                actor=request.user,
+                action="campaign.sending_changed",
+                object_id=str(campaign.pk),
+                details={"enabled": enabled},
+            )
+            return self.get_serializer(campaign).data
+
+        return self.once(request, execute)
+
+    @extend_schema(request=s.VersionInput)
+    @action(detail=True, methods=["post"])
+    def release(self, request, pk=None):
+        values = s.VersionInput(data=request.data)
+        values.is_valid(raise_exception=True)
+
+        def execute():
+            from datetime import timedelta
+
+            from core.models import Unit
+            from messaging.pilot import prepare
+
+            unit = get_unit(request, ["admin"])
+            unit = Unit.objects.select_for_update(no_key=True).get(pk=unit.pk)
+            campaign = m.Campaign.objects.select_for_update().get(pk=self.get_object().pk, unit=unit)
+            if campaign.version != values.validated_data["version"]:
+                raise Conflict()
+            if not campaign.sends_enabled or unit.paused or campaign.state not in {"draft", "preview"}:
+                raise ValidationError("Ative o envio da campanha e da unidade antes de liberar um rascunho.")
+            now = timezone.now()
+            campaign.scheduled_for = now
+            campaign.save(update_fields=["scheduled_for"])
+            ids = (
+                preview_campaign(campaign)
+                if campaign.state == "draft"
+                else list(
+                    Message.objects.filter(
+                        unit=unit, state="preview", snapshot__campaign=campaign.pk
+                    ).values_list("pk", flat=True)
+                )
+            )
+            if not ids:
+                raise ValidationError("Campanha sem mensagens elegíveis.")
+            for index, message in enumerate(
+                Message.objects.filter(pk__in=ids).select_related("case__event", "unit").order_by("pk")
+            ):
+                prepare(message, campaign.template.name)
+                message.snapshot["manual_campaign_real"] = True
+                message.state = "queued"
+                message.scheduled_for = now + timedelta(seconds=index * 5)
+                message.expires_at = now + timedelta(days=1)
+                message.save()
+            campaign.state = "released"
+            campaign.version += 1
+            campaign.save(update_fields=["state", "version"])
+            Audit.objects.create(
+                unit=unit,
+                actor=request.user,
+                action="campaign.released",
+                object_id=str(campaign.pk),
+                details={"messages": len(ids), "delay_seconds": 5},
+            )
+            return {"messages": len(ids), "state": campaign.state}
+
+        return self.once(request, execute)
+
     queryset = m.Campaign.objects.order_by("-created_at")
     serializer_class = s.CampaignSerializer
 
@@ -735,7 +850,7 @@ class ReportAccessViewSet(ConfigViewSet):
     serializer_class = s.ReportAccessSerializer
 
     def get_queryset(self):
-        get_unit(self.request, ["admin"])
+        get_unit(self.request)
         return super().get_queryset()
 
     def validate_config(self, obj):
@@ -908,6 +1023,63 @@ class FlowRunViewSet(ScopedRead):
 
 
 class UnitViewSet(viewsets.ReadOnlyModelViewSet):
+    @action(detail=True, methods=["post"])
+    def configure(self, request, pk=None):
+        anchor = get_unit(request, ["admin"])
+
+        def execute():
+            from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+            from core.access import local_permissions
+            from core.models import Unit
+
+            obj = get_object_or_404(self.get_queryset(), pk=pk)
+            if (
+                not request.user.is_superuser
+                and not Membership.objects.filter(unit=obj, user=request.user, role="admin").exists()
+            ):
+                raise ValidationError("Administração da unidade necessária.")
+            if not any(
+                local_permissions(request.user, obj)[key] == "write"
+                for key in ["settings", "operationsAdmin"]
+            ):
+                raise ValidationError("Sem permissão para editar esta unidade.")
+            if type(request.data.get("version")) is not int or not Unit.objects.filter(
+                pk=obj.pk, version=request.data["version"]
+            ).update(version=F("version") + 1):
+                raise Conflict()
+            obj.refresh_from_db()
+            if "slug" in request.data and request.data["slug"] != obj.slug:
+                raise ValidationError("Preserve o identificador da unidade.")
+            serializer = self.get_serializer(obj, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            try:
+                ZoneInfo(serializer.validated_data.get("timezone", obj.timezone))
+            except (ZoneInfoNotFoundError, ValueError):
+                raise ValidationError("Fuso horário inválido.") from None
+            hours = serializer.validated_data.get("response_hours", obj.response_hours)
+            if not 1 <= hours <= 168:
+                raise ValidationError("Prazo deve estar entre 1 e 168 horas.")
+            obj = serializer.save()
+            Audit.objects.create(
+                unit=obj,
+                actor=request.user,
+                action="unit.configured",
+                object_id=str(obj.pk),
+                details={"version": obj.version},
+            )
+            return self.get_serializer(obj).data
+
+        return Response(
+            idempotent(
+                anchor,
+                request.user,
+                request.headers.get("Idempotency-Key"),
+                {"path": request.path, "data": request.data},
+                execute,
+            )
+        )
+
     from core.serializers import UnitSerializer
 
     serializer_class = UnitSerializer

@@ -112,6 +112,7 @@ def template_output(remote, unit):
 
 
 def output(config, unit):
+    from messaging.pilot import enabled
     if config is None:
         config = MetaConfiguration(unit=unit, version=0)
     return {
@@ -135,7 +136,7 @@ def output(config, unit):
             )
         },
         **{"has_" + k: bool(getattr(config, field)) for k, field in SECRETS.items()},
-        "sending_enabled": False,
+        "sending_enabled": enabled(unit) and not unit.paused and config.validation_state == "valid",
         "templates": [template_output(t, unit) for t in config.templates],
     }
 
