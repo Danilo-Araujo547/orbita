@@ -1,3 +1,4 @@
+import { settingsEntries } from "./settingsDirectory";
 import FormAction from "./components/FormAction";
 import { Badge, Empty, Panel, Metric, SearchField } from "./components/ui";
 import OperationalAppointments from "./components/OperationalAppointments";
@@ -23,7 +24,6 @@ import {
   Activity,
   ArrowRight,
   Bell,
-  Building2,
   CalendarDays,
   Check,
   CheckCheck,
@@ -33,7 +33,6 @@ import {
   ClipboardList,
   Clock3,
   Cloud,
-  Database,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -47,7 +46,6 @@ import {
   RefreshCw,
   Send,
   Settings2,
-  ShieldCheck,
   TriangleAlert,
   User,
   X,
@@ -80,15 +78,13 @@ import type {
 } from "./types";
 
 const navigation: { id: PageName; label: string; icon: typeof Activity }[] = [
-  { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "appointments", label: "Agendamentos", icon: CalendarDays },
+  { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "messages", label: "Mensagens", icon: MessageCircle },
   { id: "groups", label: "Grupos", icon: CalendarDays },
   { id: "issues", label: "Pendências", icon: ClipboardList },
   { id: "campaigns", label: "Importa CROSS", icon: Send },
-  { id: "users", label: "Usuários", icon: User },
   { id: "reports", label: "Relatórios", icon: Activity },
-  { id: "operationsAdmin", label: "Administração", icon: ShieldCheck },
   { id: "settings", label: "Configurações", icon: Settings2 },
 ];
 type Data = {
@@ -167,7 +163,7 @@ function Workspace({
     [toast, setToast] = useState(""),
     [modal, setModal] = useState<Modal>(null),
     [mobile, setMobile] = useState(false);
-  const [settingsTab, setSettingsTab] = useState("units");
+  const [settingsTab, setSettingsTab] = useState<string | null>(null);
   const [groupId, setGroupId] = useState<string | null>(
     () => readRoute().groupId,
   );
@@ -175,6 +171,7 @@ function Workspace({
     const sync = () => {
       const next = readRoute();
       setPage(next.page);
+      setSettingsTab(null);
       setGroupId(next.groupId);
       const slug = new URLSearchParams(window.location.search).get("unit");
       if (slug && session.units.some((item) => item.slug === slug)) {
@@ -224,7 +221,9 @@ function Workspace({
   const policy = permissionsFor(session, unit);
   const actualRole = session.roles[unit];
   const visibleNavigation = navigation.filter(item => canAccess(session, unit, item.id) && !(unit.startsWith("remote:") && item.id === "users"));
-  const role = policy[page] === "write" ? actualRole : "viewer";
+  const configurationEntries = settingsEntries(policy, actualRole, unit.startsWith("remote:"));
+  const activeConfiguration = configurationEntries.find(item => item.id === settingsTab);
+  const role = policy[page === "settings" ? activeConfiguration?.section || "settings" : page] === "write" ? actualRole : "viewer";
   const canOperate = policy[page] === "write" && (actualRole === "admin" || actualRole === "operator");
   useEffect(() => {
     if (!session.units.some(u=>u.slug===unit)) { const next = session.units[0]?.slug; if(next) changeUnit(next); return; }
@@ -232,9 +231,8 @@ function Workspace({
   }, [session, unit, page]);
   const selectedUnit = session.units.find((item) => item.slug === unit);
   const isRemote = unit.startsWith("remote:");
-  useEffect(() => {
-    setSettingsTab(role === "admin" && !isRemote ? "units" : "rules");
-  }, [unit, role, isRemote]);
+  useEffect(() => { setSettingsTab(null); }, [unit]);
+  useEffect(() => { if (page !== "settings") setSettingsTab(null); }, [page]);
   function changeUnit(slug: string) {
     setData(null);
     setUnit(slug);
@@ -655,26 +653,9 @@ function Workspace({
               </button>
             </div>
           )}
-          {page === "users" && !isRemote && <UserDirectory unit={unit} editable={canOperate} onChanged={onSessionRefresh} />}
-          {["care", "campaigns", "reports", "operationsAdmin"].includes(page) &&
-            !(isRemote && page === "operationsAdmin") && (
-              <OperationsWorkspace
-                key={`${unit}:${page}`}
-                page={page}
-                unit={unit}
-                role={role}
-                username={session.username}
-                userAccess={policy.users === "write" || policy.users === "read"}
-              />
-            )}
-          {isRemote && page === "operationsAdmin" && (
-            <div className="remote-source-banner">
-              <Cloud size={18} />
-              <span>
-                A administração de usuários e unidades deve ser realizada na
-                instância de origem.
-              </span>
-            </div>
+          {["care", "campaigns", "reports"].includes(page) && (
+            <OperationsWorkspace key={`${unit}:${page}`} page={page} unit={unit} role={role}
+              username={session.username} userAccess={false} />
           )}
           {(page === "overview" || page === "messages") && (
             <div className="filters">
@@ -1119,39 +1100,27 @@ function Workspace({
               )}
               {page === "settings" && (
                 <div className="settings-workspace">
-                  <nav className="settings-tabs" aria-label="Configurações">
-                    {(
-                      [
-                        ...(role === "admin" && !isRemote
-                          ? [
-                              ["units", "Unidades", Building2],
-                              ["oracle", "Oracle", Database],
-                              ["instances", "Instâncias", Cloud],
-                            ]
-                          : []),
-                        ...(role === "admin"
-                          ? [["meta", "WhatsApp", MessageCircle]]
-                          : []),
-                        ["rules", "Lembretes", Bell],
-                        ["activity", "Atividades", Activity],
-                        ["logs", "Logs", ClipboardList],
-                      ] as [string, string, typeof Activity][]
-                    ).map(([id, label, Icon]) => (
-                      <button
-                        type="button"
-                        key={id}
-                        className={settingsTab === id ? "active" : ""}
-                        aria-current={settingsTab === id ? "page" : undefined}
-                        onClick={() => setSettingsTab(id)}
-                      >
-                        <Icon size={15} />
-                        <span>{label}</span>
-                      </button>
-                    ))}
-                  </nav>
+                  <div className="settings-directory" role="list" aria-label="Lista de configurações">
+                    {["Instância", "Integrações", "Operação", "Cadastros", "Monitoramento"].map(group => {
+                      const entries = configurationEntries.filter(item => item.group === group);
+                      return entries.length > 0 && <section key={group} className="settings-directory-group">
+                        <h2>{group}</h2>
+                        {entries.map(item => <div className="settings-directory-row" role="listitem" key={item.id}>
+                          <span>{item.label}</span>
+                          <button className="button" type="button" aria-label={`Abrir ${item.label}`} onClick={() => setSettingsTab(item.id)}>Abrir</button>
+                        </div>)}
+                      </section>;
+                    })}
+                  </div>
+                  {activeConfiguration && <InlineDialog title={activeConfiguration.label} subtitle="" className="configuration-dialog"
+                    onClose={() => setSettingsTab(null)} footer={<button className="button" onClick={() => setSettingsTab(null)}>Fechar</button>}>
+                    {activeConfiguration.section === "operationsAdmin" && <OperationsWorkspace
+                      key={`${unit}:${settingsTab}`} page="operationsAdmin" unit={unit} role={role}
+                      username={session.username} userAccess={false} administrationCategory={settingsTab || undefined} />}
+                    {settingsTab === "users" && <UserDirectory unit={unit} editable={policy.users === "write" && actualRole === "admin"} onChanged={onSessionRefresh} />}
                   {settingsTab === "logs" && <ExecutionLogs key={unit} unit={unit} />}
-                  {settingsTab === "units" && role === "admin" && !isRemote && (
-                    <UnitDirectory unit={unit} onChanged={onSessionRefresh} />
+                  {settingsTab === "units" && actualRole === "admin" && !isRemote && (
+                    <UnitDirectory unit={unit} editable={role === "admin"} onChanged={onSessionRefresh} />
                   )}
 
                   {settingsTab === "instances" &&
@@ -1608,6 +1577,7 @@ function Workspace({
                       </Panel>
                     </div>
                   )}
+                  </InlineDialog>}
                 </div>
               )}
               {["messages", "responses"].includes(page) && !!activeList && (

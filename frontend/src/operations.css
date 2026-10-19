@@ -1547,3 +1547,18 @@
 .filter-select-list::-webkit-scrollbar { width:6px; height:6px; }
 .filter-select-list::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:6px; }
 .filter-select-list::-webkit-scrollbar-button { display:none; }
+
+/* Configurações: diretório único e detalhes em modal. */
+.settings-directory { max-width: 1100px; display: grid; gap: 24px; }
+.settings-directory-group { border: 1px solid var(--border-default); border-radius: 12px; background: var(--bg-surface); overflow: hidden; }
+.settings-directory-group h2 { margin: 0; padding: 16px 20px; font-size: 13px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-default); }
+.settings-directory-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 20px; color: var(--text-primary); }
+.settings-directory-row + .settings-directory-row { border-top: 1px solid var(--border-default); }
+.settings-directory-row > span { font-size: 14px; font-weight: 500; }
+.settings-directory-row .button { min-height: 32px; padding: 6px 14px; font-size: 12px; box-shadow: none; }
+.modal.inline-dialog.configuration-dialog { width: min(1200px, calc(100vw - 64px)); max-width: calc(100vw - 64px); }
+.configuration-dialog .admin-workspace { display: block; }
+.configuration-dialog .op-workspace { padding: 0; }
+.configuration-dialog .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.configuration-dialog .panel { min-width: 0; }
+@media (max-width: 1100px) { .configuration-dialog .settings-grid { grid-template-columns: minmax(0, 1fr); } }

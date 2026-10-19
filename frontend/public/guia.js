@@ -1,7 +1,7 @@
 const guides = {
   overview: {
     title: "Visão geral",
-    path: "/",
+    path: "/visao-geral",
     sections: [
       [
         "Indicadores",
@@ -199,7 +199,7 @@ const guides = {
     sections: [
       [
         "Unidades e categorias",
-        "A tela começa pela lista de unidades acessíveis, com identificador, fuso e estado dos envios. Nova unidade abre o cadastro em modal. A seleção de unidade fica somente no topo da barra lateral. Oracle, Instâncias, WhatsApp, Lembretes e Atividades ficam nas categorias correspondentes.",
+        "Configurações reúne Instância, Integrações, Operação, Cadastros e Monitoramento em uma lista. Abrir exibe os registros da seção em modal; Adicionar ou Editar abre o formulário correspondente. Usuários e acessos também fica nesta lista. A unidade é selecionada somente no topo da barra lateral.",
       ],
       [
         "Tema",

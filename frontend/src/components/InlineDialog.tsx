@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { User, X } from "lucide-react";
 
+const openDialogs = new Set<HTMLElement>();
+let originalBodyOverflow = "";
+
 export default function InlineDialog({
   title,
   subtitle,
@@ -27,13 +30,17 @@ export default function InlineDialog({
   locked.current = busy;
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
+    const node = dialog.current!;
+    if (!openDialogs.size) originalBodyOverflow = document.body.style.overflow;
+    openDialogs.add(node);
     document.body.style.overflow = "hidden";
     (
       dialog.current?.querySelector<HTMLElement>("input,select,textarea") ||
       dialog.current?.querySelector<HTMLElement>("button")
     )?.focus();
     function keydown(event: KeyboardEvent) {
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs[dialogs.length - 1] !== node) return;
       if (event.key === "Escape" && !locked.current) close.current();
       if (event.key !== "Tab") return;
       const fields = Array.from(
@@ -55,8 +62,9 @@ export default function InlineDialog({
     document.addEventListener("keydown", keydown);
     return () => {
       document.removeEventListener("keydown", keydown);
-      document.body.style.overflow = previousOverflow;
-      previous?.focus();
+      openDialogs.delete(node);
+      document.body.style.overflow = openDialogs.size ? "hidden" : originalBodyOverflow;
+      if (previous?.isConnected) previous.focus();
     };
   }, []);
   return createPortal(

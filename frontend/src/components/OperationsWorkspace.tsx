@@ -185,12 +185,14 @@ export default function OperationsWorkspace({
   role,
   username,
   userAccess = false,
+  administrationCategory,
 }: {
   page: PageName;
   unit: string;
   role: string;
   username: string;
   userAccess?: boolean;
+  administrationCategory?: string;
 }) {
   const [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
@@ -268,6 +270,7 @@ export default function OperationsWorkspace({
         )}
         {page === "operationsAdmin" && (
           <Administration
+            activeCategory={administrationCategory}
             unit={unit}
             admin={role === "admin"}
             userAccess={userAccess}
@@ -1354,7 +1357,8 @@ function Administration({
   act,
   busy,
   onError,
-}: Common & { admin: boolean; userAccess: boolean }) {
+  activeCategory,
+}: Common & { admin: boolean; userAccess: boolean; activeCategory?: string }) {
   const preparations = useRows<Row>("preparations", unit, revision, onError),
     layouts = useRows<Row>("layouts", unit, revision, onError),
     reportDefinitions = useRows<Row>("reports", unit, revision, onError),
@@ -1377,7 +1381,8 @@ function Administration({
     phone: "Coluna do telefone",
     occurred_at: "Coluna da data (AAAA-MM-DD)",
   };
-  const [category, setCategory] = useState(admin ? "sources" : "preparations");
+  const [internalCategory, setCategory] = useState(admin ? "sources" : "preparations");
+  const category = activeCategory || internalCategory;
   type CategoryTab = [string, string, typeof Database];
   const categories: CategoryTab[] = [
     ...([
@@ -1394,7 +1399,7 @@ function Administration({
   ];
   return (
     <div className="admin-workspace">
-      <nav
+      {!activeCategory && <nav
         className="admin-category-nav"
         aria-label="Cadastros administrativos"
       >
@@ -1410,7 +1415,7 @@ function Administration({
             <span>{label}</span>
           </button>
         ))}
-      </nav>
+      </nav>}
       <div className="admin-category-content" key={category}>
         {category === "reportDefinitions" && <Panel title="Catálogo de relatórios"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Relatório</th><th>Palavra-chave</th><th>Situação</th><th>Ações</th></tr></thead><tbody>{reportDefinitions.map(record=><tr key={record.id}><td>{record.name}</td><td>{String((record as Record<string,unknown>).keyword||"")}</td><td>{record.enabled?"Ativo":"Desativado"}</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`reports/${record.id}/configure`} act={act} busy={busy} fields={[
           {key:"name",label:"Nome",required:true},{key:"keyword",label:"Palavra-chave",required:true},
