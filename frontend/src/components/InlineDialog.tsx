@@ -11,6 +11,7 @@ export default function InlineDialog({
   title,
   legacy = false,
   subtitle,
+  subtitleIcon,
   busy = false,
   onClose,
   children,
@@ -20,6 +21,7 @@ export default function InlineDialog({
   title: string;
   legacy?: boolean;
   subtitle: string;
+  subtitleIcon?: ReactNode;
   busy?: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -101,7 +103,7 @@ export default function InlineDialog({
                 gap: "6px",
               }}
             >
-              <User size={14} aria-hidden="true" />
+              {subtitleIcon !== undefined ? subtitleIcon : <User size={14} aria-hidden="true" />}
               {subtitle}
             </p>
           )}
