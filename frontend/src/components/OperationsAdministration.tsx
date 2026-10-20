@@ -1,3 +1,4 @@
+import LegacyLabel from "./LegacyLabel";
 import FormAction, { FormActionContext } from "./FormAction";
 import UnitDirectory from "./UnitDirectory";
 import UserDirectory from "./UserDirectory";
@@ -136,7 +137,7 @@ export default function OperationsAdministration({
               className={tab === id ? "button primary" : "button"}
               onClick={() => setTab(id)}
             >
-              {label}
+              <LegacyLabel legacy={id === "sources"}>{label}</LegacyLabel>
             </button>
           ))}
         </div>
@@ -466,6 +467,7 @@ export default function OperationsAdministration({
 
           <Panel
             title="Regras de agendamento"
+            legacy
             action={<AgendaRuleForm act={act} busy={busy} templates={templates} />}
           >
             {appointmentRules.length ? (

@@ -1,3 +1,4 @@
+import LegacyLabel from "./LegacyLabel";
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -8,6 +9,7 @@ let originalBodyOverflow = "";
 
 export default function InlineDialog({
   title,
+  legacy = false,
   subtitle,
   busy = false,
   onClose,
@@ -16,6 +18,7 @@ export default function InlineDialog({
   className = "",
 }: {
   title: string;
+  legacy?: boolean;
   subtitle: string;
   busy?: boolean;
   onClose: () => void;
@@ -77,7 +80,7 @@ export default function InlineDialog({
         ref={dialog}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={legacy ? title + " · Legado" : title}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -89,7 +92,7 @@ export default function InlineDialog({
           <X size={20} />
         </button>
         <header className="observation-header">
-          <h2>{title}</h2>
+          <h2><LegacyLabel legacy={legacy}>{title}</LegacyLabel></h2>
           {subtitle && (
             <p
               style={{

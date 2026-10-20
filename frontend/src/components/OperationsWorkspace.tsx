@@ -1,3 +1,4 @@
+import LegacyLabel from "./LegacyLabel";
 import {
   CrossImportForm,
   CrossLayoutEditor,
@@ -1444,7 +1445,7 @@ function Administration({
               aria-current={category === id ? "page" : undefined}
             >
               <Icon size={15} />
-              <span>{label}</span>
+              <LegacyLabel legacy={id === "sources"}>{label}</LegacyLabel>
             </button>
           ))}
         </nav>

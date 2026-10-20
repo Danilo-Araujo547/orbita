@@ -1,10 +1,10 @@
 import type { SectionPermissions } from "./types";
 
-export type SettingsEntry = { id: string; label: string; group: string; section: string };
+export type SettingsEntry = { id: string; label: string; group: string; section: string; legacy?: boolean };
 export function settingsEntries(policy: SectionPermissions, role: string, remote: boolean): SettingsEntry[] {
   const can = (key: string) => !!policy[key] && policy[key] !== "none";
   const entries: SettingsEntry[] = [];
-  const add = (id: string, label: string, group: string, section: string) => entries.push({id, label, group, section});
+  const add = (id: string, label: string, group: string, section: string) => entries.push({id, label, group, section, ...(["rules", "sources"].includes(id) ? { legacy: true } : {})});
   if (!remote && role === "admin" && ["settings", "operationsAdmin", "users"].some(can)) {
     const section = ["settings", "operationsAdmin", "users"].find(key => policy[key] === "write") || ["settings", "operationsAdmin", "users"].find(can)!;
     add("units", "Unidades", "Instância", section);

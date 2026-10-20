@@ -818,7 +818,30 @@ nav button b + i {
 .content {
   max-width: 1510px;
   margin: auto;
-  padding: 32px 38px 0;
+  padding: 14px 28px 0;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-action-btn {
+  height: 32px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+}
+@media (max-width: 768px) {
+  .topbar-action-btn span {
+    display: none;
+  }
+  .topbar-action-btn {
+    padding: 0 8px;
+  }
 }
 .page-heading {
   display: flex;
@@ -1213,11 +1236,57 @@ nav button b + i {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 50%;
   background: var(--bg-surface-muted);
   color: var(--text-secondary);
-  border: 1px solid var(--border-default);
+  border: 2px solid var(--border-default);
   flex-shrink: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+.patient-icon.patient-icon-status-sent {
+  border-color: #15803d;
+  color: #15803d;
+  box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.2);
+}
+.patient-icon.patient-icon-status-confirmed {
+  border-color: #2563eb;
+  color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+.patient-icon.patient-icon-status-declined {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+.patient-icon.patient-icon-status-error {
+  border-color: #dc2626;
+  color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+.patient-icon.patient-icon-status-not_sent {
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .patient-icon.patient-icon-status-sent {
+  border-color: #4ade80;
+  color: #4ade80;
+  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.25);
+}
+[data-theme="dark"] .patient-icon.patient-icon-status-confirmed {
+  border-color: #60a5fa;
+  color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+}
+[data-theme="dark"] .patient-icon.patient-icon-status-declined {
+  border-color: #c084fc;
+  color: #c084fc;
+  box-shadow: 0 0 0 2px rgba(192, 132, 252, 0.25);
+}
+[data-theme="dark"] .patient-icon.patient-icon-status-error {
+  border-color: #f87171;
+  color: #f87171;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
 }
 .appointment-professional {
   display: inline-flex;
@@ -3938,15 +4007,130 @@ body:has([role="dialog"][aria-modal="true"]) {
 .settings-workspace > .panel {
   margin-bottom: 24px;
 }
-.unit-directory .panel-heading {
+/* Unit Directory Modal & Layout */
+.unit-directory {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.unit-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 10px 14px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  gap: 12px;
 }
-.unit-directory .panel-heading h2 {
-  font-size: 16px;
-  font-weight: 650;
+.unit-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.unit-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.unit-toolbar-actions .form-action-trigger {
+  min-height: 30px;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+.unit-directory .directory-table {
+  width: 100%;
+  table-layout: auto;
+}
+.unit-directory .directory-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+}
+.unit-directory .directory-table td {
+  padding: 10px 14px;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.unit-col-name {
+  min-width: 160px;
+}
+.unit-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.unit-col-slug {
+  width: 140px;
+  white-space: nowrap;
+}
+.unit-col-slug .directory-code {
+  display: inline-block;
+  padding: 2px 7px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  color: var(--text-primary);
+}
+.unit-col-timezone {
+  width: 160px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.unit-col-status {
+  width: 110px;
+  white-space: nowrap;
+}
+.unit-col-actions {
+  width: 90px;
+  text-align: right;
+  white-space: nowrap;
+}
+.unit-col-actions .form-action-trigger {
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+.unit-col-actions .form-action-trigger:hover:not(:disabled) {
+  background: var(--bg-surface-muted);
+  border-color: var(--border-strong);
+}
+
+/* Unit Form in InlineDialog */
+.unit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.unit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.unit-field-full {
+  grid-column: 1 / -1;
+}
+.unit-form .op-field span {
+  font-weight: 550;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+.unit-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin: 4px 0 !important;
 }
 
 /* Oracle configuration summary and layout */
@@ -5060,3 +5244,7 @@ body:has([role="dialog"][aria-modal="true"]) {
 .send-calendar-preview .adjusted strong {
   color: #0b8eac;
 }
+
+.legacy-label { display:inline-flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; vertical-align:middle; }
+.legacy-badge { display:inline-flex; align-items:center; flex:none; white-space:nowrap; padding:3px 7px; border:1px solid #fed7aa; border-radius:6px; background:#fff4e5; color:#9a3412; font-size:10px; font-weight:650; line-height:1.2; letter-spacing:.02em; text-transform:none; }
+[data-theme="dark"] .legacy-badge { background:#43291b; border-color:#9a4c1f; color:#fdba74; }

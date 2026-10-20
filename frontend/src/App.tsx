@@ -1,3 +1,4 @@
+import LegacyLabel from "./components/LegacyLabel";
 import { settingsEntries } from "./settingsDirectory";
 import FormAction from "./components/FormAction";
 import { Badge, Empty, Panel, Metric, SearchField } from "./components/ui";
@@ -592,6 +593,30 @@ function Workspace({
             </span>
           </div>
           <div className="topbar-right">
+            <div className="topbar-actions">
+              <button
+                className="button topbar-action-btn"
+                onClick={() => void load()}
+                disabled={busy}
+                title="Atualizar dados"
+              >
+                <RefreshCw size={14} className={busy ? "spin" : ""} />
+                <span>Atualizar</span>
+              </button>
+              {canOperate && ["overview", "appointments"].includes(page) && (
+                <button
+                  className="button primary topbar-action-btn"
+                  disabled={isRemote}
+                  title={
+                    isRemote ? "Crie testes na instância de origem" : undefined
+                  }
+                  onClick={() => setModal({ type: "test" })}
+                >
+                  <Plus size={15} />
+                  <span>Novo teste</span>
+                </button>
+              )}
+            </div>
             <ThemeToggle />
             <span className="test-pill">
               <i />
@@ -614,37 +639,7 @@ function Workspace({
         <main
           className={`content ${page === "appointments" || page === "issues" ? "appointments-page" : ""}`}
         >
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">
-                {session.units.find((u) => u.slug === unit)?.name || unit}
-              </div>
-              <h1>{currentTitle}</h1>
-            </div>
-            <div className="heading-actions">
-              <button
-                className="button"
-                onClick={() => void load()}
-                disabled={busy}
-              >
-                <RefreshCw size={16} className={busy ? "spin" : ""} />
-                Atualizar
-              </button>
-              {canOperate && ["overview", "appointments"].includes(page) && (
-                <button
-                  className="button primary"
-                  disabled={isRemote}
-                  title={
-                    isRemote ? "Crie testes na instância de origem" : undefined
-                  }
-                  onClick={() => setModal({ type: "test" })}
-                >
-                  <Plus size={17} />
-                  Novo teste
-                </button>
-              )}
-            </div>
-          </div>
+
           {error && (
             <div className="inline-error" role="alert">
               <TriangleAlert size={18} />
@@ -1107,13 +1102,13 @@ function Workspace({
                       return entries.length > 0 && <section key={group} className="settings-directory-group">
                         <h2>{group}</h2>
                         {entries.map(item => <div className="settings-directory-row" role="listitem" key={item.id}>
-                          <span>{item.label}</span>
+                          <LegacyLabel legacy={item.legacy}>{item.label}</LegacyLabel>
                           <button className="button" type="button" aria-label={`Abrir ${item.label}`} onClick={() => setSettingsTab(item.id)}>Abrir</button>
                         </div>)}
                       </section>;
                     })}
                   </div>
-                  {activeConfiguration && <InlineDialog title={activeConfiguration.label} subtitle="" className="configuration-dialog"
+                  {activeConfiguration && <InlineDialog title={activeConfiguration.label} legacy={activeConfiguration.legacy} subtitle="" className="configuration-dialog"
                     onClose={() => setSettingsTab(null)} footer={<button className="button" onClick={() => setSettingsTab(null)}>Fechar</button>}>
                     {activeConfiguration.section === "operationsAdmin" && <OperationsWorkspace
                       key={`${unit}:${settingsTab}`} page="operationsAdmin" unit={unit} role={role}
@@ -1316,7 +1311,7 @@ function Workspace({
                           </div>
                         </Panel>
                       </div>
-                      <Panel title="Regras de lembretes">
+                      <Panel title="Regras de lembretes" legacy>
                         <div className="table-scroll">
                           <table className="directory-table">
                             <thead>
@@ -1335,8 +1330,8 @@ function Workspace({
                                   <td data-label="Regra">
                                     <strong>{rule.name}</strong>
                                     <small className="directory-detail">
-                                      Versão {rule.version} · legado #
-                                      {rule.legacy_scheduler_id}
+                                      Versão {rule.version}
+                                      {!!rule.legacy_scheduler_id && <> · legado #{rule.legacy_scheduler_id}</>}
                                     </small>
                                   </td>
                                   <td data-label="Antecedência">
@@ -1407,7 +1402,7 @@ function Workspace({
                           </table>
                         </div>
                       </Panel>
-                      <Panel title="Templates de mensagens">
+                      <Panel title="Templates de mensagens" legacy>
                         <div className="templates-grid">
                           {data.templates.results.map((template) => (
                             <article
@@ -1635,6 +1630,7 @@ function Workspace({
       )}
       {modal && data && (
         <InlineDialog
+          legacy={modal.type === "rule" || modal.type === "template"}
           title={
             {
               test: "Novo teste",
