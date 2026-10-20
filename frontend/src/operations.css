@@ -1674,3 +1674,44 @@
   color: #fff;
   background: rgba(255, 255, 255, 0.12);
 }
+
+/* Discreto: Botão para limpar filtros */
+.appointment-heading-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.clear-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-default, #cbd5e1);
+  color: var(--text-muted, #64748b);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.clear-filters-btn:hover {
+  background: var(--bg-surface-muted, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+  border-color: var(--accent, #18a8cf);
+}
+
+[data-theme="dark"] .clear-filters-btn {
+  border-color: var(--border-default, #334155);
+  color: var(--text-muted, #94a3b8);
+}
+
+[data-theme="dark"] .clear-filters-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: var(--accent, #18a8cf);
+}

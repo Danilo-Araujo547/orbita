@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Download,
   MessageSquare,
+  RotateCcw,
   Search,
   User,
   X,
@@ -456,6 +457,37 @@ export default function OperationalAppointments({
   };
   const responseOptions = [...new Set(["pending", "no_response", "answered", "confirmed", "declined", "review",
     ...(filters.kind ? contextualOutcomes[filters.kind] || [] : typeOptions.flatMap(option => contextualOutcomes[option.value] || []))])];
+  const hasActiveFilters = Boolean(
+    filters.search ||
+    filters.kind ||
+    filters.professional ||
+    filters.specialty ||
+    filters.response ||
+    filters.outcome ||
+    filters.delivery ||
+    filters.corrections ||
+    filters.observations ||
+    filters.date_basis !== "appointment" ||
+    (issuesOnly && issueFilter !== "all")
+  );
+
+  const clearAllFilters = () => {
+    setFilters({
+      search: "",
+      date_basis: "appointment",
+      kind: "",
+      response: "",
+      outcome: "",
+      delivery: "",
+      corrections: "",
+      observations: "",
+      professional: "",
+      specialty: "",
+    });
+    setIssueFilter("all");
+    setPage(1);
+  };
+
   const displayedItems = issuesOnly
     ? items.results.filter(isAppointmentIssue)
     : items.results;
@@ -556,14 +588,28 @@ export default function OperationalAppointments({
       ) : (
         <>
           <div className="op-heading">
-            <span className="appointment-result-count">
-              <strong>{items.count}</strong>{" "}
-              {issuesOnly
-                ? items.count === 1
-                  ? "pendência"
-                  : "pendências"
-                : !filters.kind || filters.kind.startsWith("cross:") ? "registros" : "agendamentos"}
-            </span>
+            <div className="appointment-heading-info">
+              <span className="appointment-result-count">
+                <strong>{items.count}</strong>{" "}
+                {issuesOnly
+                  ? items.count === 1
+                    ? "pendência"
+                    : "pendências"
+                  : !filters.kind || filters.kind.startsWith("cross:") ? "registros" : "agendamentos"}
+              </span>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="clear-filters-btn"
+                  onClick={clearAllFilters}
+                  title="Limpar todos os filtros ativos"
+                  aria-label="Limpar filtros"
+                >
+                  <RotateCcw size={12} />
+                  <span>Limpar filtros</span>
+                </button>
+              )}
+            </div>
             <div className="appointment-list-actions">
               <ExpandableSearch
                 value={filters.search}
