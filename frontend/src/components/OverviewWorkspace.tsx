@@ -1,13 +1,15 @@
 import { useMemo } from "react";
+import FilterSelect from "./FilterSelect";
+import { Panel } from "./ui";
+import { dateOnly, percentage } from "../format";
 import type { Indicators, PageName } from "../types";
 import {
+  ArrowRight,
   CalendarDays,
-  ChevronRight,
-  Clock,
-  MessageSquare,
+  Clock3,
   RotateCcw,
-  Users,
-  XCircle,
+  Send,
+  TriangleAlert,
 } from "lucide-react";
 import {
   Area,
@@ -31,11 +33,26 @@ interface OverviewWorkspaceProps {
   onNavigate: (page: PageName, filter?: string, isResponse?: boolean) => void;
 }
 
-function formatDate(iso: string) {
-  if (!iso) return "";
-  const parts = iso.slice(0, 10).split("-");
-  if (parts.length < 3) return iso;
-  return `${parts[2]}/${parts[1]}`;
+function getPresetRange(type: "today" | "7d" | "30d" | "month"): [string, string] {
+  const today = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const endStr = fmt(today);
+  if (type === "today") return [endStr, endStr];
+  if (type === "7d") {
+    const past = new Date(today);
+    past.setDate(past.getDate() - 6);
+    return [fmt(past), endStr];
+  }
+  if (type === "30d") {
+    const past = new Date(today);
+    past.setDate(past.getDate() - 29);
+    return [fmt(past), endStr];
+  }
+  const first = new Date(today.getFullYear(), today.getMonth(), 1);
+  return [fmt(first), endStr];
 }
 
 export default function OverviewWorkspace({
@@ -48,41 +65,35 @@ export default function OverviewWorkspace({
   onFilterChange,
   onNavigate,
 }: OverviewWorkspaceProps) {
-  // 1. Mensagens Metrics
+  // 1. Indicadores sobre as Mensagens
   const messagesTotal = data.messages_total ?? data.messages ?? 0;
   const messagesToSend =
     data.messages_to_send ??
-    (data.states?.queued ?? 0) + (data.states?.preview ?? 0);
+    (data.states?.queued ?? 0) +
+      (data.states?.preview ?? 0) +
+      (data.states?.sending ?? 0);
   const messagesSent =
     data.messages_sent ??
-    (data.states?.sent ?? 0) +
+    (data.states?.accepted ?? 0) +
+      (data.states?.sent ?? 0) +
       (data.states?.delivered ?? 0) +
       (data.states?.read ?? 0);
   const messagesAnswered =
-    data.messages_answered ??
-    (data.confirmed ?? 0) + (data.declined ?? 0);
+    data.messages_answered ?? (data.confirmed ?? 0) + (data.declined ?? 0);
   const messagesUnanswered =
     data.messages_unanswered ?? Math.max(0, messagesTotal - messagesAnswered);
   const messagesInvalid =
     data.messages_invalid ??
-    (data.states?.failed ?? 0) + (data.states?.blocked ?? 0);
+    (data.states?.failed ?? 0) +
+      (data.states?.blocked ?? 0) +
+      (data.states?.uncertain ?? 0);
 
-  const messagesSentPct =
-    messagesTotal > 0 ? Math.round((messagesSent / messagesTotal) * 100) : 0;
-  const messagesAnsweredPct =
-    messagesTotal > 0
-      ? Math.round((messagesAnswered / messagesTotal) * 100)
-      : 0;
-  const messagesUnansweredPct =
-    messagesTotal > 0
-      ? Math.round((messagesUnanswered / messagesTotal) * 100)
-      : 0;
-  const messagesInvalidPct =
-    messagesTotal > 0
-      ? Math.round((messagesInvalid / messagesTotal) * 100)
-      : 0;
+  const messagesSentPct = percentage(messagesSent, messagesTotal);
+  const messagesAnsweredPct = percentage(messagesAnswered, messagesTotal);
+  const messagesUnansweredPct = percentage(messagesUnanswered, messagesTotal);
+  const messagesInvalidPct = percentage(messagesInvalid, messagesTotal);
 
-  // 2. Agendamentos / Pacientes Metrics
+  // 2. Indicadores sobre os Agendamentos / Pacientes
   const appointmentsTotal = data.appointments_total ?? data.appointments ?? 0;
   const appointmentsDeclined =
     data.appointments_declined ?? data.declined ?? 0;
@@ -97,87 +108,70 @@ export default function OverviewWorkspace({
   const appointmentsInvalid =
     data.appointments_invalid ?? Math.min(appointmentsTotal, messagesInvalid);
 
-  const appSentPct =
-    appointmentsTotal > 0
-      ? Math.round((appointmentsSent / appointmentsTotal) * 100)
-      : 0;
-  const appAnsweredPct =
-    appointmentsTotal > 0
-      ? Math.round((appointmentsAnswered / appointmentsTotal) * 100)
-      : 0;
-  const appUnansweredPct =
-    appointmentsTotal > 0
-      ? Math.round((appointmentsUnanswered / appointmentsTotal) * 100)
-      : 0;
-  const appInvalidPct =
-    appointmentsTotal > 0
-      ? Math.round((appointmentsInvalid / appointmentsTotal) * 100)
-      : 0;
+  const appSentPct = percentage(appointmentsSent, appointmentsTotal);
+  const appAnsweredPct = percentage(appointmentsAnswered, appointmentsTotal);
+  const appUnansweredPct = percentage(
+    appointmentsUnanswered,
+    appointmentsTotal,
+  );
+  const appInvalidPct = percentage(appointmentsInvalid, appointmentsTotal);
 
-  // Preset Handlers
-  const handlePreset = (type: "today" | "7d" | "30d" | "month") => {
-    const today = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const fmt = (d: Date) =>
-      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-    const endStr = fmt(today);
-    let startStr = endStr;
-
-    if (type === "7d") {
-      const past = new Date();
-      past.setDate(past.getDate() - 6);
-      startStr = fmt(past);
-    } else if (type === "30d") {
-      const past = new Date();
-      past.setDate(past.getDate() - 29);
-      startStr = fmt(past);
-    } else if (type === "month") {
-      const first = new Date(today.getFullYear(), today.getMonth(), 1);
-      startStr = fmt(first);
+  // Detect active preset
+  const activePreset = useMemo(() => {
+    if (!start || !end) return "";
+    const presets: ("today" | "7d" | "30d" | "month")[] = [
+      "today",
+      "7d",
+      "30d",
+      "month",
+    ];
+    for (const p of presets) {
+      const [s, e] = getPresetRange(p);
+      if (start === s && end === e) return p;
     }
+    return "";
+  }, [start, end]);
 
-    onFilterChange(kind, startStr, endStr);
+  const handlePreset = (type: "today" | "7d" | "30d" | "month") => {
+    if (activePreset === type) {
+      onFilterChange(kind, "", "");
+      return;
+    }
+    const [s, e] = getPresetRange(type);
+    onFilterChange(kind, s, e);
   };
 
   const hasFilter = Boolean(kind || start || end);
 
-  const handleClear = () => {
-    onFilterChange("", "", "");
-  };
+  const periodLabel = useMemo(() => {
+    if (activePreset === "today") return "Hoje";
+    if (activePreset === "7d") return "Últimos 7 dias";
+    if (activePreset === "30d") return "Últimos 30 dias";
+    if (activePreset === "month") return "Mês atual";
+    if (start && end) {
+      return `${dateOnly(`${start}T12:00:00-03:00`)} — ${dateOnly(`${end}T12:00:00-03:00`)}`;
+    }
+    return "Últimos 7 dias";
+  }, [activePreset, start, end]);
 
-  // Trend data mapping
-  const chartData = useMemo(() => {
-    return (data.trend || []).map((t) => ({
-      ...t,
-      label: formatDate(t.day),
-    }));
-  }, [data.trend]);
-
-  // Response breakdown percentages for Donut Ring
-  const confirmedPct =
-    messagesTotal > 0
-      ? Math.round(((data.confirmed ?? 0) / messagesTotal) * 100)
-      : 0;
-  const declinedPct =
-    messagesTotal > 0
-      ? Math.round(((data.declined ?? 0) / messagesTotal) * 100)
-      : 0;
-  const noResponsePct =
-    messagesTotal > 0
-      ? Math.round(((data.no_response ?? 0) / messagesTotal) * 100)
-      : 0;
+  const confirmedPct = percentage(data.confirmed, messagesTotal);
+  const declinedAndConfirmedPct = percentage(
+    data.confirmed + data.declined,
+    messagesTotal,
+  );
+  const allResponsesPct = percentage(
+    data.confirmed + data.declined + data.no_response,
+    messagesTotal,
+  );
 
   return (
-    <div className="overview-workspace-container">
-      {/* BARRA DE FILTROS ELEGANTE (TIPO DE ENVIO E PERÍODO) */}
-      <div className="overview-control-bar">
-        <div className="overview-control-left">
-          <div className="overview-filter-group">
-            <span className="overview-filter-label">Tipo de envio:</span>
-            <select
-              className="overview-kind-select"
-              aria-label="Tipo de envio"
+    <div className="overview-shell">
+      {/* Barra de filtros nativa */}
+      <div className="filters overview-filters">
+        <div className="filter-left">
+          <div className="overview-type-select">
+            <FilterSelect
+              label="Tipo de envio"
               value={kind}
               onChange={(e) => onFilterChange(e.target.value, start, end)}
             >
@@ -187,477 +181,447 @@ export default function OverviewWorkspace({
                   {label}
                 </option>
               ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="overview-control-right">
-          <div className="overview-preset-buttons">
-            <button
-              type="button"
-              className="overview-preset-btn"
-              onClick={() => handlePreset("today")}
-            >
-              Hoje
-            </button>
-            <button
-              type="button"
-              className="overview-preset-btn"
-              onClick={() => handlePreset("7d")}
-            >
-              7 dias
-            </button>
-            <button
-              type="button"
-              className="overview-preset-btn"
-              onClick={() => handlePreset("30d")}
-            >
-              30 dias
-            </button>
-            <button
-              type="button"
-              className="overview-preset-btn"
-              onClick={() => handlePreset("month")}
-            >
-              Mês atual
-            </button>
+            </FilterSelect>
           </div>
 
-          <div className="overview-date-range">
-            <CalendarDays size={14} className="overview-cal-icon" />
-            <input
-              type="date"
-              aria-label="Data inicial"
-              value={start}
-              onChange={(e) => onFilterChange(kind, e.target.value, end)}
-            />
-            <span className="overview-range-sep">até</span>
-            <input
-              type="date"
-              aria-label="Data final"
-              value={end}
-              onChange={(e) => onFilterChange(kind, start, e.target.value)}
-            />
+          <div
+            className="overview-period-tabs"
+            role="group"
+            aria-label="Atalhos de período"
+          >
+            {(
+              [
+                ["today", "Hoje"],
+                ["7d", "7 dias"],
+                ["30d", "30 dias"],
+                ["month", "Mês atual"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={activePreset === key ? "is-active" : ""}
+                onClick={() => handlePreset(key)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {hasFilter && (
             <button
               type="button"
-              className="overview-clear-filters-btn"
-              onClick={handleClear}
-              title="Limpar todos os filtros aplicados"
+              className="clear-filters-btn"
+              onClick={() => onFilterChange("", "", "")}
+              title="Limpar todos os filtros ativos"
             >
               <RotateCcw size={12} />
               <span>Limpar filtros</span>
             </button>
           )}
         </div>
+
+        <div className="date-range">
+          <CalendarDays size={15} />
+          <input
+            type="date"
+            aria-label="Data inicial do agendamento"
+            value={start}
+            onChange={(e) => onFilterChange(kind, e.target.value, end)}
+          />
+          <span>até</span>
+          <input
+            type="date"
+            aria-label="Data final do agendamento"
+            value={end}
+            onChange={(e) => onFilterChange(kind, start, e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* TOP DESTAQUES: MENSAGENS À ENVIAR & AGENDAMENTOS RECUSADOS */}
-      <div className="overview-top-highlights">
-        {/* Card: Mensagens à Enviar */}
-        <div className="overview-highlight-card highlight-queued">
-          <div className="highlight-content">
-            <div className="highlight-header">
-              <span className="highlight-badge">
-                <Clock size={15} />
-              </span>
-              <span className="highlight-title">Mensagens à Enviar</span>
-            </div>
-            <div className="highlight-number">
-              {messagesToSend.toLocaleString("pt-BR")}
-            </div>
-            <div className="highlight-hint">
+      {/* Destaques Operacionais no padrão nativo .metrics-grid */}
+      <div className="metrics-grid">
+        <button
+          type="button"
+          className="metric metric-neutral"
+          onClick={() => onNavigate("messages", "queued")}
+        >
+          <div className="metric-top">
+            <span>Mensagens à Enviar</span>
+            <span className="metric-icon">
+              <Clock3 size={18} />
+            </span>
+          </div>
+          <strong className="metric-value">
+            {messagesToSend.toLocaleString("pt-BR")}
+          </strong>
+          <div className="metric-note">
+            <span>
               {messagesToSend === 0
-                ? "Fila limpa — nenhum lembrete aguardando disparo"
-                : "Lembretes na fila aguardando janela de envio"}
-            </div>
+                ? "Nenhuma mensagem aguardando fila"
+                : "Lembretes aguardando janela de disparo"}
+            </span>
+            <span className="overview-detail-inline">
+              Detalhes <ArrowRight size={13} />
+            </span>
           </div>
-          <button
-            type="button"
-            className="highlight-details-btn"
-            onClick={() => onNavigate("messages", "queued")}
-            title="Ver detalhes das mensagens à enviar"
-          >
-            <span>Detalhes</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
+        </button>
 
-        {/* Card: Agendamentos Recusados */}
-        <div className="overview-highlight-card highlight-declined">
-          <div className="highlight-content">
-            <div className="highlight-header">
-              <span className="highlight-badge declined-badge">
-                <XCircle size={15} />
-              </span>
-              <span className="highlight-title">Agendamentos Recusados</span>
-            </div>
-            <div className="highlight-number declined-number">
-              {appointmentsDeclined.toLocaleString("pt-BR")}
-            </div>
-            <div className="highlight-hint">
-              {appointmentsDeclined === 0
-                ? "Nenhum paciente informou que não comparecerá"
-                : "Pacientes que responderam informando que não poderão comparecer"}
-            </div>
+        <button
+          type="button"
+          className="metric metric-amber"
+          onClick={() => onNavigate("appointments", "declined")}
+        >
+          <div className="metric-top">
+            <span>Agendamentos Recusados</span>
+            <span className="metric-icon">
+              <TriangleAlert size={18} />
+            </span>
           </div>
-          <button
-            type="button"
-            className="highlight-details-btn"
-            onClick={() => onNavigate("appointments", "declined")}
-            title="Ver agendamentos com recusa registrada"
-          >
-            <span>Detalhes</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
+          <strong className="metric-value">
+            {appointmentsDeclined.toLocaleString("pt-BR")}
+          </strong>
+          <div className="metric-note">
+            <span>Pacientes que informaram não comparecer</span>
+            <span className="overview-detail-inline">
+              Detalhes <ArrowRight size={13} />
+            </span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="metric metric-green"
+          onClick={() => onNavigate("messages")}
+        >
+          <div className="metric-top">
+            <span>Total de Mensagens</span>
+            <span className="metric-icon">
+              <Send size={18} />
+            </span>
+          </div>
+          <strong className="metric-value">
+            {messagesTotal.toLocaleString("pt-BR")}
+          </strong>
+          <div className="metric-note">
+            <span>
+              {messagesSent.toLocaleString("pt-BR")} enviadas ({messagesSentPct}
+              %)
+            </span>
+            <span className="overview-detail-inline">
+              Detalhes <ArrowRight size={13} />
+            </span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="metric metric-lime"
+          onClick={() => onNavigate("appointments")}
+        >
+          <div className="metric-top">
+            <span>Total Agendamentos</span>
+            <span className="metric-icon">
+              <CalendarDays size={18} />
+            </span>
+          </div>
+          <strong className="metric-value">
+            {appointmentsTotal.toLocaleString("pt-BR")}
+          </strong>
+          <div className="metric-note">
+            <span>
+              {appointmentsAnswered.toLocaleString("pt-BR")} respondidos (
+              {appAnsweredPct}%)
+            </span>
+            <span className="overview-detail-inline">
+              Detalhes <ArrowRight size={13} />
+            </span>
+          </div>
+        </button>
       </div>
 
-      {/* SEÇÃO 1: INDICADORES SOBRE AS MENSAGENS */}
-      <section className="overview-section">
-        <div className="overview-section-header">
-          <div className="section-title-wrap">
-            <MessageSquare size={18} className="section-icon" />
-            <h3 className="section-title">Indicadores sobre as Mensagens</h3>
-          </div>
-          <span className="section-subtitle">
-            Acompanhe o volume geral, taxas de entrega e respostas de cada mensagem disparada
-          </span>
-        </div>
-
-        <div className="overview-metrics-row">
-          {/* Card: Total de Mensagens */}
-          <div className="overview-metric-box metric-hero">
-            <div className="metric-box-top">
-              <span className="metric-box-label">Total de Mensagens</span>
-              <button
-                type="button"
-                className="metric-box-detail-link"
-                onClick={() => onNavigate("messages")}
-              >
-                Detalhes
-                <ChevronRight size={12} />
-              </button>
+      {/* Painéis Comparativos Lado a Lado: Mensagens vs Agendamentos/Pacientes */}
+      <div className="overview-indicators-grid">
+        {/* Painel 1: Indicadores sobre as Mensagens */}
+        <Panel
+          title="Indicadores sobre as Mensagens"
+          subtitle={`${messagesTotal.toLocaleString("pt-BR")} Total de Mensagens`}
+          action={
+            <button
+              type="button"
+              className="overview-panel-link"
+              onClick={() => onNavigate("messages")}
+            >
+              <span>Detalhes</span>
+              <ArrowRight size={13} />
+            </button>
+          }
+          className="overview-indicator-panel"
+        >
+          <div className="overview-meter-wrap">
+            <div className="overview-meter-bar">
+              <span
+                className="meter-segment seg-answered"
+                style={{ width: `${messagesAnsweredPct}%` }}
+                title={`Respondidas: ${messagesAnsweredPct}%`}
+              />
+              <span
+                className="meter-segment seg-unanswered"
+                style={{ width: `${messagesUnansweredPct}%` }}
+                title={`Não Respondidas: ${messagesUnansweredPct}%`}
+              />
             </div>
-            <div className="metric-box-number">
-              {messagesTotal.toLocaleString("pt-BR")}
-            </div>
-            <div className="metric-box-sub">
-              Disparos programados para o período
-            </div>
-          </div>
-
-          {/* Card: Respondidas */}
-          <div
-            className="overview-metric-box clickable"
-            onClick={() => onNavigate("messages", "confirmed", true)}
-            title="Filtrar mensagens que obtiveram resposta"
-          >
-            <div className="metric-box-top">
-              <span className="metric-box-label">Respondidas</span>
-              <span className="metric-badge green-badge">
-                {messagesAnsweredPct}%
+            <div className="overview-meter-captions">
+              <span>
+                <i className="seg-dot seg-answered" /> Respondidas (
+                {messagesAnsweredPct}%)
               </span>
-            </div>
-            <div className="metric-box-number">
-              {messagesAnswered.toLocaleString("pt-BR")}/
-              <small className="metric-ratio">{messagesAnsweredPct}%</small>
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill green-fill"
-                style={{ width: `${Math.min(100, messagesAnsweredPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Respostas de pacientes recebidas
-            </div>
-          </div>
-
-          {/* Card: Não Respondidas */}
-          <div
-            className="overview-metric-box clickable"
-            onClick={() => onNavigate("messages", "no_response", true)}
-            title="Filtrar mensagens sem resposta"
-          >
-            <div className="metric-box-top">
-              <span className="metric-box-label">Não Respondidas</span>
-              <span className="metric-badge amber-badge">
-                {messagesUnansweredPct}%
+              <span>
+                <i className="seg-dot seg-unanswered" /> Não Respondidas (
+                {messagesUnansweredPct}%)
               </span>
-            </div>
-            <div className="metric-box-number">
-              {messagesUnanswered.toLocaleString("pt-BR")}/
-              <small className="metric-ratio">{messagesUnansweredPct}%</small>
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill amber-fill"
-                style={{ width: `${Math.min(100, messagesUnansweredPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Sem retorno do paciente no prazo
-            </div>
-          </div>
-
-          {/* Card: Enviadas */}
-          <div className="overview-metric-box">
-            <div className="metric-box-top">
-              <span className="metric-box-label">Enviadas</span>
-              <button
-                type="button"
-                className="metric-box-detail-link"
-                onClick={() => onNavigate("messages", "delivered_or_read")}
-              >
-                Detalhes
-                <ChevronRight size={12} />
-              </button>
-            </div>
-            <div className="metric-box-number">
-              {messagesSent.toLocaleString("pt-BR")}/
-              <small className="metric-ratio">{messagesSentPct}%</small>
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill blue-fill"
-                style={{ width: `${Math.min(100, messagesSentPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Mensagens entregues ou lidas
-            </div>
-          </div>
-
-          {/* Card: Números Inválidos */}
-          <div
-            className="overview-metric-box clickable"
-            onClick={() => onNavigate("messages", "failed")}
-            title="Filtrar falhas e números com erro"
-          >
-            <div className="metric-box-top">
-              <span className="metric-box-label">Números Inválidos</span>
-              <span className="metric-badge red-badge">
-                {messagesInvalidPct}%
-              </span>
-            </div>
-            <div className="metric-box-number red-number">
-              {messagesInvalid.toLocaleString("pt-BR")}
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill red-fill"
-                style={{ width: `${Math.min(100, messagesInvalidPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Falhas de envio ou contato incorreto
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SEÇÃO 2: INDICADORES SOBRE OS AGENDAMENTOS / PACIENTES */}
-      <section className="overview-section">
-        <div className="overview-section-header">
-          <div className="section-title-wrap">
-            <Users size={18} className="section-icon" />
-            <h3 className="section-title">
-              Indicadores sobre os Agendamentos/Pacientes
-            </h3>
-          </div>
-          <span className="section-subtitle">
-            Estatísticas calculadas a nível de paciente atendido na unidade
-          </span>
-        </div>
-
-        <div className="overview-metrics-row">
-          {/* Card: Total Agendamentos */}
-          <div className="overview-metric-box metric-hero">
-            <div className="metric-box-top">
-              <span className="metric-box-label">Total Agendamentos</span>
-              <button
-                type="button"
-                className="metric-box-detail-link"
-                onClick={() => onNavigate("appointments")}
-              >
-                Detalhes
-                <ChevronRight size={12} />
-              </button>
-            </div>
-            <div className="metric-box-number">
-              {appointmentsTotal.toLocaleString("pt-BR")}
-            </div>
-            <div className="metric-box-sub">
-              Pacientes com horário marcado
-            </div>
-          </div>
-
-          {/* Card: Respondidas */}
-          <div
-            className="overview-metric-box clickable"
-            onClick={() => onNavigate("appointments")}
-            title="Pacientes com confirmação ou recusa"
-          >
-            <div className="metric-box-top">
-              <span className="metric-box-label">Respondidas</span>
-              <span className="metric-badge green-badge">{appAnsweredPct}%</span>
-            </div>
-            <div className="metric-box-number">
-              {appointmentsAnswered.toLocaleString("pt-BR")}/
-              <small className="metric-ratio">{appAnsweredPct}%</small>
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill green-fill"
-                style={{ width: `${Math.min(100, appAnsweredPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Pacientes que responderam ao lembrete
-            </div>
-          </div>
-
-          {/* Card: Não Respondidas */}
-          <div
-            className="overview-metric-box clickable"
-            onClick={() => onNavigate("appointments")}
-            title="Pacientes que não responderam"
-          >
-            <div className="metric-box-top">
-              <span className="metric-box-label">Não Respondidas</span>
-              <span className="metric-badge amber-badge">
-                {appUnansweredPct}%
-              </span>
-            </div>
-            <div className="metric-box-number">
-              {appointmentsUnanswered.toLocaleString("pt-BR")}/
-              <small className="metric-ratio">{appUnansweredPct}%</small>
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill amber-fill"
-                style={{ width: `${Math.min(100, appUnansweredPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Pacientes ainda sem retorno registrado
-            </div>
-          </div>
-
-          {/* Card: Enviadas */}
-          <div className="overview-metric-box">
-            <div className="metric-box-top">
-              <span className="metric-box-label">Enviadas</span>
-              <span className="metric-badge blue-badge">{appSentPct}%</span>
-            </div>
-            <div className="metric-box-number">
-              {appointmentsSent.toLocaleString("pt-BR")}/
-              <small className="metric-ratio">{appSentPct}%</small>
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill blue-fill"
-                style={{ width: `${Math.min(100, appSentPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Pacientes notificados com sucesso
-            </div>
-          </div>
-
-          {/* Card: Números Inválidos */}
-          <div
-            className="overview-metric-box clickable"
-            onClick={() => onNavigate("issues")}
-            title="Ver pendências de pacientes com erro de contato"
-          >
-            <div className="metric-box-top">
-              <span className="metric-box-label">Números Inválidos</span>
-              <span className="metric-badge red-badge">{appInvalidPct}%</span>
-            </div>
-            <div className="metric-box-number red-number">
-              {appointmentsInvalid.toLocaleString("pt-BR")}
-            </div>
-            <div className="metric-progress-track">
-              <div
-                className="metric-progress-fill red-fill"
-                style={{ width: `${Math.min(100, appInvalidPct)}%` }}
-              />
-            </div>
-            <div className="metric-box-sub">
-              Cadastros com telefone inconsistente
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SEÇÃO 3: GRÁFICOS VISUAIS E PAINÉIS DE RESPOSTA */}
-      <div className="overview-charts-grid">
-        {/* Painel 1: Gráfico Temporal */}
-        <div className="overview-chart-panel">
-          <div className="chart-panel-header">
-            <div>
-              <h4 className="chart-panel-title">Evolução dos Disparos</h4>
-              <span className="chart-panel-sub">
-                Volume de mensagens geradas e entregues ao longo do período
-              </span>
-            </div>
-            <div className="chart-legend-row">
-              <span className="legend-item">
-                <i
-                  className="legend-dot"
-                  style={{ background: isDark ? "#ffffff" : "#0284c7" }}
-                />
-                Mensagens
-              </span>
-              <span className="legend-item">
-                <i
-                  className="legend-dot"
-                  style={{ background: isDark ? "#38bdf8" : "#06b6d4" }}
-                />
-                Entregues
-              </span>
-              <span className="legend-item">
-                <i
-                  className="legend-dot"
-                  style={{ background: isDark ? "#34d399" : "#10b981" }}
-                />
-                Respondidas
+              <span>
+                <i className="seg-dot seg-sent" /> Enviadas ({messagesSentPct}%)
               </span>
             </div>
           </div>
 
-          <div className="overview-chart-canvas">
-            <ResponsiveContainer width="100%" height={260}>
+          <div className="overview-stat-matrix">
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("messages", "confirmed", true)}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-answered" />
+                  Respondidas
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {messagesAnswered.toLocaleString("pt-BR")}
+                <small>/{messagesAnsweredPct}%</small>
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("messages", "no_response", true)}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-unanswered" />
+                  Não Respondidas
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {messagesUnanswered.toLocaleString("pt-BR")}
+                <small>/{messagesUnansweredPct}%</small>
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("messages", "delivered_or_read")}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-sent" />
+                  Enviadas
+                </span>
+                <em className="stat-cell-cta">
+                  Detalhes <ArrowRight size={11} />
+                </em>
+              </div>
+              <strong className="stat-cell-val">
+                {messagesSent.toLocaleString("pt-BR")}
+                <small>/{messagesSentPct}%</small>
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("messages", "failed")}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-invalid" />
+                  Números Inválidos
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {messagesInvalid.toLocaleString("pt-BR")}
+                {messagesInvalidPct > 0 && <small>/{messagesInvalidPct}%</small>}
+              </strong>
+            </button>
+          </div>
+        </Panel>
+
+        {/* Painel 2: Indicadores sobre os Agendamentos/Pacientes */}
+        <Panel
+          title="Indicadores sobre os Agendamentos/Pacientes"
+          subtitle={`${appointmentsTotal.toLocaleString("pt-BR")} Total Agendamentos`}
+          action={
+            <button
+              type="button"
+              className="overview-panel-link"
+              onClick={() => onNavigate("appointments")}
+            >
+              <span>Detalhes</span>
+              <ArrowRight size={13} />
+            </button>
+          }
+          className="overview-indicator-panel"
+        >
+          <div className="overview-meter-wrap">
+            <div className="overview-meter-bar">
+              <span
+                className="meter-segment seg-answered"
+                style={{ width: `${appAnsweredPct}%` }}
+                title={`Respondidas: ${appAnsweredPct}%`}
+              />
+              <span
+                className="meter-segment seg-unanswered"
+                style={{ width: `${appUnansweredPct}%` }}
+                title={`Não Respondidas: ${appUnansweredPct}%`}
+              />
+            </div>
+            <div className="overview-meter-captions">
+              <span>
+                <i className="seg-dot seg-answered" /> Respondidas (
+                {appAnsweredPct}%)
+              </span>
+              <span>
+                <i className="seg-dot seg-unanswered" /> Não Respondidas (
+                {appUnansweredPct}%)
+              </span>
+              <span>
+                <i className="seg-dot seg-sent" /> Enviadas ({appSentPct}%)
+              </span>
+            </div>
+          </div>
+
+          <div className="overview-stat-matrix">
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("appointments")}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-answered" />
+                  Respondidas
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {appointmentsAnswered.toLocaleString("pt-BR")}
+                <small>/{appAnsweredPct}%</small>
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("appointments")}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-unanswered" />
+                  Não Respondidas
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {appointmentsUnanswered.toLocaleString("pt-BR")}
+                <small>/{appUnansweredPct}%</small>
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("appointments")}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-sent" />
+                  Enviadas
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {appointmentsSent.toLocaleString("pt-BR")}
+                <small>/{appSentPct}%</small>
+              </strong>
+            </button>
+
+            <button
+              type="button"
+              className="overview-stat-cell"
+              onClick={() => onNavigate("issues")}
+            >
+              <div className="stat-cell-head">
+                <span>
+                  <i className="seg-dot seg-invalid" />
+                  Números Inválidos
+                </span>
+              </div>
+              <strong className="stat-cell-val">
+                {appointmentsInvalid.toLocaleString("pt-BR")}
+                {appInvalidPct > 0 && <small>/{appInvalidPct}%</small>}
+              </strong>
+            </button>
+          </div>
+        </Panel>
+      </div>
+
+      {/* Gráficos nativos no padrão .charts-grid */}
+      <div className="charts-grid">
+        <Panel
+          title="Mensagens por dia"
+          action={
+            <span className="chart-period">
+              <CalendarDays size={14} />
+              {periodLabel}
+            </span>
+          }
+        >
+          <div className="chart-legend">
+            <span>
+              <i style={{ background: isDark ? "#ffffff" : "#075B94" }} />
+              Mensagens
+            </span>
+            <span>
+              <i style={{ background: isDark ? "#a1a1aa" : "#14B4CB" }} />
+              Entregues
+            </span>
+            <span>
+              <i style={{ background: isDark ? "#34d399" : "#10b981" }} />
+              Respondidas
+            </span>
+          </div>
+          <div className="area-chart">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={chartData}
-                margin={{ left: -20, right: 16, top: 10, bottom: 0 }}
+                data={data.trend}
+                margin={{
+                  left: -20,
+                  right: 16,
+                  top: 10,
+                  bottom: 0,
+                }}
               >
                 <defs>
-                  <linearGradient id="chartBlueFade" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="greenFade" x1="0" y1="0" x2="0" y2="1">
                     <stop
                       offset="0%"
-                      stopColor={isDark ? "#38bdf8" : "#0284c7"}
-                      stopOpacity={isDark ? 0.3 : 0.22}
+                      stopColor={isDark ? "#ffffff" : "#075B94"}
+                      stopOpacity={isDark ? 0.2 : 0.16}
                     />
                     <stop
                       offset="100%"
-                      stopColor={isDark ? "#38bdf8" : "#0284c7"}
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                  <linearGradient id="chartGreenFade" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="0%"
-                      stopColor={isDark ? "#34d399" : "#10b981"}
-                      stopOpacity={isDark ? 0.25 : 0.18}
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor={isDark ? "#34d399" : "#10b981"}
+                      stopColor={isDark ? "#ffffff" : "#075B94"}
                       stopOpacity={0}
                     />
                   </linearGradient>
@@ -665,15 +629,18 @@ export default function OverviewWorkspace({
                 <CartesianGrid
                   strokeDasharray="3 5"
                   vertical={false}
-                  stroke={isDark ? "#334155" : "#e2e8f0"}
+                  stroke={isDark ? "#262626" : "#e2e8f0"}
                 />
                 <XAxis
-                  dataKey="label"
+                  dataKey="day"
+                  tickFormatter={(value) =>
+                    dateOnly(`${value}T12:00:00-03:00`)
+                  }
                   axisLine={false}
                   tickLine={false}
                   tick={{
                     fontSize: 11,
-                    fill: isDark ? "#94a3b8" : "#64748b",
+                    fill: isDark ? "#71717a" : "#647d96",
                   }}
                   dy={10}
                 />
@@ -683,24 +650,27 @@ export default function OverviewWorkspace({
                   tickLine={false}
                   tick={{
                     fontSize: 11,
-                    fill: isDark ? "#94a3b8" : "#64748b",
+                    fill: isDark ? "#71717a" : "#647d96",
                   }}
                 />
                 <Tooltip
-                  formatter={(val: any) => [
-                    Number(val || 0).toLocaleString("pt-BR"),
-                    "",
-                  ]}
-                  labelFormatter={(lbl) => `Data: ${lbl}`}
+                  labelFormatter={(value) =>
+                    dateOnly(`${value}T12:00:00-03:00`)
+                  }
                   contentStyle={{
                     borderRadius: 10,
-                    border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
-                    background: isDark ? "#0f172a" : "#ffffff",
-                    color: isDark ? "#f8fafc" : "#0f172a",
+                    border: isDark
+                      ? "1px solid #282828"
+                      : "1px solid #e2e8f0",
+                    background: isDark ? "#181818" : "#ffffff",
+                    color: isDark ? "#f4f4f5" : "#0f2438",
                     boxShadow: isDark
                       ? "0 8px 24px rgba(0, 0, 0, 0.6)"
-                      : "0 4px 14px rgba(0, 0, 0, 0.08)",
+                      : "0 4px 12px rgba(7, 91, 148, 0.08)",
                     fontSize: 12,
+                  }}
+                  itemStyle={{
+                    color: isDark ? "#f4f4f5" : "#0f2438",
                   }}
                 />
                 <Area
@@ -708,18 +678,18 @@ export default function OverviewWorkspace({
                   type="monotone"
                   dataKey="messages"
                   name="Mensagens"
-                  stroke={isDark ? "#ffffff" : "#0284c7"}
-                  strokeWidth={2.5}
-                  fill="url(#chartBlueFade)"
+                  stroke={isDark ? "#ffffff" : "#075B94"}
+                  strokeWidth={2}
+                  fill="url(#greenFade)"
                 />
                 <Area
                   isAnimationActive={false}
                   type="monotone"
                   dataKey="delivered"
                   name="Entregues"
-                  stroke={isDark ? "#38bdf8" : "#06b6d4"}
+                  stroke={isDark ? "#a1a1aa" : "#14B4CB"}
                   strokeWidth={2}
-                  strokeDasharray="4 4"
+                  strokeDasharray="5 4"
                   fill="transparent"
                 />
                 <Area
@@ -729,39 +699,32 @@ export default function OverviewWorkspace({
                   name="Respondidas"
                   stroke={isDark ? "#34d399" : "#10b981"}
                   strokeWidth={2}
-                  fill="url(#chartGreenFade)"
+                  fill="transparent"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
-        {/* Painel 2: Donut Ring & Detalhamento das Respostas */}
-        <div className="overview-chart-panel response-panel">
-          <div className="chart-panel-header">
-            <div>
-              <h4 className="chart-panel-title">Situação das Respostas</h4>
-              <span className="chart-panel-sub">
-                Distribuição percentual das confirmações e recusas
-              </span>
-            </div>
+          <div className="chart-footer">
+            <span>
+              <i />
+              Atualizado com o histórico da fila
+            </span>
+            <strong>
+              {messagesTotal.toLocaleString("pt-BR")} mensagens ·{" "}
+              {appointmentsTotal.toLocaleString("pt-BR")} agendamentos
+            </strong>
           </div>
+        </Panel>
 
-          <div className="response-ring-hero">
+        <Panel title="Situação das respostas" className="response-panel">
+          <div className="response-hero">
             <div
-              className="overview-response-ring"
+              className="response-ring"
               style={{
-                background: `conic-gradient(
-                  ${isDark ? "#34d399" : "#10b981"} 0 ${confirmedPct}%,
-                  #f87171 ${confirmedPct}% ${confirmedPct + declinedPct}%,
-                  ${isDark ? "#fbbf24" : "#f59e0b"} ${confirmedPct + declinedPct}% ${
-                  confirmedPct + declinedPct + noResponsePct
-                }%,
-                  ${isDark ? "#334155" : "#e2e8f0"} 0
-                )`,
+                background: `conic-gradient(${isDark ? "#34d399" : "#10b981"} 0 ${confirmedPct}%,#f87171 ${confirmedPct}% ${declinedAndConfirmedPct}%,${isDark ? "#fbbf24" : "#f59e0b"} ${declinedAndConfirmedPct}% ${allResponsesPct}%,${isDark ? "#262626" : "#e2e8f0"} 0)`,
               }}
             >
-              <div className="response-ring-inner">
+              <div>
                 <strong>
                   {confirmedPct}
                   <small>%</small>
@@ -770,55 +733,53 @@ export default function OverviewWorkspace({
               </div>
             </div>
           </div>
-
-          <div className="overview-response-breakdown">
+          <div className="response-breakdown">
             {[
-              {
-                key: "confirmed",
-                label: "Confirmados",
-                color: isDark ? "#34d399" : "#10b981",
-                count: data.responses?.confirmed ?? data.confirmed ?? 0,
-              },
-              {
-                key: "declined",
-                label: "Não comparecerão",
-                color: "#f87171",
-                count: data.responses?.declined ?? data.declined ?? 0,
-              },
-              {
-                key: "no_response",
-                label: "Sem resposta no prazo",
-                color: isDark ? "#fbbf24" : "#f59e0b",
-                count: data.responses?.no_response ?? data.no_response ?? 0,
-              },
-              {
-                key: "pending",
-                label: "Aguardando resposta",
-                color: isDark ? "#94a3b8" : "#64748b",
-                count: data.responses?.pending ?? 0,
-              },
-            ].map((item) => (
+              [
+                "confirmed",
+                "Confirmados",
+                isDark ? "#34d399" : "#10b981",
+                data.responses?.confirmed ?? data.confirmed ?? 0,
+              ],
+              [
+                "declined",
+                "Não comparecerão",
+                "#f87171",
+                data.responses?.declined ?? data.declined ?? 0,
+              ],
+              [
+                "no_response",
+                "Sem resposta no prazo",
+                isDark ? "#fbbf24" : "#f59e0b",
+                data.responses?.no_response ?? data.no_response ?? 0,
+              ],
+              [
+                "pending",
+                "Aguardando resposta",
+                isDark ? "#71717a" : "#94a3b8",
+                data.responses?.pending ?? 0,
+              ],
+              [
+                "not_requested",
+                "Sem envio confirmado",
+                isDark ? "#27272a" : "#cbd5e1",
+                data.responses?.not_requested ?? 0,
+              ],
+            ].map(([key, label, color, val]) => (
               <button
-                key={item.key}
+                key={String(key)}
                 type="button"
-                className="overview-breakdown-row"
-                onClick={() => onNavigate("messages", item.key, true)}
-                title={`Ver mensagens com status ${item.label}`}
+                onClick={() => onNavigate("messages", String(key), true)}
               >
-                <span className="breakdown-label">
-                  <i
-                    className="breakdown-bullet"
-                    style={{ background: item.color }}
-                  />
-                  {item.label}
+                <span>
+                  <i style={{ background: String(color) }} />
+                  {label}
                 </span>
-                <strong className="breakdown-value">
-                  {item.count.toLocaleString("pt-BR")}
-                </strong>
+                <strong>{Number(val).toLocaleString("pt-BR")}</strong>
               </button>
             ))}
           </div>
-        </div>
+        </Panel>
       </div>
     </div>
   );
