@@ -17,6 +17,9 @@ from scheduling.oracle_agendas import (
     template_keys,
 )
 
+pytestmark = pytest.mark.send_regression
+
+
 NOW = datetime(2026, 10, 19, 12, tzinfo=ZoneInfo("America/Sao_Paulo"))
 COLUMNS = [
     {"name": value, "type": "VARCHAR"}

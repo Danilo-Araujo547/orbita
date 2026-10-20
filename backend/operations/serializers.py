@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
-from operations.standardization import STANDARD_FIELDS
 from operations import models
+from operations.standardization import STANDARD_FIELDS
 
 
 class ScopedSerializer(serializers.ModelSerializer):
@@ -82,7 +82,7 @@ PreparationSerializer = model_serializer(models.Preparation, ["version"])
 class LayoutSerializer(model_serializer(models.ImportLayout, ["version"])):
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        from operations.standardization import validate_mapping, template_bindings
+        from operations.standardization import template_bindings, validate_mapping
 
         if "standard_mapping" in attrs:
             attrs["standard_mapping"] = validate_mapping(attrs["standard_mapping"])
@@ -127,6 +127,30 @@ FlowRunSerializer = model_serializer(models.FlowRun)
 
 
 class SheetSerializer(serializers.ModelSerializer):
+    version = serializers.IntegerField(read_only=True)
+    layout_name = serializers.CharField(source="layout.name", read_only=True)
+    control_status = serializers.SerializerMethodField()
+
+    def get_control_status(self, obj) -> dict:
+        from django.db.models import Count
+
+        from messaging.models import Message
+        from operations.cross_controls import batch_status
+
+        key = f"cross_counts_{obj.unit_id}"
+        if key not in self.context:
+            counts = {}
+            for item in (
+                Message.objects.filter(unit_id=obj.unit_id)
+                .values("snapshot__import_batch", "state")
+                .annotate(total=Count("pk"))
+            ):
+                counts.setdefault(str(item["snapshot__import_batch"]), {})[
+                    item["state"]
+                ] = item["total"]
+            self.context[key] = counts
+        return batch_status(obj, counts=self.context[key].get(str(obj.pk), {}))
+
     purpose = serializers.CharField(
         source="template.purpose", default="", read_only=True
     )
@@ -152,6 +176,9 @@ class SheetSerializer(serializers.ModelSerializer):
             "layout_format",
             "state",
             "row_count",
+            "version",
+            "layout_name",
+            "control_status",
             "errors",
             "duplicates",
             "created_at",
@@ -248,7 +275,35 @@ class CampaignScheduleInput(serializers.Serializer):
 class StandardSchemaSerializer(serializers.Serializer):
     version = serializers.IntegerField()
     fields = serializers.ListField(child=serializers.CharField())
-    default_mappings = serializers.DictField(child=serializers.DictField(child=serializers.CharField(allow_blank=True)))
+    default_mappings = serializers.DictField(
+        child=serializers.DictField(child=serializers.CharField(allow_blank=True))
+    )
 
 
-StandardRowSerializer = type("StandardRowSerializer", (serializers.Serializer,), {field: serializers.CharField(allow_blank=True, required=False) for field in STANDARD_FIELDS})
+StandardRowSerializer = type(
+    "StandardRowSerializer",
+    (serializers.Serializer,),
+    {
+        field: serializers.CharField(allow_blank=True, required=False)
+        for field in STANDARD_FIELDS
+    },
+)
+
+
+class CrossBatchControlInput(VersionInput):
+    enabled = serializers.BooleanField()
+
+
+class CrossRecordsControlInput(CrossBatchControlInput):
+    records = serializers.ListField(
+        child=serializers.CharField(max_length=200), min_length=1, max_length=1000
+    )
+
+
+class CrossRecordSerializer(StandardRowSerializer):
+    record_id = serializers.CharField()
+    enabled = serializers.BooleanField()
+    recent_send_count = serializers.IntegerField()
+    last_sent_at = serializers.DateTimeField(allow_null=True)
+    history_match_basis = serializers.CharField()
+    phone_numbers = serializers.ListField(child=serializers.CharField())

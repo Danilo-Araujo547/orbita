@@ -20,7 +20,7 @@ export function settingsEntries(policy: SectionPermissions, role: string, remote
     add("logs", "Logs de execução", "Monitoramento", "settings");
   }
   if (!remote && can("operationsAdmin")) {
-    for (const [id,label] of [["sources","Origens e regras"],["preparations","Preparos"],["layouts","Layouts Importa CROSS"],["policies","Prazos de resposta"],["reportDefinitions","Catálogo de relatórios"],["access","Acesso a relatórios"],["schedules","Relatórios agendados"]]) add(id,label,"Cadastros", "operationsAdmin");
+    for (const [id,label] of [["sources","Origens e regras"],["preparations","Preparos"],["layouts","Importa CROSS · modelos e templates"],["policies","Prazos de resposta"],["reportDefinitions","Catálogo de relatórios"],["access","Acesso a relatórios"],["schedules","Relatórios agendados"]]) add(id,label,"Cadastros", "operationsAdmin");
   }
   return entries;
 }

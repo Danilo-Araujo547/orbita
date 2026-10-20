@@ -2,6 +2,7 @@
 DJANGO_SETTINGS_MODULE = "config.settings"
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]
+markers = ["send_regression: regressão de origem Oracle, agendas, calendário e transporte simulado"]
 
 [tool.ruff]
 target-version = "py312"

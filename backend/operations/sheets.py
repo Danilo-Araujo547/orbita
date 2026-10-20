@@ -429,7 +429,8 @@ def confirm_sheet(batch, purpose):
 
     batch.state = "confirmed"
 
-    batch.save(update_fields=["state"])
+    batch.version += 1
+    batch.save(update_fields=["state", "version"])
     if batch.template_id:
         from operations.models import Campaign
 

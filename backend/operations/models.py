@@ -25,13 +25,16 @@ class SourceEvent(models.Model):
     revision = models.PositiveIntegerField(default=1)
     data = models.JSONField(default=dict)
     synthetic = models.BooleanField(default=False)
-    appointment = models.OneToOneField("scheduling.Appointment", null=True, on_delete=models.PROTECT)
+    appointment = models.OneToOneField(
+        "scheduling.Appointment", null=True, on_delete=models.PROTECT
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["unit", "source", "kind", "external_id"], name="source_event_identity"
+                fields=["unit", "source", "kind", "external_id"],
+                name="source_event_identity",
             )
         ]
 
@@ -39,7 +42,9 @@ class SourceEvent(models.Model):
 class Case(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
-    event = models.ForeignKey(SourceEvent, related_name="cases", on_delete=models.PROTECT)
+    event = models.ForeignKey(
+        SourceEvent, related_name="cases", on_delete=models.PROTECT
+    )
     purpose = models.CharField(max_length=30, choices=Purpose.choices)
     state = models.CharField(
         max_length=30,
@@ -55,9 +60,13 @@ class Case(models.Model):
         ],
     )
     priority = models.CharField(
-        max_length=15, default="normal", choices=[("normal", "Normal"), ("high", "Alta")]
+        max_length=15,
+        default="normal",
+        choices=[("normal", "Normal"), ("high", "Alta")],
     )
-    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT)
+    assignee = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT
+    )
     outcome = models.CharField(max_length=40, blank=True)
     response_state = models.CharField(max_length=30, default="pending")
     last_response_at = models.DateTimeField(null=True)
@@ -67,13 +76,21 @@ class Case(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["event", "purpose"], name="case_event_purpose")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "purpose"], name="case_event_purpose"
+            )
+        ]
         indexes = [models.Index(fields=["unit", "state", "priority", "created_at"])]
 
 
 class Interaction(models.Model):
-    case = models.ForeignKey(Case, related_name="interactions", on_delete=models.PROTECT)
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
+    case = models.ForeignKey(
+        Case, related_name="interactions", on_delete=models.PROTECT
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT
+    )
     kind = models.CharField(max_length=30)
     text = models.TextField(max_length=4000)
     interlocutor = models.CharField(max_length=200, blank=True)
@@ -91,10 +108,16 @@ class Contact(models.Model):
     status = models.CharField(max_length=30, default="unverified")
     opted_out = models.BooleanField(default=False)
     version = models.PositiveIntegerField(default=1)
-    patient_phone = models.ForeignKey("scheduling.PatientPhone", null=True, on_delete=models.PROTECT)
+    patient_phone = models.ForeignKey(
+        "scheduling.PatientPhone", null=True, on_delete=models.PROTECT
+    )
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["event", "phone"], name="contact_event_phone")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["event", "phone"], name="contact_event_phone"
+            )
+        ]
 
 
 class ActionReceipt(models.Model):
@@ -106,7 +129,11 @@ class ActionReceipt(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "actor", "key"], name="operation_idempotency")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "actor", "key"], name="operation_idempotency"
+            )
+        ]
 
 
 class Movement(models.Model):
@@ -114,7 +141,11 @@ class Movement(models.Model):
     case = models.ForeignKey(Case, related_name="movements", on_delete=models.PROTECT)
     kind = models.CharField(
         max_length=25,
-        choices=[("cancel", "Cancelamento"), ("reschedule", "Reagendamento"), ("transfer", "Transferência")],
+        choices=[
+            ("cancel", "Cancelamento"),
+            ("reschedule", "Reagendamento"),
+            ("transfer", "Transferência"),
+        ],
     )
     before = models.JSONField(default=dict)
     requested = models.JSONField(default=dict)
@@ -122,10 +153,15 @@ class Movement(models.Model):
     state = models.CharField(max_length=30, default="pending_external")
     evidence = models.TextField(blank=True)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="requested_movements"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="requested_movements",
     )
     confirmed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="confirmed_movements"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="confirmed_movements",
     )
     confirmed_at = models.DateTimeField(null=True)
     version = models.PositiveIntegerField(default=1)
@@ -143,17 +179,30 @@ class Preparation(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["unit", "procedure_code", "version"], name="preparation_revision")
+            models.UniqueConstraint(
+                fields=["unit", "procedure_code", "version"],
+                name="preparation_revision",
+            )
         ]
 
 
 class ImportLayout(models.Model):
     standard_mapping = models.JSONField(default=dict, blank=True)
-    default_template = models.ForeignKey("messaging.Template", null=True, blank=True, on_delete=models.PROTECT, related_name="cross_layouts")
+    default_template = models.ForeignKey(
+        "messaging.Template",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="cross_layouts",
+    )
     parameter_fields = models.JSONField(default=list, blank=True)
     format = models.CharField(
         max_length=30,
-        choices=[("table", "CSV/XLSX"), ("absence_html", "Ausentes HTML (.xls)"), ("cross_demand_csv", "Demanda por recurso CROSS (.csv)")],
+        choices=[
+            ("table", "CSV/XLSX"),
+            ("absence_html", "Ausentes HTML (.xls)"),
+            ("cross_demand_csv", "Demanda por recurso CROSS (.csv)"),
+        ],
         default="table",
     )
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
@@ -165,8 +214,16 @@ class ImportLayout(models.Model):
 
 
 class SheetImport(models.Model):
+    version = models.PositiveIntegerField(default=1)
+    disabled_records = models.JSONField(default=list, blank=True)
     filename = models.CharField(max_length=200, blank=True)
-    template = models.ForeignKey("messaging.Template", null=True, blank=True, on_delete=models.PROTECT, related_name="cross_imports")
+    template = models.ForeignKey(
+        "messaging.Template",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="cross_imports",
+    )
     configuration = models.JSONField(default=dict, blank=True)
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
@@ -181,18 +238,29 @@ class SheetImport(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["unit", "layout", "digest"], name="sheet_import_identity")
+            models.UniqueConstraint(
+                fields=["unit", "layout", "digest"], name="sheet_import_identity"
+            )
         ]
 
 
 class Campaign(models.Model):
-    import_batch = models.OneToOneField("SheetImport", null=True, blank=True, on_delete=models.PROTECT, related_name="campaign")
+    import_batch = models.OneToOneField(
+        "SheetImport",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="campaign",
+    )
     sends_enabled = models.BooleanField(default=False)
     next_send_at = models.DateTimeField(null=True, blank=True)
     response_policy = models.CharField(
         max_length=40,
         default="contextual",
-        choices=[("contextual", "Por finalidade"), ("confirmation_test", "Teste: SIM e NÃO confirmam")],
+        choices=[
+            ("contextual", "Por finalidade"),
+            ("confirmation_test", "Teste: SIM e NÃO confirmam"),
+        ],
     )
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     name = models.CharField(max_length=150)
@@ -200,7 +268,9 @@ class Campaign(models.Model):
     cases = models.ManyToManyField(Case)
     state = models.CharField(max_length=20, default="draft")
     version = models.PositiveIntegerField(default=1)
-    template = models.ForeignKey("messaging.Template", null=True, on_delete=models.PROTECT)
+    template = models.ForeignKey(
+        "messaging.Template", null=True, on_delete=models.PROTECT
+    )
     scheduled_for = models.DateTimeField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -214,7 +284,11 @@ class PurposePolicy(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "purpose"], name="purpose_policy_identity")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "purpose"], name="purpose_policy_identity"
+            )
+        ]
 
 
 class ReportDefinition(models.Model):
@@ -230,7 +304,9 @@ class ReportDefinition(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "code"], name="report_unit_code")]
+        constraints = [
+            models.UniqueConstraint(fields=["unit", "code"], name="report_unit_code")
+        ]
 
 
 class ReportAccess(models.Model):
@@ -243,7 +319,11 @@ class ReportAccess(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "phone"], name="report_authorized_phone")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "phone"], name="report_authorized_phone"
+            )
+        ]
 
 
 class ReportRequest(models.Model):
@@ -261,9 +341,14 @@ class ReportRequest(models.Model):
     error_code = models.CharField(max_length=80, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True)
-    inbound_event = models.OneToOneField("messaging.ProviderEvent", null=True, on_delete=models.PROTECT)
+    inbound_event = models.OneToOneField(
+        "messaging.ProviderEvent", null=True, on_delete=models.PROTECT
+    )
     notification = models.OneToOneField(
-        "messaging.Message", null=True, on_delete=models.PROTECT, related_name="report_request"
+        "messaging.Message",
+        null=True,
+        on_delete=models.PROTECT,
+        related_name="report_request",
     )
 
 
@@ -296,7 +381,11 @@ class SourceConfiguration(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "kind"], name="source_configuration_identity")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "kind"], name="source_configuration_identity"
+            )
+        ]
 
 
 class FlowRule(models.Model):
@@ -314,7 +403,9 @@ class FlowRule(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "code"], name="flow_rule_identity")]
+        constraints = [
+            models.UniqueConstraint(fields=["unit", "code"], name="flow_rule_identity")
+        ]
 
 
 class FlowRun(models.Model):
@@ -328,4 +419,6 @@ class FlowRun(models.Model):
     completed_at = models.DateTimeField(null=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["rule", "run_date"], name="flow_daily_run")]
+        constraints = [
+            models.UniqueConstraint(fields=["rule", "run_date"], name="flow_daily_run")
+        ]

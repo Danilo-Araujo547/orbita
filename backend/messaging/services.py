@@ -1,14 +1,19 @@
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from core.models import Audit, Unit
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from responses.models import Issue
 
+from core.models import Audit, Unit
 from messaging.models import Attempt, Message
-from messaging.transports import MetaTransport, SendError, SimulatedTransport, get_transport
+from messaging.transports import (
+    MetaTransport,
+    SendError,
+    SimulatedTransport,
+    get_transport,
+)
+from responses.models import Issue
 
 
 def manual_simulation(message):
@@ -23,7 +28,9 @@ def manual_simulation(message):
 
 def issue_once(message, code, description):
     contact_phone = (
-        message.recipient if code not in {"conflicting_replies", "postoperative_attention"} else ""
+        message.recipient
+        if code not in {"conflicting_replies", "postoperative_attention"}
+        else ""
     )
     if message.case_id:
         existing = Issue.objects.filter(
@@ -40,7 +47,11 @@ def issue_once(message, code, description):
         message=message,
         category=code,
         resolved_at=None,
-        defaults={"description": description, "case": message.case, "contact_phone": contact_phone},
+        defaults={
+            "description": description,
+            "case": message.case,
+            "contact_phone": contact_phone,
+        },
     )[0]
 
 
@@ -50,11 +61,25 @@ def send_guard(message):
 
     from messaging.pilot import authorized_recipients
 
+    cross = bool(message.snapshot.get("cross_batch"))
+    if cross:
+        if message.unit.paused:
+            return "paused"
+        from operations.cross_controls import queue_guard
+
+        error = queue_guard(message)
+        if error:
+            return error
     real = False
     if settings.SEND_MODE != "simulated":
         from messaging.pilot import guard
 
-        error = guard(message)
+        if cross:
+            from operations.cross_controls import transport_guard
+
+            error = transport_guard(message)
+        else:
+            error = guard(message)
         if error:
             return error
         real = True
@@ -66,9 +91,9 @@ def send_guard(message):
         from operations.reports import check_access
 
         try:
-            job = ReportRequest.objects.select_related("report", "requester", "unit", "access").get(
-                pk=message.snapshot["report_request"], unit=message.unit
-            )
+            job = ReportRequest.objects.select_related(
+                "report", "requester", "unit", "access"
+            ).get(pk=message.snapshot["report_request"], unit=message.unit)
             check_access(job)
         except Exception:
             return "report_access_revoked"
@@ -92,36 +117,61 @@ def send_guard(message):
             return "response_condition_not_met"
     from operations.models import Contact
 
-    if Contact.objects.filter(unit=message.unit, phone=message.recipient, opted_out=True).exists():
+    if Contact.objects.filter(
+        unit=message.unit, phone=message.recipient, opted_out=True
+    ).exists():
         return "contact_opted_out"
     if (
         message.case_id
         and Contact.objects.filter(
-            event=message.case.event, phone=message.recipient, status__in=["invalid", "wrong_person"]
+            event=message.case.event,
+            phone=message.recipient,
+            status__in=["invalid", "wrong_person"],
         ).exists()
     ):
         return "contact_requires_review"
     if message.appointment_id is None:
         if not message.case_id or message.case.unit_id != message.unit_id:
             return "unit_mismatch"
-        if message.case.event.revision != message.appointment_revision or message.case.state == "closed":
+        if (
+            message.case.event.revision != message.appointment_revision
+            or message.case.state == "closed"
+        ):
             return "source_changed"
         if campaign_real:
-            if message.template.unit_id != message.unit_id or not message.template.approved_for_test:
+            if (
+                message.template.unit_id != message.unit_id
+                or not message.template.approved_for_test
+            ):
+                return "template_not_validated"
+            return ""
+        if cross:
+            if message.recipient not in authorized_recipients(message.unit):
+                return "recipient_not_allowed"
+            if not message.template.approved_for_test:
                 return "template_not_validated"
             return ""
         if not message.case.event.synthetic or message.case.event.source != "synthetic":
             return "real_event_blocked"
         if message.recipient not in authorized_recipients(message.unit):
             return "recipient_not_allowed"
-        if settings.SEND_MODE == "meta_test" and message.unit.slug != settings.META_UNIT_SLUG:
+        if (
+            settings.SEND_MODE == "meta_test"
+            and message.unit.slug != settings.META_UNIT_SLUG
+        ):
             return "channel_unit_not_configured"
-        if message.template.unit_id != message.unit_id or not message.template.approved_for_test:
+        if (
+            message.template.unit_id != message.unit_id
+            or not message.template.approved_for_test
+        ):
             return "template_not_validated"
         return ""
     if message.appointment.data_issue:
         return message.appointment.data_issue
-    if settings.SEND_MODE == "meta_test" and message.unit.slug != settings.META_UNIT_SLUG:
+    if (
+        settings.SEND_MODE == "meta_test"
+        and message.unit.slug != settings.META_UNIT_SLUG
+    ):
         return "channel_unit_not_configured"
     if not message.appointment.synthetic or message.appointment.source not in {
         "synthetic",
@@ -136,7 +186,8 @@ def send_guard(message):
     ):
         return "appointment_changed"
     if message.rule_id and (
-        (not message.rule.enabled and not manual and not real) or message.rule.version != message.rule_version
+        (not message.rule.enabled and not manual and not real)
+        or message.rule.version != message.rule_version
     ):
         return "rule_changed"
     if not message.template.approved_for_test and not manual:
@@ -180,7 +231,9 @@ def dispatch(message_id, transport=None, now=None):
         if message.group_id:
             from messaging.models import AppointmentGroup
 
-            group = AppointmentGroup.objects.select_for_update().get(pk=message.group_id)
+            group = AppointmentGroup.objects.select_for_update().get(
+                pk=message.group_id
+            )
             # Reconcile messages inserted by an importer concurrently with a schedule edit.
             if group.schedule_overridden and message.attempt_count == 0:
                 message.scheduled_for = group.scheduled_for
@@ -190,7 +243,8 @@ def dispatch(message_id, transport=None, now=None):
                 )
                 message.expires_at = min(
                     day_end,
-                    group.scheduled_for + timedelta(hours=message.snapshot.get("validity_hours", 24)),
+                    group.scheduled_for
+                    + timedelta(hours=message.snapshot.get("validity_hours", 24)),
                     message.appointment.scheduled_at,
                 )
                 message.save(update_fields=["scheduled_for", "expires_at"])
@@ -205,23 +259,38 @@ def dispatch(message_id, transport=None, now=None):
             message.save()
             return message
         error = send_guard(message)
-        if error in {"paused", "campaign_sending_disabled"} or (
-            error == "pilot_daily_limit" and message.snapshot.get("manual_campaign_real")
+        if error in {
+            "paused",
+            "campaign_sending_disabled",
+            "cross_import_disabled",
+            "cross_record_disabled",
+        } or (
+            error == "pilot_daily_limit"
+            and (
+                message.snapshot.get("manual_campaign_real")
+                or message.snapshot.get("cross_batch")
+            )
         ):
             return message
         if error:
             message.state, message.error_code = Message.State.BLOCKED, error
             message.save()
-            issue_once(message, error, "Envio bloqueado pelas regras do ambiente de teste.")
+            issue_once(
+                message, error, "Envio bloqueado pelas regras do ambiente de teste."
+            )
             return message
         if message.attempt_count >= 3:
             message.state = Message.State.FAILED
             message.save()
             return message
-        if message.snapshot.get("manual_campaign_real"):
+        if message.snapshot.get("manual_campaign_real") or message.snapshot.get(
+            "cross_batch"
+        ):
             from operations.models import Campaign
 
-            campaign = Campaign.objects.select_for_update().get(pk=message.snapshot["campaign"], unit=unit)
+            campaign = Campaign.objects.select_for_update().get(
+                pk=message.snapshot["campaign"], unit=unit
+            )
             if campaign.next_send_at and campaign.next_send_at > now:
                 return message
             campaign.next_send_at = now + timedelta(seconds=5)
@@ -243,7 +312,10 @@ def dispatch(message_id, transport=None, now=None):
         message.state, message.last_attempt_at = Message.State.SENDING, now
         message.channel_id = transport.channel_id
         if settings.SEND_MODE == "meta_test" and settings.META_DISPLAY_PHONE_NUMBER:
-            message.snapshot = {**message.snapshot, "sender_phone": settings.META_DISPLAY_PHONE_NUMBER}
+            message.snapshot = {
+                **message.snapshot,
+                "sender_phone": settings.META_DISPLAY_PHONE_NUMBER,
+            }
         message.attempt_count += 1
         message.save()
         attempt = Attempt.objects.create(message=message, number=message.attempt_count)
@@ -254,13 +326,20 @@ def dispatch(message_id, transport=None, now=None):
     except SendError as exc:
         provider_id, failure = None, exc
     except Exception:
-        provider_id, failure = None, SendError("unexpected_result_unknown", uncertain=True)
+        provider_id, failure = (
+            None,
+            SendError("unexpected_result_unknown", uncertain=True),
+        )
     with transaction.atomic():
         message = Message.objects.select_for_update().get(pk=message_id)
         attempt = Attempt.objects.get(pk=attempt_id)
         if failure is None:
             message.provider_id = provider_id
-            message.state, message.error_code, attempt.outcome = Message.State.ACCEPTED, "", "accepted"
+            message.state, message.error_code, attempt.outcome = (
+                Message.State.ACCEPTED,
+                "",
+                "accepted",
+            )
             message.response_state = "pending"
         else:
             exc = failure
@@ -270,7 +349,9 @@ def dispatch(message_id, transport=None, now=None):
                 message.state, attempt.outcome = Message.State.UNCERTAIN, "uncertain"
             elif exc.transient and message.attempt_count < 3:
                 message.state = Message.State.QUEUED
-                message.scheduled_for = now + timedelta(minutes=1 if message.attempt_count == 1 else 5)
+                message.scheduled_for = now + timedelta(
+                    minutes=1 if message.attempt_count == 1 else 5
+                )
             else:
                 message.state = Message.State.FAILED
             if message.state in [Message.State.FAILED, Message.State.UNCERTAIN]:
@@ -303,13 +384,24 @@ def retry_individual(message, actor, now=None):
         .get(pk=message.pk)
     )
     if message.state not in [Message.State.FAILED, Message.State.BLOCKED]:
-        raise ValueError("Somente falhas conhecidas ou bloqueios podem ser reprocessados.")
+        raise ValueError(
+            "Somente falhas conhecidas ou bloqueios podem ser reprocessados."
+        )
     if message.expires_at <= now or message.attempt_count >= 3:
         raise ValueError("Mensagem vencida ou limite de tentativas atingido.")
     error = send_guard(message)
     if error:
         raise ValueError(error)
-    message.state, message.error_code, message.scheduled_for = Message.State.QUEUED, "", now
+    message.state, message.error_code, message.scheduled_for = (
+        Message.State.QUEUED,
+        "",
+        now,
+    )
     message.save()
-    Audit.objects.create(unit=message.unit, actor=actor, action="message.retry", object_id=str(message.pk))
+    Audit.objects.create(
+        unit=message.unit,
+        actor=actor,
+        action="message.retry",
+        object_id=str(message.pk),
+    )
     return message

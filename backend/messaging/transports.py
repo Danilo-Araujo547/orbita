@@ -54,12 +54,24 @@ class MetaTransport:
             raise SendError("message_not_claimed")
         config = configuration(message.unit)
         components = []
+        if message.parameters:
+            components.append(
+                {
+                    "type": "body",
+                    "parameters": [
+                        {"type": "text", "text": str(value)}
+                        for value in message.parameters
+                    ],
+                }
+            )
         for component in message.snapshot.get("components", []):
             if component.get("type") == "BUTTONS":
                 for index, button in enumerate(component.get("buttons", [])):
                     if button.get("type") == "FLOW":
                         action = {"flow_token": str(message.pk)}
-                        initial = message.snapshot.get("flow_action_data", {}).get(str(index))
+                        initial = message.snapshot.get("flow_action_data", {}).get(
+                            str(index)
+                        )
                         if initial is not None:
                             action["flow_action_data"] = initial
                         components.append(
@@ -70,7 +82,10 @@ class MetaTransport:
                                 "parameters": [{"type": "action", "action": action}],
                             }
                         )
-        template = {"name": message.template_name, "language": {"code": message.template_language}}
+        template = {
+            "name": message.template_name,
+            "language": {"code": message.template_language},
+        }
         if components:
             template["components"] = components
         try:
@@ -98,7 +113,9 @@ class MetaTransport:
             raise SendError("meta_invalid_result", uncertain=True) from None
         if response.status_code >= 400 or "error" in data:
             code = data.get("error", {}).get("code") if isinstance(data, dict) else None
-            raise SendError(f"meta_{code}" if isinstance(code, int) else "meta_request_rejected")
+            raise SendError(
+                f"meta_{code}" if isinstance(code, int) else "meta_request_rejected"
+            )
         try:
             provider_id = data["messages"][0]["id"]
             if not isinstance(provider_id, str) or not provider_id.startswith("wamid."):

@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl unzip liba
     && ldconfig && rm /tmp/instantclient.zip && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir gunicorn==23.0.0
-COPY . .
-RUN useradd --create-home app && chown -R app:app /app
+RUN useradd --create-home app && chown app:app /app
+COPY --chown=app:app . .
 USER app
 EXPOSE 8000

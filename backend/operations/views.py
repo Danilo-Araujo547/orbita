@@ -1,8 +1,6 @@
 import base64
 import binascii
 
-from core.models import Audit, Membership
-from core.permissions import get_unit
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, F, Q
@@ -10,13 +8,14 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from messaging.models import Message
-from responses.models import Issue
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from core.models import Audit, Membership
+from core.permissions import get_unit
+from messaging.models import Message
 from operations import models as m
 from operations import serializers as s
 from operations.reports import HANDLERS, check_access, validate_parameters
@@ -30,6 +29,7 @@ from operations.services import (
     preview_campaign,
 )
 from operations.sheets import confirm_sheet, preview_sheet
+from responses.models import Issue
 
 
 class ScopedRead(viewsets.ReadOnlyModelViewSet):
@@ -764,7 +764,9 @@ class PolicyViewSet(ConfigViewSet):
 
 
 class SheetViewSet(ScopedRead):
-    queryset = m.SheetImport.objects.order_by("-created_at")
+    queryset = m.SheetImport.objects.select_related(
+        "unit", "layout", "template", "campaign"
+    ).order_by("-created_at")
     serializer_class = s.SheetSerializer
 
     @extend_schema(request=s.SheetPreviewInput, responses=s.SheetSerializer)
@@ -800,7 +802,7 @@ class SheetViewSet(ScopedRead):
         detail=False, methods=["get"], url_path="schema", url_name="standard-schema"
     )
     def standard_contract(self, request):
-        from operations.standardization import STANDARD_FIELDS, DEFAULT_MAPPINGS
+        from operations.standardization import DEFAULT_MAPPINGS, STANDARD_FIELDS
 
         return Response(
             {
@@ -814,6 +816,7 @@ class SheetViewSet(ScopedRead):
     @action(detail=True, methods=["get"])
     def export(self, request, pk=None):
         from django.http import HttpResponse
+
         from operations.standardization import csv_standard_rows, display_rows
 
         batch = self.get_object()
@@ -834,6 +837,67 @@ class SheetViewSet(ScopedRead):
         from operations.standardization import display_rows
 
         return self.get_paginated_response(self.paginate_queryset(display_rows(batch)))
+
+    @extend_schema(responses=s.CrossRecordSerializer(many=True))
+    @action(detail=True, methods=["get"])
+    def records(self, request, pk=None):
+        from operations.cross_controls import batch_rows
+
+        rows = batch_rows(self.get_object())
+        search = request.query_params.get("search", "").strip().casefold()
+        if search:
+            rows = [
+                row
+                for row in rows
+                if any(
+                    search in str(row.get(key, "")).casefold()
+                    for key in [
+                        "nome_completo",
+                        "patient",
+                        "codigo",
+                        "record_id",
+                        "phone_numbers",
+                    ]
+                )
+            ]
+        if request.query_params.get("recent_only") == "true":
+            rows = [row for row in rows if row["recent_send_count"]]
+        if request.query_params.get("enabled") in {"true", "false"}:
+            enabled = request.query_params["enabled"] == "true"
+            rows = [row for row in rows if row["enabled"] == enabled]
+        return self.get_paginated_response(self.paginate_queryset(rows))
+
+    @extend_schema(request=s.CrossBatchControlInput, responses=s.SheetSerializer)
+    @action(detail=True, methods=["post"], url_path="activation")
+    def activation(self, request, pk=None):
+        values = s.CrossBatchControlInput(data=request.data)
+        values.is_valid(raise_exception=True)
+
+        def execute():
+            from operations.cross_controls import set_batch_enabled
+
+            batch = set_batch_enabled(
+                self.get_object(), actor=request.user, **values.validated_data
+            )
+            return self.get_serializer(batch).data
+
+        return self.once(request, execute)
+
+    @extend_schema(request=s.CrossRecordsControlInput, responses=s.SheetSerializer)
+    @action(detail=True, methods=["post"], url_path="record-activation")
+    def record_activation(self, request, pk=None):
+        values = s.CrossRecordsControlInput(data=request.data)
+        values.is_valid(raise_exception=True)
+
+        def execute():
+            from operations.cross_controls import set_records_enabled
+
+            batch = set_records_enabled(
+                self.get_object(), actor=request.user, **values.validated_data
+            )
+            return self.get_serializer(batch).data
+
+        return self.once(request, execute)
 
     @extend_schema(request=s.SheetConfirmInput)
     @action(detail=True, methods=["post"])
@@ -897,6 +961,10 @@ class CampaignViewSet(ScopedRead):
             campaign = m.Campaign.objects.select_for_update().get(
                 pk=self.get_object().pk, unit=unit
             )
+            if campaign.import_batch_id:
+                raise ValidationError(
+                    "Gerencie esta importação pelos controles do Importa CROSS."
+                )
             if campaign.version != values.validated_data["version"]:
                 raise Conflict()
             enabled = values.validated_data["enabled"]
@@ -956,6 +1024,10 @@ class CampaignViewSet(ScopedRead):
             campaign = m.Campaign.objects.select_for_update().get(
                 pk=self.get_object().pk, unit=unit
             )
+            if campaign.import_batch_id:
+                raise ValidationError(
+                    "Gerencie esta importação pelos controles do Importa CROSS."
+                )
             if campaign.version != values.validated_data["version"]:
                 raise Conflict()
             if (

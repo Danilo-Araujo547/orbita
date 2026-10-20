@@ -2337,3 +2337,21 @@
   border-color: var(--border-default, #334155);
   color: #f1f5f9;
 }
+
+/* Importa CROSS: batch controls and per-record review. */
+.cross-batch-directory small, .cross-records-modal td small { display: block; margin-top: 4px; }
+.cross-batch-heading, .cross-row-actions, .cross-batch-pagination, .cross-record-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cross-batch-heading { justify-content: space-between; margin-bottom: 16px; }
+.cross-batch-heading h3 { margin: 0; }
+.cross-batch-pagination { justify-content: flex-end; margin-top: 16px; }
+.cross-row-actions { flex-wrap: nowrap; }
+.cross-records-modal { width: min(1460px, calc(100vw - 48px)); max-width: calc(100vw - 48px); }
+.cross-record-toolbar { margin-bottom: 18px; }
+.cross-record-toolbar > input { width: 280px; max-width: 100%; }
+.cross-records-modal input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent, #0879b9); }
+.cross-recent-row { background: #fff7ed; }
+.cross-recent-badge { color: #9a3412; display: inline-flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.cross-recent-badge small { flex-basis: 100%; }
+.cross-error-text { color: #dc2626; }
+[data-theme="dark"] .cross-recent-row { background: #35271d; }
+[data-theme="dark"] .cross-recent-badge { color: #fdba74; }

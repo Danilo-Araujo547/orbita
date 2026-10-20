@@ -65,10 +65,20 @@ services:
     profiles: ["test"]
     build: ./backend
     env_file: .env
-    environment: *backend_environment
-    command: ["pytest", "-q", "tests"]
+    environment:
+      <<: *backend_environment
+      DATABASE_NAME: orbita_suite
+      SEND_MODE: simulated
+      META_REAL_ENABLED: "0"
+      META_INBOX_SSH_HOST: ""
+      REDIS_URL: ""
+      CELERY_TASK_ALWAYS_EAGER: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./backend:/app:ro
+    command: ["pytest", "-q", "-p", "no:cacheprovider", "tests"]
     depends_on:
-      api: {condition: service_healthy}
+      db: {condition: service_healthy}
 volumes:
   postgres_data:
     external: true

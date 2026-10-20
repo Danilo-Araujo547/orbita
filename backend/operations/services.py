@@ -486,7 +486,11 @@ def preview_campaign(campaign):
             event.phone,
         )
         notification, _ = Notification.objects.get_or_create(
-            key=f"campaign:{campaign.pk}:{campaign.version}:{case.pk}:{event.revision}",
+            key=(
+                f"cross:{campaign.import_batch_id}:{case.pk}:{event.revision}"
+                if campaign.import_batch_id
+                else f"campaign:{campaign.pk}:{campaign.version}:{case.pk}:{event.revision}"
+            ),
             defaults={
                 "unit": campaign.unit,
                 "appointment": event.appointment,
@@ -504,6 +508,21 @@ def preview_campaign(campaign):
             body = frozen["body"] if frozen else campaign.template.body
             for i, value in enumerate(params, 1):
                 body = body.replace("{{" + str(i) + "}}", value)
+            existing = (
+                Message.objects.filter(
+                    unit=campaign.unit,
+                    case=case,
+                    recipient=recipient,
+                    snapshot__import_batch=str(campaign.import_batch_id),
+                )
+                .order_by("created_at")
+                .first()
+                if campaign.import_batch_id
+                else None
+            )
+            if existing:
+                messages.append(str(existing.pk))
+                continue
             message, _ = Message.objects.get_or_create(
                 notification_key=f"{notification.key}:{recipient}",
                 defaults={

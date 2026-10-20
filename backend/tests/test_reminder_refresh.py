@@ -5,9 +5,12 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from django.core.management import call_command
+
 from messaging.models import Message
 from scheduling.models import Appointment, ImportRun, Rule
 from scheduling.services import import_rule
+
+pytestmark = pytest.mark.send_regression
 
 
 @pytest.mark.django_db

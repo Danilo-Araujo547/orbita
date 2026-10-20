@@ -1,8 +1,8 @@
+import CrossImportList from "./CrossImportList";
 import LegacyLabel from "./LegacyLabel";
 import {
   CrossImportForm,
   CrossLayoutEditor,
-  standardFields,
 } from "./CrossImportConfiguration";
 import FormAction, { FormActionContext } from "./FormAction";
 import { useEffect, useState } from "react";
@@ -882,7 +882,6 @@ function Campaigns({
   onError,
 }: Common & { operate: boolean; admin: boolean }) {
   const campaigns = useRows<Row>("campaigns", unit, revision, onError),
-    batches = useRows<Row>("sheet-imports", unit, revision, onError),
     layouts = useRows<Row>("layouts", unit, revision, onError),
     templates = useRows<Row>("templates", unit, revision, onError);
   const [purpose, setPurpose] = useState("waitlist"),
@@ -896,23 +895,6 @@ function Campaigns({
     revision,
     onError,
   );
-  const [preview, setPreview] = useState<Record<string, string>[]>([]);
-  const [previewBatch, setPreviewBatch] = useState<string | number>("");
-  const [previewPage, setPreviewPage] = useState(1);
-  const [previewCount, setPreviewCount] = useState(0);
-  async function loadPreview(id: string | number, page = 1) {
-    try {
-      const result = await request<Paginated<Record<string, string>>>(
-        query(`sheet-imports/${id}/rows`, { unit, page: String(page) }),
-      );
-      setPreview(result.results);
-      setPreviewBatch(id);
-      setPreviewPage(page);
-      setPreviewCount(result.count);
-    } catch (e) {
-      onError((e as Error).message);
-    }
-  }
   return (
     <div className="op-stack">
       {operate && (
@@ -1016,128 +998,10 @@ function Campaigns({
           </FormAction>
         </div>
       )}
-      <article className="op-card">
-        <h3>Importações</h3>
-        {batches.map((b) => (
-          <div className="op-list-row" key={b.id}>
-            <div>
-              <strong>
-                {b.filename || "Planilha"} · {b.row_count} linhas ·{" "}
-                {status[b.state || ""]}
-              </strong>
-              <small>
-                {b.duplicates} duplicidades · {b.errors?.length || 0} erros
-              </small>
-              <small>{b.template_name || "Sem template associado"}</small>
-              {b.errors?.slice(0, 5).map((e) => (
-                <small key={`${e.line}:${e.code}`}>
-                  Linha {e.line}: {e.code}
-                </small>
-              ))}
-            </div>
-            <button className="button" onClick={() => void loadPreview(b.id)}>
-              Ver prévia
-            </button>
-            {operate && b.state === "preview" && !b.errors?.length && (
-              <>
-                <select
-                  aria-label="Finalidade da importação"
-                  value={
-                    b.purpose ||
-                    (b.layout_format === "absence_html"
-                      ? "absence"
-                      : b.layout_format === "cross_demand_csv"
-                        ? "waitlist"
-                        : purpose)
-                  }
-                  onChange={(e) => setPurpose(e.target.value)}
-                >
-                  {b.layout_format === "absence_html" ? (
-                    <option value="absence">Ausentes</option>
-                  ) : (
-                    <option value="waitlist">Permanência na fila</option>
-                  )}
-                  {!b.layout_format || b.layout_format === "table" ? (
-                    <option value="summons">Convocação</option>
-                  ) : null}
-                </select>
-                <button
-                  className="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void act(`sheet-imports/${b.id}/confirm`, {
-                      purpose:
-                        b.purpose ||
-                        (b.layout_format === "absence_html"
-                          ? "absence"
-                          : b.layout_format === "cross_demand_csv"
-                            ? "waitlist"
-                            : purpose),
-                    }).catch(() => {})
-                  }
-                >
-                  Confirmar importação
-                </button>
-              </>
-            )}
-          </div>
-        ))}
-        {!batches.length && (
-          <p className="op-muted">Nenhuma importação de planilha.</p>
-        )}
-        {preview.length > 0 && (
-          <div className="op-table">
-            <div className="op-list-row">
-              <span>
-                Planilha padronizada · {previewCount} registros · Página{" "}
-                {previewPage}
-              </span>
-              <a
-                className="button"
-                href={query(`sheet-imports/${previewBatch}/export`, { unit })}
-                download
-              >
-                Baixar CSV padronizado
-              </a>
-              <button
-                className="button"
-                disabled={previewPage <= 1}
-                onClick={() => void loadPreview(previewBatch, previewPage - 1)}
-              >
-                Anterior
-              </button>
-              <button
-                className="button"
-                disabled={previewPage * 50 >= previewCount}
-                onClick={() => void loadPreview(previewBatch, previewPage + 1)}
-              >
-                Próxima
-              </button>
-            </div>
-            <table className="cross-standard-table">
-              <thead>
-                <tr>
-                  {standardFields.map((field) => (
-                    <th key={field}>{field}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {preview.map((row, index) => (
-                  <tr key={index}>
-                    {standardFields.map((field) => (
-                      <td key={field}>{row[field] || "—"}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </article>
+      <CrossImportList unit={unit} revision={revision} operate={operate} busy={busy} act={act} onError={onError} />
       <article className="op-card">
         <h3>Importa CROSS</h3>
-        {campaigns.map((c) => (
+        {campaigns.filter((c) => !c.import_batch).map((c) => (
           <div className="op-list-row" key={c.id}>
             <div>
               <strong>{c.name}</strong>
@@ -1425,7 +1289,7 @@ function Administration({
       ["schedules", "Relatórios agendados", Clock3],
     ] as CategoryTab[]),
     ["preparations", "Preparos", ClipboardList],
-    ["layouts", "Layouts CROSS", FileSpreadsheet],
+    ["layouts", "Importa CROSS · modelos e templates", FileSpreadsheet],
     ["reportDefinitions", "Catálogo de relatórios", ClipboardList],
     ["policies", "Prazos de resposta", Clock3],
   ];
@@ -1722,7 +1586,7 @@ function Administration({
         )}
         {category === "layouts" && (
           <Panel
-            title="Layouts de importação CROSS"
+            title="Importa CROSS · modelos e templates"
             action={
               admin ? (
                 <CrossLayoutEditor
