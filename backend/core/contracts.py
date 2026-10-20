@@ -77,6 +77,18 @@ class IndicatorsOutput(serializers.Serializer):
     by_kind = serializers.ListField(child=serializers.DictField())
     trend = serializers.ListField(child=serializers.DictField())
     paused = serializers.BooleanField()
+    messages_to_send = serializers.IntegerField(default=0)
+    messages_total = serializers.IntegerField(default=0)
+    messages_answered = serializers.IntegerField(default=0)
+    messages_unanswered = serializers.IntegerField(default=0)
+    messages_sent = serializers.IntegerField(default=0)
+    messages_invalid = serializers.IntegerField(default=0)
+    appointments_total = serializers.IntegerField(default=0)
+    appointments_declined = serializers.IntegerField(default=0)
+    appointments_answered = serializers.IntegerField(default=0)
+    appointments_unanswered = serializers.IntegerField(default=0)
+    appointments_sent = serializers.IntegerField(default=0)
+    appointments_invalid = serializers.IntegerField(default=0)
 
 
 class TestAppointmentInput(serializers.Serializer):

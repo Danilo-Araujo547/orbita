@@ -734,22 +734,93 @@ def indicators(request):
     )
     accepted_states = ["accepted", "sent", "delivered", "read"]
     delivered = states.get("delivered", 0) + states.get("read", 0)
+
+    answered_keys = [
+        "confirmed",
+        "declined",
+        "review",
+        "wrong_person",
+        "opt_out",
+        "stay_waitlist",
+        "leave_waitlist",
+        "acknowledged",
+        "well",
+        "needs_attention",
+        "reason_received",
+    ]
+
+    messages_count = messages.count()
+    messages_to_send = sum(states.get(s, 0) for s in ["preview", "queued", "sending"])
+    messages_sent = sum(states.get(s, 0) for s in accepted_states)
+    messages_invalid = sum(states.get(s, 0) for s in ["failed", "blocked", "uncertain"])
+    messages_answered = sum(responses.get(k, 0) for k in answered_keys)
+    messages_unanswered = max(0, messages_count - messages_answered)
+
+    appointments_count = appointments.count()
+    appointments_declined = appointments.filter(
+        Q(sourceevent__cases__outcome="declined") | Q(messages__response_state="declined")
+    ).distinct().count()
+
+    appointments_answered = appointments.filter(
+        Q(sourceevent__cases__outcome__in=answered_keys)
+        | Q(sourceevent__cases__response_state__in=answered_keys)
+        | Q(messages__response_state__in=answered_keys)
+    ).distinct().count()
+
+    appointments_unanswered = max(0, appointments_count - appointments_answered)
+    appointments_sent = appointments.filter(
+        messages__state__in=accepted_states
+    ).distinct().count()
+    appointments_invalid = appointments.filter(
+        Q(sourceevent__contact__status__in=["invalid", "wrong_person"])
+        | Q(messages__state__in=["failed", "blocked", "uncertain"])
+    ).distinct().count()
+
     trend = []
     today = timezone.localdate()
-    for offset in range(6, -1, -1):
-        day = today - timedelta(days=offset)
-        subset = messages.filter(created_at__date=day)
-        trend.append(
-            {
-                "day": day.isoformat(),
-                "messages": subset.count(),
-                "delivered": subset.filter(state__in=["delivered", "read"]).count(),
-            }
-        )
+    start_param = request.query_params.get("start")
+    end_param = request.query_params.get("end")
+    if start_param and end_param:
+        try:
+            d_start = datetime.strptime(start_param, "%Y-%m-%d").date()
+            d_end = datetime.strptime(end_param, "%Y-%m-%d").date()
+            if d_start <= d_end:
+                delta_days = (d_end - d_start).days
+                if delta_days > 45:
+                    d_start = d_end - timedelta(days=45)
+                cur = d_start
+                while cur <= d_end:
+                    subset = messages.filter(created_at__date=cur)
+                    ans_sub = subset.filter(response_state__in=answered_keys).count()
+                    trend.append(
+                        {
+                            "day": cur.isoformat(),
+                            "messages": subset.count(),
+                            "delivered": subset.filter(state__in=["delivered", "read"]).count(),
+                            "answered": ans_sub,
+                        }
+                    )
+                    cur += timedelta(days=1)
+        except Exception:
+            pass
+
+    if not trend:
+        for offset in range(6, -1, -1):
+            day = today - timedelta(days=offset)
+            subset = messages.filter(created_at__date=day)
+            trend.append(
+                {
+                    "day": day.isoformat(),
+                    "messages": subset.count(),
+                    "delivered": subset.filter(state__in=["delivered", "read"]).count(),
+                    "answered": subset.filter(response_state__in=answered_keys).count(),
+                }
+            )
+
     return Response(
         {
-            "appointments": appointments.count(),
-            "messages": messages.count(),
+            "appointments": appointments_count,
+            "messages": messages_count,
             "states": states,
             "responses": responses,
             "accepted": sum(states.get(state, 0) for state in accepted_states),
@@ -765,6 +836,18 @@ def indicators(request):
             "trend": trend,
             "synthetic_appointments": appointments.filter(synthetic=True).count(),
             "paused": unit.paused,
+            "messages_to_send": messages_to_send,
+            "messages_total": messages_count,
+            "messages_answered": messages_answered,
+            "messages_unanswered": messages_unanswered,
+            "messages_sent": messages_sent,
+            "messages_invalid": messages_invalid,
+            "appointments_total": appointments_count,
+            "appointments_declined": appointments_declined,
+            "appointments_answered": appointments_answered,
+            "appointments_unanswered": appointments_unanswered,
+            "appointments_sent": appointments_sent,
+            "appointments_invalid": appointments_invalid,
         }
     )
 

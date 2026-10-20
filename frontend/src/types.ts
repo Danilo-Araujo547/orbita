@@ -209,8 +209,20 @@ export interface Indicators {
   states: Record<string, number>;
   responses: Record<string, number>;
   by_kind: { kind: string; total: number }[];
-  trend: { day: string; messages: number; delivered: number }[];
+  trend: { day: string; messages: number; delivered: number; answered?: number }[];
   paused: boolean;
+  messages_to_send?: number;
+  messages_total?: number;
+  messages_answered?: number;
+  messages_unanswered?: number;
+  messages_sent?: number;
+  messages_invalid?: number;
+  appointments_total?: number;
+  appointments_declined?: number;
+  appointments_answered?: number;
+  appointments_unanswered?: number;
+  appointments_sent?: number;
+  appointments_invalid?: number;
 }
 export interface Paginated<T> {
   count: number;

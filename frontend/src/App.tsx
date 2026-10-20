@@ -1,8 +1,9 @@
 import LegacyLabel from "./components/LegacyLabel";
 import { settingsEntries } from "./settingsDirectory";
 import FormAction from "./components/FormAction";
-import { Badge, Empty, Panel, Metric, SearchField } from "./components/ui";
+import { Badge, Empty, Panel, SearchField } from "./components/ui";
 import OperationalAppointments from "./components/OperationalAppointments";
+import OverviewWorkspace from "./components/OverviewWorkspace";
 import AppointmentGroups from "./components/AppointmentGroups";
 import ExecutionLogs from "./components/ExecutionLogs";
 import MetaConfiguration from "./components/MetaConfiguration";
@@ -28,7 +29,6 @@ import {
   Bell,
   CalendarDays,
   Check,
-  CheckCheck,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -52,17 +52,8 @@ import {
   User,
   X,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { initCsrf, query, request } from "./api";
-import { dateOnly, dateTime, kinds, labels, percentage } from "./format";
+import { dateTime, kinds, labels } from "./format";
 import type {
   Appointment,
   Audit,
@@ -588,8 +579,12 @@ function Workspace({
             </button>
             <span className="breadcrumb">
               <span className="breadcrumb-root">Workspace</span>
-              <ChevronRight className="breadcrumb-root" size={14} />{" "}
-              <strong>{currentTitle}</strong>
+              {page !== "overview" && page !== "appointments" && (
+                <>
+                  <ChevronRight className="breadcrumb-root" size={14} />{" "}
+                  <strong>{currentTitle}</strong>
+                </>
+              )}
             </span>
           </div>
           <div className="topbar-right">
@@ -653,7 +648,7 @@ function Workspace({
             <OperationsWorkspace key={`${unit}:${page}`} page={page} unit={unit} role={role}
               username={session.username} userAccess={false} />
           )}
-          {(page === "overview" || page === "messages") && (
+          {page === "messages" && (
             <div className="filters">
               <div className="filter-left">
                 <select
@@ -684,240 +679,24 @@ function Workspace({
           ) : (
             <>
               {page === "overview" && (
-                <>
-                  <div className="metrics-grid">
-                    <Metric
-                      title="Agendamentos"
-                      value={d!.appointments}
-                      icon={CalendarDays}
-                      tone="neutral"
-                      note="Consultas, exames e laboratório"
-                      onClick={() => navigate("appointments")}
-                    />
-                    <Metric
-                      title="Mensagens entregues"
-                      value={d!.delivered}
-                      icon={Send}
-                      tone="green"
-                      note={`${percentage(d!.delivered, d!.messages)}% das mensagens do período`}
-                      onClick={() =>
-                        cardNavigate("messages", "delivered_or_read")
-                      }
-                    />
-                    <Metric
-                      title="Confirmações recebidas"
-                      value={d!.confirmed}
-                      icon={CheckCheck}
-                      tone="lime"
-                      note="Lembretes com confirmação registrada"
-                      onClick={() =>
-                        cardNavigate("messages", "confirmed", true)
-                      }
-                    />
-                    <Metric
-                      title="Pendências abertas"
-                      value={d!.issues}
-                      icon={TriangleAlert}
-                      tone="amber"
-                      note="Agendamentos que exigem intervenção"
-                      onClick={() => navigate("issues")}
-                    />
-                  </div>
-                  <div className="charts-grid">
-                    <Panel
-                      title="Mensagens por dia"
-                      action={
-                        <span className="chart-period">
-                          <CalendarDays size={14} />
-                          Últimos 7 dias
-                        </span>
-                      }
-                    >
-                      <div className="chart-legend">
-                        <span>
-                          <i
-                            style={{
-                              background: isDark ? "#ffffff" : "#075B94",
-                            }}
-                          />
-                          Mensagens
-                        </span>
-                        <span>
-                          <i
-                            style={{
-                              background: isDark ? "#a1a1aa" : "#14B4CB",
-                            }}
-                          />
-                          Entregues
-                        </span>
-                      </div>
-                      <div className="area-chart">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart
-                            data={d!.trend}
-                            margin={{
-                              left: -20,
-                              right: 16,
-                              top: 10,
-                              bottom: 0,
-                            }}
-                          >
-                            <defs>
-                              <linearGradient
-                                id="greenFade"
-                                x1="0"
-                                y1="0"
-                                x2="0"
-                                y2="1"
-                              >
-                                <stop
-                                  offset="0%"
-                                  stopColor={isDark ? "#ffffff" : "#075B94"}
-                                  stopOpacity={isDark ? 0.2 : 0.16}
-                                />
-                                <stop
-                                  offset="100%"
-                                  stopColor={isDark ? "#ffffff" : "#075B94"}
-                                  stopOpacity={0}
-                                />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid
-                              strokeDasharray="3 5"
-                              vertical={false}
-                              stroke={isDark ? "#262626" : "#e2e8f0"}
-                            />
-                            <XAxis
-                              dataKey="day"
-                              tickFormatter={(value) =>
-                                dateOnly(`${value}T12:00:00-03:00`)
-                              }
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{
-                                fontSize: 11,
-                                fill: isDark ? "#71717a" : "#647d96",
-                              }}
-                              dy={10}
-                            />
-                            <YAxis
-                              allowDecimals={false}
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{
-                                fontSize: 11,
-                                fill: isDark ? "#71717a" : "#647d96",
-                              }}
-                            />
-                            <Tooltip
-                              labelFormatter={(value) =>
-                                dateOnly(`${value}T12:00:00-03:00`)
-                              }
-                              contentStyle={{
-                                borderRadius: 10,
-                                border: isDark
-                                  ? "1px solid #282828"
-                                  : "1px solid #e2e8f0",
-                                background: isDark ? "#181818" : "#ffffff",
-                                color: isDark ? "#f4f4f5" : "#0f2438",
-                                boxShadow: isDark
-                                  ? "0 8px 24px rgba(0, 0, 0, 0.6)"
-                                  : "0 4px 12px rgba(7, 91, 148, 0.08)",
-                                fontSize: 12,
-                              }}
-                              itemStyle={{
-                                color: isDark ? "#f4f4f5" : "#0f2438",
-                              }}
-                            />
-                            <Area
-                              isAnimationActive={false}
-                              type="monotone"
-                              dataKey="messages"
-                              name="Mensagens"
-                              stroke={isDark ? "#ffffff" : "#075B94"}
-                              strokeWidth={2}
-                              fill="url(#greenFade)"
-                            />
-                            <Area
-                              isAnimationActive={false}
-                              type="monotone"
-                              dataKey="delivered"
-                              name="Entregues"
-                              stroke={isDark ? "#a1a1aa" : "#14B4CB"}
-                              strokeWidth={2}
-                              strokeDasharray="5 4"
-                              fill="transparent"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="chart-footer">
-                        <span>
-                          <i />
-                          Atualizado com o histórico da fila
-                        </span>
-                        <strong>{d!.messages} mensagens no total</strong>
-                      </div>
-                    </Panel>
-                    <Panel
-                      title="Situação das respostas"
-                      className="response-panel"
-                    >
-                      <div className="response-hero">
-                        <div
-                          className="response-ring"
-                          style={{
-                            background: `conic-gradient(${isDark ? "#34d399" : "#10b981"} 0 ${percentage(d!.confirmed, d!.messages)}%,#f87171 ${percentage(d!.confirmed, d!.messages)}% ${percentage(d!.confirmed + d!.declined, d!.messages)}%,${isDark ? "#fbbf24" : "#f59e0b"} ${percentage(d!.confirmed + d!.declined, d!.messages)}% ${percentage(d!.confirmed + d!.declined + d!.no_response, d!.messages)}%,${isDark ? "#262626" : "#e2e8f0"} 0)`,
-                          }}
-                        >
-                          <div>
-                            <strong>
-                              {percentage(d!.confirmed, d!.messages)}
-                              <small>%</small>
-                            </strong>
-                            <span>confirmados</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="response-breakdown">
-                        {[
-                          [
-                            "confirmed",
-                            "Confirmados",
-                            isDark ? "#34d399" : "#10b981",
-                          ],
-                          ["declined", "Não comparecerão", "#f87171"],
-                          [
-                            "no_response",
-                            "Sem resposta no prazo",
-                            isDark ? "#fbbf24" : "#f59e0b",
-                          ],
-                          [
-                            "pending",
-                            "Aguardando resposta",
-                            isDark ? "#71717a" : "#94a3b8",
-                          ],
-                          [
-                            "not_requested",
-                            "Sem envio confirmado",
-                            isDark ? "#27272a" : "#cbd5e1",
-                          ],
-                        ].map(([key, label, color]) => (
-                          <button
-                            key={key}
-                            onClick={() => cardNavigate("messages", key, true)}
-                          >
-                            <span>
-                              <i style={{ background: color }} />
-                              {label}
-                            </span>
-                            <strong>{d!.responses[key] || 0}</strong>
-                          </button>
-                        ))}
-                      </div>
-                    </Panel>
-                  </div>
-                </>
+                <OverviewWorkspace
+                  data={d!}
+                  unit={unit}
+                  start={start}
+                  end={end}
+                  kind={kind}
+                  kinds={kinds}
+                  isDark={isDark}
+                  onFilterChange={(newKind, newStart, newEnd) => {
+                    setKind(newKind);
+                    setStart(newStart);
+                    setEnd(newEnd);
+                    setListPage(1);
+                  }}
+                  onNavigate={(nextPage, filter, isResponse) => {
+                    cardNavigate(nextPage, filter || "", isResponse || false);
+                  }}
+                />
               )}
               {page === "appointments" && (
                 <OperationalAppointments
