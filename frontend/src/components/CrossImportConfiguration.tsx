@@ -8,9 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileSpreadsheet,
-  Layers,
   SlidersHorizontal,
-  UploadCloud,
   X,
 } from "lucide-react";
 
@@ -238,7 +236,7 @@ export function CrossLayoutEditor({
     current = mapping || schema?.default_mappings[format] || {};
   return (
     <FormAction
-      title={record ? "Configurar modelo Importa CROSS" : "Novo modelo Importa CROSS"}
+      title={record ? "Nova versão do modelo" : "Novo modelo Importa CROSS"}
       label={record ? "Editar" : "Adicionar modelo"}
       busy={busy}
       error={error}
@@ -261,9 +259,7 @@ export function CrossLayoutEditor({
                     phone: current.celular || current.celular2 || "",
                     occurred_at: reference || current.data || "",
                   }
-                : format === "cross_demand_csv"
-                  ? { external_id: "Código", patient: "Nome", phone: "Telefone", occurred_at: "Data Entrada" }
-                  : {},
+                : {},
             evidence,
             verified,
           }).catch(() => {});
@@ -318,12 +314,6 @@ export function CrossLayoutEditor({
               ))}
           </select>
         </label>
-        {selected && (
-          <section className="op-card">
-            <h3>Conteúdo do template</h3>
-            <p style={{ whiteSpace: "pre-wrap" }}>{selected.body || "Sem conteúdo"}</p>
-          </section>
-        )}
         <div className="cross-mapping-subgroup">
           <h4 className="cross-mapping-subtitle">Parâmetros do template</h4>
           <TemplateFields
@@ -387,6 +377,8 @@ export function CrossImportForm({
   const { schema, error } = useSchema(unit);
   const [layoutId, setLayoutId] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [fields, setFields] = useState<string[] | null>(null);
+  const [mapping, setMapping] = useState<Record<string, string> | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -396,12 +388,14 @@ export function CrossImportForm({
   const layout = layouts.find((l) => String(l.id) === layoutId);
   const selected = templates.find((t) => String(t.id) === templateId);
   const current =
+    mapping ||
     (layout?.standard_mapping && Object.keys(layout.standard_mapping).length
       ? layout.standard_mapping
       : schema?.default_mappings[layout?.format || "table"]) ||
     {};
 
   const mappedCount = Object.values(current).filter((val) => Boolean(val && val.trim())).length;
+  const paramCount = parameterCount(selected);
 
   const handleFileChange = (newFile: File | null) => {
     if (!newFile) {
@@ -414,7 +408,7 @@ export function CrossImportForm({
     }
     const ext = newFile.name.slice(newFile.name.lastIndexOf(".")).toLowerCase();
     if (![".csv", ".xlsx", ".xls"].includes(ext)) {
-      setLocalError("Formato de arquivo não suportado. Utilize arquivos .xlsx, .xls ou .csv.");
+      setLocalError("Formato não suportado. Utilize .xlsx, .xls ou .csv.");
       return;
     }
     setLocalError("");
@@ -475,6 +469,9 @@ export function CrossImportForm({
       for (const byte of bytes) binary += String.fromCharCode(byte);
       await act("sheet-imports", {
         layout: Number(layoutId),
+        template: Number(templateId),
+        parameter_fields: fields || suggestedParameters(selected),
+        standard_mapping: current,
         filename: file.name,
         content_base64: btoa(binary),
       });
@@ -486,26 +483,13 @@ export function CrossImportForm({
     <FormAction
       title="Importar planilha"
       label="Importar planilha"
-      description="Carregue arquivos .xlsx ou .csv para validação e geração de prévia dos agendamentos"
-      subtitleIcon={<FileSpreadsheet size={15} className="cross-title-icon" />}
       icon={<FileSpreadsheet size={15} />}
       busy={busy}
       error={localError || error}
       className="cross-import-modal"
     >
       <form className="op-form cross-import-form" onSubmit={handleSubmit}>
-        {/* Seção 1: Configuração do Modelo e Template */}
         <div className="cross-section-card">
-          <div className="cross-section-header">
-            <Layers size={16} className="cross-section-icon" />
-            <div className="cross-section-title-wrap">
-              <span className="cross-section-title">1. Configuração da Importação</span>
-              <span className="cross-section-subtitle">
-                Selecione o modelo homologado e o template de mensagem vinculado
-              </span>
-            </div>
-          </div>
-
           <div className="cross-two-fields">
             <div className="cross-field-wrapper">
               <label className="cross-field-label-text">
@@ -521,7 +505,12 @@ export function CrossImportForm({
                   );
                   setLayoutId(e.target.value);
                   setTemplateId(String(found?.default_template || ""));
-
+                  setFields(
+                    found?.parameter_fields?.length
+                      ? found.parameter_fields
+                      : null,
+                  );
+                  setMapping(null);
                 }}
               >
                 <option value="">Selecione um modelo</option>
@@ -549,26 +538,36 @@ export function CrossImportForm({
               <label className="cross-field-label-text">
                 Template de mensagem
               </label>
-              <p>{selected?.name || "Não configurado"}</p>
-              {selected && <p style={{ whiteSpace: "pre-wrap" }}>{selected.body}</p>}
-              {layout && !selected && <p>Configure um template neste modelo antes de importar.</p>}
-
+              <select
+                required
+                className="cross-select"
+                value={templateId}
+                onChange={(e) => {
+                  setTemplateId(e.target.value);
+                  setFields(null);
+                }}
+              >
+                <option value="">Selecione o template</option>
+                {templates
+                  .filter((t) => compatible(t, layout?.format || "table"))
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+              </select>
+              {selected && (
+                <div className="cross-field-tags">
+                  <span className="cross-badge cross-badge-template">
+                    💬 {paramCount} parâmetro{paramCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Seção 2: Upload da Planilha */}
         <div className="cross-section-card">
-          <div className="cross-section-header">
-            <UploadCloud size={16} className="cross-section-icon" />
-            <div className="cross-section-title-wrap">
-              <span className="cross-section-title">2. Planilha de Dados</span>
-              <span className="cross-section-subtitle">
-                Envie o arquivo contendo os dados dos agendamentos (.xlsx, .xls ou .csv)
-              </span>
-            </div>
-          </div>
-
           <input
             ref={fileInputRef}
             type="file"
@@ -602,7 +601,7 @@ export function CrossImportForm({
                   <strong>Arraste e solte o arquivo aqui</strong> ou <span className="cross-browse-link">procure no computador</span>
                 </p>
                 <p className="cross-dropzone-hint">
-                  Formatos aceitos: Excel (.xlsx, .xls) ou CSV (.csv) • Máximo 5 MB
+                  .xlsx, .xls ou .csv (até 5 MB)
                 </p>
               </div>
             </div>
@@ -648,7 +647,6 @@ export function CrossImportForm({
           )}
         </div>
 
-        {/* Seção 3: Mapeamento de Colunas e Parâmetros (Accordion) */}
         {layout && (
           <div className="cross-accordion-card">
             <button
@@ -661,12 +659,12 @@ export function CrossImportForm({
                 <SlidersHorizontal size={15} />
                 <span className="cross-accordion-title">Mapeamento de colunas e parâmetros</span>
                 <span className="cross-accordion-badge">
-                  {mappedCount} campos mapeados
+                  {mappedCount} campos
                 </span>
               </div>
               <div className="cross-accordion-header-right">
                 <span className="cross-accordion-hint">
-                  {showAdvanced ? "Ocultar" : "Ver configuração"}
+                  {showAdvanced ? "Ocultar" : "Personalizar"}
                 </span>
                 {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </div>
@@ -674,24 +672,33 @@ export function CrossImportForm({
 
             {showAdvanced && (
               <div className="cross-accordion-body">
-                <div className="mapping-chips">
-                  {(layout.parameter_fields || []).map((field, i) => (
-                    <span className="mapping-chip" key={i}>{`{{${i + 1}}} → ${field}`}</span>
-                  ))}
-                  {Object.entries(current).filter(([, column]) => !!column).map(([field, column]) => (
-                    <span className="mapping-chip" key={field}>{field}: {column}</span>
-                  ))}
+                {paramCount > 0 && (
+                  <div className="cross-mapping-subgroup">
+                    <h4 className="cross-mapping-subtitle">
+                      Parâmetros do Template WhatsApp ({paramCount})
+                    </h4>
+                    <TemplateFields
+                      template={selected}
+                      fields={fields || suggestedParameters(selected)}
+                      onChange={setFields}
+                    />
+                  </div>
+                )}
+
+                <div className="cross-mapping-subgroup">
+                  <h4 className="cross-mapping-subtitle">
+                    Colunas da Planilha
+                  </h4>
+                  <MappingFields mapping={current} onChange={setMapping} />
                 </div>
-                <p>Editar em Configurações → Importa CROSS · modelos e templates.</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Botão de envio (FormAction extrai para o footer) */}
         <button
           className="button primary cross-submit-action"
-          disabled={busy || !schema || !layoutId || !layout?.default_template || !selected || !file}
+          disabled={busy || !schema || !layoutId || !templateId || !file}
         >
           <ArrowRight size={15} />
           <span>{busy ? "Processando..." : "Gerar prévia"}</span>
