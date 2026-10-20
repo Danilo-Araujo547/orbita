@@ -44,6 +44,7 @@ class UnitSerializer(serializers.ModelSerializer):
             "version",
             "authorized_recipients",
             "effective_recipients",
+            "logo",
         ]
         read_only_fields = ["version"]
 

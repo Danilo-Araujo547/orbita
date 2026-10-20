@@ -12,6 +12,7 @@ class Unit(models.Model):
     timezone = models.CharField(max_length=50, default="America/Sao_Paulo")
     paused = models.BooleanField(default=True)
     response_hours = models.PositiveIntegerField(default=24)
+    logo = models.TextField(blank=True, default="")
 
 
 class Membership(models.Model):

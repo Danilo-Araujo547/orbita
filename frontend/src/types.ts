@@ -27,6 +27,7 @@ export interface Unit {
   instance_name?: string;
   origin_unit?: string;
   connection_state?: string;
+  logo?: string;
 }
 export interface Session {
   username: string;
