@@ -2,7 +2,7 @@ import LegacyLabel from "./LegacyLabel";
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { User, X } from "lucide-react";
+import { X } from "lucide-react";
 
 const openDialogs = new Set<HTMLElement>();
 let originalBodyOverflow = "";
@@ -50,7 +50,7 @@ export default function InlineDialog({
       if (event.key !== "Tab") return;
       const fields = Array.from(
         dialog.current?.querySelectorAll<HTMLElement>(
-          "button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]",
+          "button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary",
         ) || [],
       ).filter((el) => el.offsetParent !== null);
       const first = fields[0],
@@ -78,7 +78,7 @@ export default function InlineDialog({
       onClick={() => !busy && onClose()}
     >
       <section
-        className={`modal inline-dialog ${className}`}
+        className={`modal inline-dialog ${className}`.trim()}
         ref={dialog}
         role="dialog"
         aria-modal="true"
@@ -86,25 +86,20 @@ export default function InlineDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          type="button"
           className="modal-close icon-button"
           aria-label="Fechar janela"
           disabled={busy}
           onClick={onClose}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
         <header className="observation-header">
           <h2><LegacyLabel legacy={legacy}>{title}</LegacyLabel></h2>
           {subtitle && (
-            <p
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              {subtitleIcon !== undefined ? subtitleIcon : <User size={14} aria-hidden="true" />}
-              {subtitle}
+            <p className="inline-dialog-subtitle">
+              {subtitleIcon}
+              <span>{subtitle}</span>
             </p>
           )}
         </header>
