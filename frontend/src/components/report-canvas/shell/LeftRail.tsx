@@ -102,7 +102,7 @@ export default function LeftRail({
         aria-labelledby={`cv-rail-tab-${libraryTab}`}
         style={{ gridColumn: 2, gridRow: 1 }}
         hidden={!leftOpen}
-        className="cv-left-panel rc-sidebar rc-sidebar-left"
+        className="cv-left-panel"
       >
         {children}
       </aside>

@@ -64,6 +64,7 @@
 .cv-root .cv-left-panel {
   grid-column: 2;
   grid-row: 1;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   min-height: 0;
