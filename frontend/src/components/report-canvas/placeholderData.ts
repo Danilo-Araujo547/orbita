@@ -39,7 +39,7 @@ export function placeholderDataset(
 
   if (!numeric.size) {
     const amount = fields.find((c) =>
-      /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|dias|leitos|meta/i.test(
+      /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|consultas?|procedimentos?|pacientes?|dias|leitos|meta/i.test(
         c,
       ),
     );
@@ -61,7 +61,7 @@ export function placeholderDataset(
       const isNum =
         numeric.has(column) ||
         periodColumn.test(column) ||
-        /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|dias|leitos|ocupa|razão|meta|^sus$|convênio|particular|sansaúde|iamspe|^m\d+$|^ano$|^year$|^cd_|^id$/i.test(
+        /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|consultas?|procedimentos?|pacientes?|dias|leitos|ocupa|razão|meta|^sus$|convênio|particular|sansaúde|iamspe|^m\d+$|^ano$|^year$|^cd_|^id$/i.test(
           column,
         );
 

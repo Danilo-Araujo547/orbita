@@ -18,6 +18,7 @@ import ColumnSelect, {
   getDisabledNumericReason,
   isNumericColumnAllowed,
 } from "./fields/ColumnSelect";
+import FieldWell from "./fields/FieldWell";
 import {
   adjustWidthsProportionally,
   computeKpiPreviewSample,
@@ -27,6 +28,7 @@ import {
   formatSourceLineageLine,
   interpolateTextPreview,
   remapColumnsForNewSource,
+  resolveSourceColumnInfos,
 } from "./inspectorOps";
 
 describe("Normalização e sanitização de novas opções do Canvas (round-trip)", () => {
@@ -538,5 +540,44 @@ describe("Renderização do Inspector (Página, Conteúdo, Aparência e Dados)",
     expect(dataHtml).toContain("Gráfico aceita até 500 pontos — este tem 1.284");
     expect(dataHtml).toContain("Agrupar por mês");
     expect(dataHtml).toContain("15/10/2026");
+  });
+
+  it("infere tipos a partir de amostra sintética e exibe aviso de tipo desconhecido sem duplicação", () => {
+    const catalogSource: CatalogSqlSource = {
+      id: 10,
+      name: "Atendimentos",
+      code: "atend",
+      columns: ["especialidade", "consultas", "meta"],
+      datasets: [{ id: "rows", name: "Linhas", columns: ["especialidade", "consultas", "meta"] }],
+    };
+
+    const source = {
+      id: "src1",
+      type: "report" as const,
+      report_id: 10,
+      dataset: "rows",
+      label: "Atendimentos",
+    };
+
+    // Sem preview da API, resolveSourceColumnInfos infere tipos a partir da amostra sintética
+    const cols = resolveSourceColumnInfos(source, null, [catalogSource]);
+    const consultasCol = cols.find((c) => c.name === "consultas");
+    expect(consultasCol?.type).toBe("number");
+    expect(consultasCol?.sample).toBeDefined();
+
+    // FieldWell exibe aviso de tipo desconhecido em 1 linha única sem duplicação
+    const wellHtml = renderToStaticMarkup(
+      <FieldWell
+        index={0}
+        total={1}
+        value="col_sem_tipo"
+        columns={[{ name: "col_sem_tipo", type: "unknown" }]}
+        onlyNumeric={true}
+        onChange={() => {}}
+      />,
+    );
+    const occurrences = (wellHtml.match(/Tipo desconhecido/g) || []).length;
+    expect(occurrences).toBe(1);
+    expect(wellHtml).toContain("cv-well-meta-warn");
   });
 });

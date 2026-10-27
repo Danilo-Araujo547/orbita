@@ -1,4 +1,5 @@
 import { inferColumnType } from "../data/columnTypes";
+import { placeholderDataset } from "../placeholderData";
 import type {
   BlockOptions,
   BlockType,
@@ -70,6 +71,43 @@ export function resolveSourceColumnInfos(
   const dataset =
     catalog?.datasets?.find((d) => d.id === (source.dataset || "rows")) || catalog?.datasets?.[0];
   const names = dataset?.columns || catalog?.columns || [];
+  if (!names.length) return [];
+
+  try {
+    const sample = placeholderDataset(
+      {
+        id: "sample_block",
+        type: "table",
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        source_id: source.id,
+        options: { columns: names },
+      },
+      source,
+      catalog,
+    );
+    if (sample && sample.rows.length > 0) {
+      return names.map((name) => {
+        const colIdx = sample.columns.indexOf(name);
+        const vals = colIdx >= 0 ? sample.rows.map((r) => r[colIdx]) : [];
+        const inferred = inferColumnType(vals);
+        const sampleVals = vals
+          .filter((v) => v !== null && v !== undefined && v !== "")
+          .slice(0, 3)
+          .map(String);
+        return {
+          name,
+          type: inferred,
+          sample: sampleVals.length > 0 ? sampleVals : undefined,
+        };
+      });
+    }
+  } catch {
+    // fallback se falhar inferência
+  }
+
   return names.map((name) => ({ name, type: "unknown" as const }));
 }
 

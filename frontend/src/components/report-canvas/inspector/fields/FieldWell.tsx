@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from "react";
-import { ArrowDown, ArrowUp, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, X } from "lucide-react";
 import type { ColumnInfo } from "../../model";
 import ColumnSelect from "./ColumnSelect";
 
@@ -78,6 +78,7 @@ export default function FieldWell({
           value={value}
           columns={columns}
           onlyNumeric={onlyNumeric}
+          hideWarn={true}
           placeholder="Escolher coluna numérica…"
           onChange={onChange}
         />
@@ -123,7 +124,10 @@ export default function FieldWell({
         )}
       </div>
       {showUnknownWarn && (
-        <p className="cv-field-warn">Tipo desconhecido, carregue a prévia na aba Dados.</p>
+        <div className="cv-well-meta-warn" role="status">
+          <AlertTriangle size={11} aria-hidden="true" />
+          <span>Tipo desconhecido · carregue a prévia</span>
+        </div>
       )}
     </div>
   );

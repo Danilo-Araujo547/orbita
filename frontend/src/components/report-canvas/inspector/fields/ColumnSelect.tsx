@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Search } from "lucide-react";
 import ColumnBadge from "../../data/ColumnBadge";
 import type { ColumnDataType, ColumnInfo } from "../../model";
 
@@ -36,6 +36,7 @@ export interface ColumnSelectProps {
   onlyNumeric?: boolean;
   disabled?: boolean;
   error?: string;
+  hideWarn?: boolean;
   onChange: (columnName: string) => void;
 }
 
@@ -51,6 +52,7 @@ export default function ColumnSelect({
   onlyNumeric = false,
   disabled = false,
   error,
+  hideWarn = false,
   onChange,
 }: ColumnSelectProps) {
   const autoId = useId();
@@ -356,7 +358,7 @@ export default function ColumnSelect({
     </>
   );
 
-  if (!label && !effectiveError && !showUnknownWarn) {
+  if (!label && !effectiveError && (!showUnknownWarn || hideWarn)) {
     return wrapper;
   }
 
@@ -373,9 +375,10 @@ export default function ColumnSelect({
           {effectiveError}
         </p>
       )}
-      {showUnknownWarn && (
+      {showUnknownWarn && !hideWarn && (
         <p id={warnId} className="cv-field-warn">
-          Tipo desconhecido — carregue a prévia na aba Dados.
+          <AlertTriangle size={12} aria-hidden="true" />
+          <span>Tipo desconhecido — carregue a prévia na aba Dados</span>
         </p>
       )}
     </div>
