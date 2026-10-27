@@ -267,33 +267,6 @@
   color: var(--cv-accent-hover);
 }
 
-/* Subtle Hatching for Sample Data */
-.rc-block.is-sample-hatching > .rc-block-inner {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 12px,
-    rgba(15, 36, 56, 0.02) 12px,
-    rgba(15, 36, 56, 0.02) 24px
-  );
-}
-
-/* Watermark for small blocks in sample mode */
-.rc-sample-watermark {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--cv-font-ui);
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--cv-text-disabled);
-  pointer-events: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 /* 8 Resize Handles (8×8 px) */
 .rc-resize-handle {
   position: absolute;

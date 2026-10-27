@@ -7,6 +7,7 @@ export interface StatusBarProps {
   dirty?: boolean;
   saving?: boolean;
   version?: number;
+  hasSampleData?: boolean;
   selectedBlock?: CanvasBlock | null;
   limits?: CanvasLimitsSummary;
   children?: ReactNode;
@@ -16,6 +17,7 @@ export default function StatusBar({
   dirty = false,
   saving = false,
   version = 1,
+  hasSampleData = false,
   selectedBlock = null,
   limits,
   children,
@@ -58,6 +60,14 @@ export default function StatusBar({
         <span className={`cv-save-indicator ${saveModifier}`.trim()}>{saveLabel}</span>
         <span aria-hidden="true">·</span>
         <span className="cv-version-tag">v{version}</span>
+        {hasSampleData && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span className="cv-sample-indicator" title="Exibindo dados sintéticos de exemplo">
+              Dados de exemplo
+            </span>
+          </>
+        )}
         {children}
       </div>
 

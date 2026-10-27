@@ -153,9 +153,6 @@ function BlockFrameComponent({
     }
   }
 
-  const isSmall = currentW < 120 || currentH < 60;
-  const isSampleHatching = originState === "sample";
-
   const blockDisplayName = block.title || BLOCK_LABELS[block.type];
   const pageLabel = pageName || `página ${pageIndex + 1}`;
   const ariaLabel = `${BLOCK_LABELS[block.type]}, ${blockDisplayName}, ${pageLabel}`;
@@ -167,9 +164,7 @@ function BlockFrameComponent({
       aria-label={ariaLabel}
       className={`rc-block rc-block-${block.type} ${isSelected ? "is-selected" : ""} ${
         isDragging ? "is-dragging" : ""
-      } ${problem ? `has-problem is-${problem.severity}` : ""} ${
-        isSampleHatching ? "is-sample-hatching" : ""
-      }`.trim()}
+      } ${problem ? `has-problem is-${problem.severity}` : ""}`.trim()}
       style={{
         left: `${currentX}px`,
         top: `${currentY}px`,
@@ -229,13 +224,6 @@ function BlockFrameComponent({
           {Math.round(block.x)}, {Math.round(block.y)} · {Math.round(block.width)}×
           {Math.round(block.height)}
         </span>
-      )}
-
-      {/* Small sample watermark */}
-      {isSampleHatching && isSmall && (
-        <div className="rc-sample-watermark" aria-hidden="true">
-          Dados de exemplo
-        </div>
       )}
 
       {/* Block Preview Content or Inline Problem Message */}

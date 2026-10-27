@@ -620,6 +620,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
           dirty={dirty}
           saving={session.busy}
           version={displayVersion}
+          hasSampleData={showSampleData}
           selectedBlock={selectedBlock}
           limits={limits}
         />
