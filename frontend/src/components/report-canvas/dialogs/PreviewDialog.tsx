@@ -1,10 +1,16 @@
 import { useId } from "react";
 import type { FormEvent } from "react";
-import { Check, Download } from "lucide-react";
+import { AlertCircle, Check, Clock, Download } from "lucide-react";
 import InlineDialog from "../../InlineDialog";
 import Select from "../../Select";
 import type { OutputFormat } from "../model";
 import type { TestParameter } from "../parameters";
+
+export interface PreviewServerError {
+  blockId?: string;
+  sourceId?: string;
+  message: string;
+}
 
 export interface PreviewModalState {
   format: OutputFormat;
@@ -12,6 +18,8 @@ export interface PreviewModalState {
   resultUrl?: string;
   resultName?: string;
   resultFormat?: string;
+  generationTimeMs?: number;
+  serverErrors?: PreviewServerError[];
   busy: boolean;
   error: string;
   info: string;
@@ -24,6 +32,7 @@ export interface PreviewDialogProps {
   onChange: (next: PreviewModalState) => void;
   onClose: () => void;
   onSubmit: (e: FormEvent) => void;
+  onSelectBlock?: (blockId: string) => void;
 }
 
 export default function PreviewDialog({
@@ -33,6 +42,7 @@ export default function PreviewDialog({
   onChange,
   onClose,
   onSubmit,
+  onSelectBlock,
 }: PreviewDialogProps) {
   const previewFormId = useId();
   if (!previewModal) return null;
@@ -50,7 +60,7 @@ export default function PreviewDialog({
         <>
           <button
             type="button"
-            className="button"
+            className="cv-btn"
             disabled={previewModal.busy}
             onClick={onClose}
           >
@@ -59,7 +69,7 @@ export default function PreviewDialog({
           <button
             type="submit"
             form={previewFormId}
-            className="button primary"
+            className="cv-btn cv-btn-primary"
             disabled={previewModal.busy}
           >
             <Download size={14} />
@@ -75,11 +85,40 @@ export default function PreviewDialog({
       <div className="rc-test-layout">
         <form id={previewFormId} className="rc-subform rc-test-fields" onSubmit={onSubmit}>
           <strong>{reportName}</strong>
+
           {previewModal.error && (
-            <p className="inline-error" role="alert">
-              {previewModal.error}
-            </p>
+            <div className="rc-dialog-alert is-error" role="alert">
+              <AlertCircle size={15} />
+              <span>{previewModal.error}</span>
+            </div>
           )}
+
+          {previewModal.serverErrors && previewModal.serverErrors.length > 0 && (
+            <div className="rc-test-server-errors" role="region" aria-label="Erros por bloco">
+              <span className="rc-test-errors-title">Erros detectados no servidor:</span>
+              <ul className="rc-test-errors-list">
+                {previewModal.serverErrors.map((err, i) => (
+                  <li key={i}>
+                    {err.blockId && onSelectBlock ? (
+                      <button
+                        type="button"
+                        className="rc-test-error-link"
+                        onClick={() => {
+                          onSelectBlock(err.blockId!);
+                          onClose();
+                        }}
+                      >
+                        Bloco <code>{err.blockId}</code>: {err.message}
+                      </button>
+                    ) : (
+                      <span>{err.message}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {previewModal.info && (
             <div className="rc-banner rc-banner-ok" role="status">
               <div className="rc-banner-content">
@@ -88,6 +127,7 @@ export default function PreviewDialog({
               </div>
             </div>
           )}
+
           <label className="op-field">
             <span>Formato do arquivo</span>
             <Select
@@ -104,6 +144,7 @@ export default function PreviewDialog({
               <option value="xlsx">Excel (XLSX)</option>
             </Select>
           </label>
+
           <div className="rc-test-parameter-grid">
             {previewFields.map((field) => (
               <label className="op-field" key={field.name}>
@@ -165,16 +206,26 @@ export default function PreviewDialog({
               </label>
             ))}
           </div>
+
           {!previewFields.length && (
             <p className="rc-test-empty">Este relatório não exige parâmetros.</p>
           )}
         </form>
+
         {previewModal.resultUrl && (
           <section className="rc-test-result" aria-label="Prévia gerada">
             <div className="rc-test-result-bar">
-              <span>{previewModal.resultName}</span>
+              <div className="rc-test-result-meta">
+                <span className="rc-test-result-name">{previewModal.resultName}</span>
+                {previewModal.generationTimeMs !== undefined && (
+                  <span className="rc-test-result-time">
+                    <Clock size={12} aria-hidden="true" />
+                    Gerado em {(previewModal.generationTimeMs / 1000).toFixed(1)} s
+                  </span>
+                )}
+              </div>
               <a
-                className="button"
+                className="cv-btn cv-btn-primary"
                 href={previewModal.resultUrl}
                 download={previewModal.resultName}
               >
@@ -182,11 +233,27 @@ export default function PreviewDialog({
                 Baixar
               </a>
             </div>
+
             {previewModal.resultFormat === "pdf" ? (
-              <iframe title="Prévia do relatório" src={previewModal.resultUrl} />
+              <iframe
+                title="Prévia do relatório"
+                src={previewModal.resultUrl}
+                className="rc-preview-pdf-frame"
+              />
             ) : (
-              <div className="rc-test-empty">
-                Planilha gerada. Use Baixar para abrir no Excel.
+              <div className="rc-test-xlsx-summary">
+                <p>Planilha Excel gerada com sucesso.</p>
+                <p className="rc-test-xlsx-note">
+                  O arquivo contém todas as abas e formatações configuradas no layout.
+                </p>
+                <a
+                  className="cv-btn cv-btn-primary"
+                  href={previewModal.resultUrl}
+                  download={previewModal.resultName}
+                >
+                  <Download size={14} />
+                  Baixar planilha (.xlsx)
+                </a>
               </div>
             )}
           </section>

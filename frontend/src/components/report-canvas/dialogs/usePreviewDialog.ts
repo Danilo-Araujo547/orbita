@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { CanvasLayout, OutputFormat } from "../model";
 import { collectTestParameters, displayParameter, testParameters } from "../parameters";
-import type { PreviewModalState } from "./PreviewDialog";
+import type { PreviewModalState, PreviewServerError } from "./PreviewDialog";
 
 export function usePreviewDialog({
   parameterSchema,
@@ -40,6 +40,7 @@ export function usePreviewDialog({
       busy: false,
       error: "",
       info: "",
+      serverErrors: [],
     });
   }, [outputFormat, previewFields, validateBeforeSend]);
 
@@ -62,13 +63,25 @@ export function usePreviewDialog({
         setPreviewModal({ ...previewModal, error: (err as Error).message });
         return;
       }
-      setPreviewModal((curr) => (curr ? { ...curr, busy: true, error: "", info: "" } : null));
+      setPreviewModal((curr) =>
+        curr
+          ? {
+              ...curr,
+              busy: true,
+              error: "",
+              info: "",
+              serverErrors: [],
+            }
+          : null,
+      );
+      const t0 = performance.now();
       try {
         const res = await previewCanvas({
           layout: clean,
           parameters: parsedParams,
           format: previewModal.format,
         });
+        const duration = Math.round(performance.now() - t0);
         const url = trackDownloadUrl(res.blob);
         revokeDownloadUrl(previewModal.resultUrl);
         setPreviewModal((curr) =>
@@ -79,13 +92,33 @@ export function usePreviewDialog({
                 resultUrl: url,
                 resultName: res.filename,
                 resultFormat: res.format,
+                generationTimeMs: duration,
+                serverErrors: [],
                 info: res.info,
               }
             : null,
         );
       } catch (err) {
+        const duration = Math.round(performance.now() - t0);
+        const rawMsg = (err as Error).message || "Falha ao gerar prévia.";
+        const blockMatch = rawMsg.match(/Bloco\s+"([^"]+)"|Gráfico\s+"([^"]+)"/);
+        const serverErrors: PreviewServerError[] = [];
+        if (blockMatch) {
+          serverErrors.push({
+            blockId: blockMatch[1] || blockMatch[2],
+            message: rawMsg,
+          });
+        }
         setPreviewModal((curr) =>
-          curr ? { ...curr, busy: false, error: (err as Error).message } : null,
+          curr
+            ? {
+                ...curr,
+                busy: false,
+                error: rawMsg,
+                generationTimeMs: duration,
+                serverErrors,
+              }
+            : null,
         );
       }
     },
