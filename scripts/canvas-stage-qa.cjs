@@ -1,4 +1,5 @@
 // Read-only browser QA. Every API request is mocked; writes are always aborted.
+// Set CANVAS_QA_BLOCKS=100 for the stress profile; default is a quick AA smoke.
 // Uses synthetic session/data; no real login, credential or report is accessed.
 const { chromium } = require('playwright');
 const { default: AxeBuilder } = require('@axe-core/playwright');
@@ -10,8 +11,10 @@ const { default: AxeBuilder } = require('@axe-core/playwright');
   const errors = [], writes = [];
   page.on('pageerror', e => errors.push(e.name));
   page.on('console', m => {if (m.type() === 'error') errors.push(m.text().slice(0, 160));});
-  const rows = Array.from({length: 500}, (_, i) => [`P${i}`, i % 7]);
-  const layout = {schema_version: 1, page: {width: 3000, height: 3000, columns: 24, background: '#ffffff'}, sources: [{id: 's', type: 'inline', columns: ['X', 'Y'], rows}], pages: [{id: 'p1', name: 'QA', blocks: Array.from({length: 100}, (_, i) => ({id: `b${i}`, type: 'line', source_id: 's', x: 10 + i % 10 * 298, y: 10 + Math.floor(i / 10) * 298, width: 280, height: 270, title: `Bloco ${i}`, options: {x_field: 'X', y_fields: ['Y']}}))}]};
+  const requestedBlocks = Math.max(1, Math.min(100, Number(process.env.CANVAS_QA_BLOCKS) || 1));
+  const requestedPoints = Math.max(1, Math.min(500, Number(process.env.CANVAS_QA_POINTS) || 500));
+  const rows = Array.from({length: requestedPoints}, (_, i) => [`P${i}`, i % 7]);
+  const layout = {schema_version: 1, page: {width: 3000, height: 3000, columns: 24, background: '#ffffff'}, sources: [{id: 's', type: 'inline', columns: ['X', 'Y'], rows}], pages: [{id: 'p1', name: 'QA', blocks: Array.from({length: requestedBlocks}, (_, i) => ({id: `b${i}`, type: 'line', source_id: 's', x: 10 + i % 10 * 298, y: 10 + Math.floor(i / 10) * 298, width: 280, height: 270, title: `Bloco ${i}`, options: {x_field: 'X', y_fields: ['Y']}}))}]};
   await page.route('**/api/**', route => {
     const req = route.request(), path = new URL(req.url()).pathname;
     if (req.method() !== 'GET') { writes.push(path); return route.abort('blockedbyclient'); }
@@ -38,9 +41,11 @@ const { default: AxeBuilder } = require('@axe-core/playwright');
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   for (let i = 1; i <= 15; i++) {await page.mouse.move(box.x + box.width / 2 + i * 2, box.y + box.height / 2 + i); await page.waitForTimeout(20);}
+  const dragStyle = await first.evaluate(el => ({transform: getComputedStyle(el).transform, containment: getComputedStyle(el.querySelector(".cv-block-inner")).contain}));
   await page.mouse.up();
   await page.waitForTimeout(200);
   const perf = await page.evaluate(() => ({longTasksOver100: window.qaLongTasks.filter(v => v > 100), changedBlockDOMs: window.qaChangedBlocks.size}));
+  perf.dragStyle = dragStyle;
   console.log(JSON.stringify({phase: 'drag', perf}));
   const accessibility = {};
   for (const theme of ['light', 'dark']) {
@@ -60,6 +65,6 @@ const { default: AxeBuilder } = require('@axe-core/playwright');
   await page.keyboard.press('Control+0');
   await page.keyboard.press('Shift+1');
   const statusLive = await page.locator('[role="status"][aria-live="polite"]').count();
-  console.log(JSON.stringify({synthetic: true, blockCount, pointsPerChart: 500, perf, accessibility, overflow1100, focusAfterLastBlock, statusLive, consoleErrors: errors, attemptedWrites: writes}));
+  console.log(JSON.stringify({synthetic: true, blockCount, pointsPerChart: requestedPoints, perf, accessibility, overflow1100, focusAfterLastBlock, statusLive, consoleErrors: errors, attemptedWrites: writes}));
   await browser.close();
 })().catch(e => {console.error(e); process.exit(1);});

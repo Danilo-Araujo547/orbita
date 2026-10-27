@@ -299,7 +299,7 @@
 }
 
 .cv-type-badge.is-number {
-  background: rgba(15, 127, 115, 0.12);
+  background: var(--cv-surface);
   color: var(--cv-type-number);
   border-color: rgba(15, 127, 115, 0.25);
 }

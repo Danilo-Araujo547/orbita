@@ -22,6 +22,7 @@ describe("QA: importação sem perda silenciosa", () => {
     expect(parsed.rows).toHaveLength(2000);
     expect(() => parsePastedTable(["A\tB", ...Array(5000).fill("1\t2")].join("\n"))).toThrow(/2[.]?000 linhas/);
     expect(() => parsePastedTable(Array(101).fill("A").join("\t"))).toThrow(/100 colunas/);
+    expect(() => parsePastedTable(["A", ...Array(5000).fill("1")].join("\n"))).toThrow(/2[.]?000 linhas/);
   });
   it("preserva acentos, espaços e nomes de 100 caracteres; desambigua duplicados dentro do limite", () => {
     const name = "á".repeat(100);
@@ -166,4 +167,16 @@ it("preserva casas decimais, cores em maiúsculas e campos opcionais vazios vál
   layout.pages[0].name = " Página ";
   layout.pages[0].blocks = [{id: "b", type: "text", x: 0.12345, y: 0.33333, width: 200.12345, height: 100.12345, title: "", text: "", options: {x_field: "", value_field: "", color: "#ABCDEF", series_colors: ["#ABCDEF"]}}];
   expect(sanitizeLayoutForApi(normalizeLayout(layout))).toEqual(layout);
+});
+
+
+it("aborta prévia em andamento e ignora a resposta que chega depois da saída", async () => {
+  const controller = new AbortController();
+  let resolveResponse!: (value: Response) => void;
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(resolve => { resolveResponse = resolve; })));
+  const pending = fetchSourcePreviewRequest(1, "qa", {id: "s", type: "goals"}, {}, 50, controller.signal);
+  controller.abort();
+  await expect(pending).rejects.toMatchObject({name: "AbortError"});
+  resolveResponse(new Response(JSON.stringify({columns: [], rows: [[99]], total_rows: 1, truncated: false}), {status: 200}));
+  await Promise.resolve();
 });

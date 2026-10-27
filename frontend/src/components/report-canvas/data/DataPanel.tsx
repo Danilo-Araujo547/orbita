@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import {
   AlertCircle,
@@ -65,6 +65,12 @@ export default function DataPanel({
   onUpdateBlock,
 }: DataPanelProps) {
   const cacheScope = useContext(PreviewCacheScope);
+  const previewAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    previewAbortRef.current = controller;
+    return () => controller.abort();
+  }, []);
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, SourcePreviewEntry>>({});
   const [drawerSource, setDrawerSource] = useState<CanvasSource | null>(null);
@@ -100,6 +106,7 @@ export default function DataPanel({
         },
       }));
 
+      const signal = previewAbortRef.current?.signal;
       try {
         const result = await fetchSourcePreviewRequest(
           reportId,
@@ -107,7 +114,9 @@ export default function DataPanel({
           src,
           (src.type === "report" && src.parameters) || {},
           50,
+          signal,
         );
+        if (signal?.aborted) return;
 
         setCachedSourcePreview(src, result, (src.type === "report" && src.parameters) || {}, 50, cacheScope);
 
@@ -121,6 +130,7 @@ export default function DataPanel({
           },
         }));
       } catch (err: any) {
+        if (signal?.aborted || err?.name === "AbortError") return;
         const msg = err?.message || "Erro ao carregar prévia.";
         const status = err?.status || err?.response?.status;
         const unavail = isUnavailableStatus(status, msg);

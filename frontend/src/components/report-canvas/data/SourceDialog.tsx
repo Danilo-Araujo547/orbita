@@ -289,7 +289,7 @@ export default function SourceDialog({
   // Handle Ctrl+V paste on grid
   const handlePasteOnGrid = (e: ClipboardEvent<HTMLDivElement>) => {
     const text = e.clipboardData.getData("text/plain");
-    if (!text || (!text.includes("\t") && !text.includes(";") && !text.includes(","))) return;
+    if (!text || !/[\t;,\r\n]/.test(text)) return;
     e.preventDefault();
     try {
       const parsed = parsePastedTable(text);
