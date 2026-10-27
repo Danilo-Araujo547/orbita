@@ -225,7 +225,7 @@ Define o cálculo agregado aplicado às séries numéricas do grupo.
 ### 4.3. `series_colors`
 Lista de até 6 cores hexadecimais (`#rrggbb`) para personalizar as séries do gráfico.
 - Se omitido: preserva a paleta legada do PDF (`PALETTE` em `pdf.py`).
-- Se presente: substitui a paleta legada tanto no PDF quanto no XLSX/preview.
+- Se presente: substitui a paleta legada no PDF e no preview do editor. O XLSX usa o estilo nativo da planilha; personalização de suas cores ainda está pendente.
 
 ---
 
@@ -238,10 +238,50 @@ Lista de até 6 cores hexadecimais (`#rrggbb`) para personalizar as séries do g
 
 ---
 
-## 6. Ambiente de Staging da API
+## 6. Verificação e staging
 
-Para validação isolada do backend sem impacto nos containers de produção (`orbita-api-1`):
-- O container efêmero de staging pode ser instanciado via Docker usando a imagem `orbita-api:latest`, montando `/opt/orbita/backend` em modo somente leitura (`:ro`), conectado à rede `orbita_default` com alias de rede `api-stage`, e carregando as variáveis via `--env-file .env` (sem expor porta externa no host).
-- Para evitar conflitos de arquivos concorrentes com a Tarefa 01 (que atua exclusivamente em `frontend/` e `scripts/`), a orquestração do container de homologação é feita externamente sem alterações no repositório de scripts em execução simultânea.
-- O deploy em produção é de responsabilidade exclusiva do orquestrador do sistema.
+Não alterar runtime, credenciais ou serviços de produção para validar o Canvas.
+O staging do painel compartilha a API/banco; use apenas leitura e Prévia, nunca
+Salvar/ativar em relatório real. Suba somente `scripts/canvas-stage.sh up`.
+Testes de escrita usam fixtures no banco de teste ou requests mockados.
 
+```sh
+scripts/canvas-check.sh
+docker compose --profile test run --rm tests pytest -q -p no:cacheprovider tests/
+```
+
+A Tarefa 08 usa `scripts/canvas-stage-qa.cjs` em container Playwright próprio:
+todas as chamadas API são interceptadas, sessão e layouts são sintéticos e
+qualquer método diferente de GET é abortado. Isso verifica a UI do staging,
+sem provar integração autenticada com dados reais.
+
+## 7. Limites e endurecimento (Tarefa 08)
+
+- Layout: 750.000 bytes de JSON compacto UTF-8, mesmo critério do contador do front.
+  Não finitos são rejeitados; exceder retorna HTTP 400 com orientação para reduzir.
+- Tabela manual: 100 colunas únicas (nomes até 100 caracteres), 2.000 linhas;
+  sujeita também ao tamanho máximo do layout. Células de texto: até 2.000 caracteres.
+- Prévia de fonte aplica validação de identificador, tipo, label e tamanho antes
+  de consultar. JSON de tipos inválidos retorna 400, sem erro 500 por objeto não hashable.
+- Não finitos retornados por fontes na serialização da prévia produzem
+  `source_nonfinite_value` com mensagem acionável.
+- Falha inesperada de conexão: `source_connection_failed`; mensagem e log não
+  incluem o texto da exceção, consulta, linha ou credencial.
+- Audit de prévia contém somente metadados (formato/contagens/tempo/ID da fonte),
+  sem amostras, parâmetros, linhas ou arquivo exportado. Audit de **salvamento**
+  continua contendo o layout, inclusive linhas manuais que fazem parte dele.
+- Cache de prévia: somente memória, separado por unidade/relatório/especificação/
+  parâmetros/limite, até 30 entradas; limpo ao sair do editor. Preferências locais
+  de painéis continuam existindo; rascunhos não contêm cache de dados consultados.
+- Agrupamento usa ISO válido, ignorando X nulo. Strings compactas, semanas ISO
+  escritas como `2020-W53-4` e `DD/MM/YYYY` não fazem parte do contrato. Semana
+  calculada sobre datas ISO começa segunda-feira; hora/fuso não muda o dia escrito.
+- Overflow de agregação produz `series_not_numeric`. Média divide antes de somar
+  para evitar overflow intermediário com valores grandes de mesmo sinal.
+- `export_format` retornado dentro do layout e campos opcionais conhecidos são
+  preservados no ciclo front normalizar/sanear; a API grava o formato solicitado.
+  Ausência de `options`, `color`, `font_size`, `parameters` e extensões continua
+  ausente; defaults de apresentação não são injetados na persistência.
+
+Guia de uso: [CANVAS_EDITOR.md](CANVAS_EDITOR.md). Evidências e limitações:
+[CANVAS_REDESIGN_NOTES.md](CANVAS_REDESIGN_NOTES.md).
