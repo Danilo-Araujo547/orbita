@@ -64,8 +64,10 @@ def line_chart(c,b,w,h):
     for i,r in enumerate(rows):
         if i%stride==0:
             c.setFillColor(colors.HexColor("#526980"));c.setFont("Helvetica",6);c.drawCentredString(left+i*step,bottom-12,str(r[0]))
+    custom_palette = b.get("options", {}).get("series_colors")
+    palette = custom_palette if custom_palette else PALETTE
     for series,name in enumerate(cols[1:]):
-        tone=colors.HexColor(b["options"].get("color",PALETTE[0]) if series==0 else PALETTE[series%len(PALETTE)])
+        tone = colors.HexColor(palette[series % len(palette)]) if custom_palette else colors.HexColor(b["options"].get("color",PALETTE[0]) if series==0 else PALETTE[series%len(PALETTE)])
         c.setStrokeColor(tone);c.setFillColor(tone);c.setLineWidth(1.2);previous=None
         for i,r in enumerate(rows):
             value=r[series+1]
@@ -83,18 +85,20 @@ def chart(c,b,w,h):
     if b["type"]=="line":line_chart(c,b,w,h);return
     title=Paragraph(escape(b.get("title","")),style(b,10));_,th=title.wrap(w,20);title.drawOn(c,0,h-th)
     d=Drawing(w,h-20)
+    custom_palette = b.get("options", {}).get("series_colors")
+    palette = custom_palette if custom_palette else PALETTE
     if b["type"]=="pie":
         g=Pie();g.width=w*.55;g.height=min(w*.55,max(30,h-80));g.x=(w-g.width)/2;g.y=20;g.data=[r[1] or 0 for r in b["rows"]];g.labels=[r[0] for r in b["rows"]]
         if not sum(g.data):draw_paragraph(c,b,"Sem dados",w,h-20);return
         g.sideLabels=True;g.simpleLabels=False;g.slices.fontSize=7
-        for i in range(len(g.data)):g.slices[i].fillColor=colors.HexColor(PALETTE[i%len(PALETTE)])
+        for i in range(len(g.data)):g.slices[i].fillColor=colors.HexColor(palette[i%len(palette)])
     else:
         g=VerticalBarChart() if b["type"]=="bar" else HorizontalLineChart()
         legend_height=0
         if len(b["columns"])>2:
             names=[]
             for i,name in enumerate(b["columns"][1:]):
-                tone=b["options"].get("color",PALETTE[0]) if i==0 else PALETTE[i%len(PALETTE)]
+                tone=palette[i % len(palette)] if custom_palette else (b["options"].get("color",PALETTE[0]) if i==0 else PALETTE[i%len(PALETTE)])
                 names.append('<font color="'+tone+'">'+escape(str(name))+'</font>')
             legend=Paragraph(" &nbsp;|&nbsp; ".join(names),style(b,7))
             _,legend_height=legend.wrap(w,1000)
@@ -106,8 +110,9 @@ def chart(c,b,w,h):
         g.categoryAxis.labels.fontSize=6;g.categoryAxis.labels.angle=25;g.valueAxis.labels.fontSize=7
         if b["type"]=="bar":g.valueAxis.valueMin=min([0,*[v for row in b["rows"] for v in row[1:] if v is not None]])
         for i in range(len(g.data)):
-            if b["type"]=="bar":g.bars[i].fillColor=colors.HexColor(b["options"].get("color",PALETTE[0]) if i==0 else PALETTE[i%len(PALETTE)])
-            else:g.lines[i].strokeColor=colors.HexColor(b["options"].get("color",PALETTE[0]) if i==0 else PALETTE[i%len(PALETTE)])
+            tone=colors.HexColor(palette[i % len(palette)] if custom_palette else (b["options"].get("color",PALETTE[0]) if i==0 else PALETTE[i%len(PALETTE)]))
+            if b["type"]=="bar":g.bars[i].fillColor=tone
+            else:g.lines[i].strokeColor=tone
     d.add(g);renderPDF.draw(d,c,0,0)
 
 
