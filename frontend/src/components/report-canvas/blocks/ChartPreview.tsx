@@ -12,9 +12,36 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Database } from "lucide-react";
+import { AlertCircle, Database } from "lucide-react";
 import type { CanvasBlock, CanvasSource, CatalogSqlSource } from "../model";
-import { BLOCK_LABELS, SERIES_PALETTE, parseNumberOrNull } from "../model";
+import { BLOCK_LABELS } from "../model";
+import { GroupingError, groupByCategorical, groupByDate, parseNumericValue } from "../stage/dataGrouping";
+
+export const PDF_LEGACY_PALETTE = [
+  "#075b94",
+  "#14b4cb",
+  "#71bfa6",
+  "#7289ba",
+  "#af76b5",
+  "#db9d49",
+];
+
+export const CHART_NEW_PALETTE = [
+  "#075b94",
+  "#c2610c",
+  "#0f7f73",
+  "#b5446e",
+  "#0e8fa3",
+  "#64748b",
+];
+
+export function resolveSeriesPalette(optColor?: string, customSeriesColors?: string[]): string[] {
+  if (customSeriesColors && customSeriesColors.length > 0) {
+    return customSeriesColors;
+  }
+  const base = optColor || PDF_LEGACY_PALETTE[0];
+  return [base, ...PDF_LEGACY_PALETTE.slice(1)];
+}
 
 export interface ChartPreviewProps {
   block: CanvasBlock;
@@ -72,6 +99,7 @@ export default function ChartPreview({
   const rawYs = opt.y_fields?.length ? opt.y_fields : dataset.columns.slice(1, 2);
   const yCols = rawYs.filter((c) => dataset.columns.includes(c)).slice(0, 6);
   const xIdx = xCol ? dataset.columns.indexOf(xCol) : -1;
+  const yIndices = yCols.map((c) => dataset.columns.indexOf(c));
 
   if (xIdx < 0 || yCols.length === 0 || dataset.rows.length === 0) {
     return (
@@ -93,23 +121,83 @@ export default function ChartPreview({
     );
   }
 
-  const chartData = dataset.rows.slice(0, 80).map((r) => {
-    const item: Record<string, string | number | null> = {
-      __x: String(r[xIdx] ?? ""),
-    };
-    for (const yc of yCols) {
-      const yi = dataset.columns.indexOf(yc);
-      item[yc] = yi >= 0 ? parseNumberOrNull(r[yi]) : null;
+  let processedRows: (string | number | null)[][];
+  try {
+    if (opt.x_group) {
+      const res = groupByDate({
+        rows: dataset.rows,
+        xColIndex: xIdx,
+        yColIndices: yIndices,
+        groupMode: opt.x_group as "day" | "week" | "month" | "quarter" | "year",
+        aggMode: (opt.y_aggregate as "sum" | "avg" | "count" | "min" | "max") || "sum",
+        seriesNames: yCols,
+        blockLabel: block.title || block.id,
+        xColName: xCol,
+        chartType: block.type,
+      });
+      processedRows = res.rows;
+    } else if (opt.y_aggregate) {
+      const res = groupByCategorical({
+        rows: dataset.rows,
+        xColIndex: xIdx,
+        yColIndices: yIndices,
+        aggMode: opt.y_aggregate as "sum" | "avg" | "count" | "min" | "max",
+        seriesNames: yCols,
+        blockLabel: block.title || block.id,
+        chartType: block.type,
+      });
+      processedRows = res.rows;
+    } else {
+      if (dataset.rows.length > 500) {
+        throw new GroupingError(
+          `Gráfico "${block.title || block.id}": aceita até 500 pontos, mas gerou ${dataset.rows.length} pontos. Agrupe por mês ou semana para reduzir os dados.`,
+          "chart_points_limit",
+        );
+      }
+      processedRows = dataset.rows.map((r) => [
+        String(r[xIdx] ?? ""),
+        ...yIndices.map((yi, idx) =>
+          parseNumericValue(r[yi], yCols[idx], block.title || block.id),
+        ),
+      ]);
+      if (block.type === "pie") {
+        for (const pr of processedRows) {
+          if (typeof pr[1] === "number" && pr[1] < 0) {
+            throw new GroupingError(
+              `Gráfico "${block.title || block.id}": gráfico de pizza não aceita valores negativos.`,
+              "pie_negative_value",
+            );
+          }
+        }
+      }
     }
+  } catch (err) {
+    return (
+      <div className="rc-block-inner">
+        {block.title && <div className="rc-block-title">{block.title}</div>}
+        <div className="rc-block-error-card">
+          <AlertCircle size={16} aria-hidden="true" />
+          <p className="rc-block-error-text">
+            {(err as Error).message || "Erro nos dados do gráfico."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const chartData = processedRows.map((r) => {
+    const item: Record<string, string | number | null> = {
+      __x: String(r[0] ?? ""),
+    };
+    yCols.forEach((yc, idx) => {
+      item[yc] = (r[idx + 1] as number | null) ?? null;
+    });
     return item;
   });
 
   const chartW = Math.max(90, Math.floor(block.width - 24));
   const chartH = Math.max(54, Math.floor(block.height - (block.title ? 44 : 20)));
-  const palette = [
-    primaryColor,
-    ...SERIES_PALETTE.filter((c) => c.toLowerCase() !== primaryColor),
-  ];
+  const palette = resolveSeriesPalette(opt.color, opt.series_colors);
 
   return (
     <div className="rc-block-inner">
