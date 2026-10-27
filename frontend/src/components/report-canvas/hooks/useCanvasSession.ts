@@ -41,6 +41,7 @@ export interface UseCanvasSessionParams {
     label: string,
     updater: (b: CanvasBlock) => CanvasBlock,
   ) => void;
+  onOpenProblemsPanel?: () => void;
 }
 
 export function useCanvasSession({
@@ -55,6 +56,7 @@ export function useCanvasSession({
   setSelectedBlockId,
   onFitToWidthAfterLoad,
   onUpdateBlock,
+  onOpenProblemsPanel,
 }: UseCanvasSessionParams) {
   const api = useCanvasApi({ reportId: report.id, unit });
   const [loading, setLoading] = useState(true);
@@ -136,12 +138,16 @@ export function useCanvasSession({
       if (!check.ok) {
         if (check.pageId) setActivePageId(check.pageId);
         if (check.blockId) setSelectedBlockId(check.blockId);
-        setBanner({ tone: "error", text: check.error });
+        if (onOpenProblemsPanel) {
+          onOpenProblemsPanel();
+        } else {
+          setBanner({ tone: "error", text: check.error });
+        }
         return null;
       }
       return check.layout;
     },
-    [store.layout, setActivePageId, setSelectedBlockId],
+    [store.layout, setActivePageId, setSelectedBlockId, onOpenProblemsPanel],
   );
 
   const handleSaveCanvas = useCallback(async () => {
@@ -149,7 +155,7 @@ export function useCanvasSession({
       setBanner({ tone: "error", text: "Corrija as larguras das colunas antes de salvar." });
       return;
     }
-    const clean = validateBeforeSend(enabled);
+    const clean = enabled ? validateBeforeSend(true) : store.layout;
     if (!clean) return;
     setBusy(true);
     setBanner(null);
@@ -180,9 +186,16 @@ export function useCanvasSession({
       onSaved?.();
     } catch (e) {
       const isConflict = e instanceof CanvasSaveError && e.isConflict;
+      const rawMsg = (e as Error).message || "Falha ao salvar o Canvas.";
+      const blockMatch = rawMsg.match(/Bloco\s+"([^"]+)"|Gráfico\s+"([^"]+)"/);
+      if (blockMatch) {
+        const blkId = blockMatch[1] || blockMatch[2];
+        setSelectedBlockId(blkId);
+        onOpenProblemsPanel?.();
+      }
       setBanner({
         tone: isConflict ? "conflict" : "error",
-        text: (e as Error).message || "Falha ao salvar o Canvas.",
+        text: rawMsg,
       });
     } finally {
       setBusy(false);
@@ -191,9 +204,11 @@ export function useCanvasSession({
     api,
     assetState.registerAssetsBatch,
     enabled,
+    onOpenProblemsPanel,
     onSaved,
     outputFormat,
     selectedBlockId,
+    store.layout,
     store.markSaved,
     validateBeforeSend,
     version,

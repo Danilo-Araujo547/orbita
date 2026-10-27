@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { PanelRightOpen } from "lucide-react";
+import { AlertTriangle, PanelRightOpen } from "lucide-react";
 import DataPanel from "./report-canvas/data/DataPanel";
 import SourceDialog from "./report-canvas/data/SourceDialog";
 import PreviewDialog from "./report-canvas/dialogs/PreviewDialog";
@@ -13,12 +13,9 @@ import Inspector from "./report-canvas/inspector/Inspector";
 import BlockLibrary from "./report-canvas/library/BlockLibrary";
 import ImagesPanel from "./report-canvas/library/ImagesPanel";
 import PagesPanel from "./report-canvas/library/PagesPanel";
-import {
-  computeVisibleCenterPosition,
-  duplicatePageInLayout,
-  useStageBlockDrop,
-} from "./report-canvas/library/structureOps";
+import { computeVisibleCenterPosition, duplicatePageInLayout, useStageBlockDrop } from "./report-canvas/library/structureOps";
 import type { BlockType, CanvasBlock, ReportCanvasProps } from "./report-canvas/model";
+import { clamp, round2 } from "./report-canvas/model";
 import Banner from "./report-canvas/shell/Banner";
 import EditorShell, { computeFitToPageZoom } from "./report-canvas/shell/EditorShell";
 import LeftRail from "./report-canvas/shell/LeftRail";
@@ -29,6 +26,15 @@ import TopBar from "./report-canvas/shell/TopBar";
 import { computeCanvasProblems } from "./report-canvas/shell/problems";
 import { useShellLayoutPrefs } from "./report-canvas/shell/useShellLayoutPrefs";
 import Stage from "./report-canvas/stage/Stage";
+import ShortcutsDialog from "./report-canvas/dialogs/ShortcutsDialog";
+import ProblemsPanel from "./report-canvas/problems/ProblemsPanel";
+import {
+  clearDraftFromStorage,
+  formatDraftTime,
+  isDraftDifferent,
+  loadDraftFromStorage,
+  saveDraftToStorage,
+} from "./report-canvas/state/draftRecovery";
 import {
   applyBlockUpdate,
   createBlockInLayout,
@@ -51,6 +57,7 @@ import "./report-canvas/layout.css";
 import "./report-canvas/shell.css";
 import "./report-canvas/library.css";
 import "./report-canvas/data.css";
+import "./report-canvas/stage.css";
 
 export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportCanvasProps) {
   const store = useCanvasStore();
@@ -63,11 +70,21 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("content");
   const [displayVersion, setDisplayVersion] = useState<number>(report.version || 1);
   const [hiddenAssetIds, setHiddenAssetIds] = useState<string[]>([]);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [problemsPanelOpen, setProblemsPanelOpen] = useState(false);
+  const [draftBanner, setDraftBanner] = useState<{
+    text: string;
+    onRestore: () => void;
+    onDiscard: () => void;
+  } | null>(null);
   const pendingCloseRef = useRef(false);
+  const draftCheckedRef = useRef(false);
 
   useEffect(() => {
     setDisplayVersion(report.version || 1);
     setHiddenAssetIds([]);
+    draftCheckedRef.current = false;
+    setDraftBanner(null);
   }, [report.id, report.version]);
 
   const prefs = useShellLayoutPrefs();
@@ -90,13 +107,15 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
   );
 
   const handleSessionSaved = useCallback(() => {
+    clearDraftFromStorage(unit, report.id, displayVersion);
+    setDraftBanner(null);
     setDisplayVersion((v) => v + 1);
     onSaved?.();
     if (pendingCloseRef.current) {
       pendingCloseRef.current = false;
       onClose();
     }
-  }, [onClose, onSaved]);
+  }, [displayVersion, onClose, onSaved, report.id, unit]);
 
   const session = useCanvasSession({
     unit,
@@ -110,7 +129,62 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
     setSelectedBlockId,
     onFitToWidthAfterLoad: (w) => fitRef.current(w),
     onUpdateBlock: updateBlockBase,
+    onOpenProblemsPanel: () => setProblemsPanelOpen(true),
   });
+
+  // Draft recovery check on report load
+  useEffect(() => {
+    if (session.loading) return;
+    if (draftCheckedRef.current) return;
+    draftCheckedRef.current = true;
+    const draft = loadDraftFromStorage(unit, report.id, displayVersion);
+    if (
+      draft &&
+      isDraftDifferent(draft, {
+        layout,
+        enabled: session.enabled,
+        outputFormat: session.outputFormat,
+      })
+    ) {
+      setDraftBanner({
+        text: `Há alterações não salvas deste navegador (${formatDraftTime(draft.timestamp)}).`,
+        onRestore: () => {
+          store.replace(draft.layout);
+          session.setEnabled(draft.enabled);
+          session.setOutputFormat(draft.outputFormat);
+          setDraftBanner(null);
+        },
+        onDiscard: () => {
+          clearDraftFromStorage(unit, report.id, displayVersion);
+          setDraftBanner(null);
+        },
+      });
+    }
+  }, [displayVersion, layout, report.id, session, store, unit]);
+
+  // Debounced auto-save draft to localStorage (2 seconds, local only)
+  const dirty = store.dirty || session.metaDirty;
+  useEffect(() => {
+    if (!dirty || session.loading || session.busy) return;
+    const timer = setTimeout(() => {
+      saveDraftToStorage(unit, report.id, displayVersion, {
+        layout,
+        enabled: session.enabled,
+        outputFormat: session.outputFormat,
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [
+    dirty,
+    displayVersion,
+    layout,
+    report.id,
+    session.busy,
+    session.enabled,
+    session.loading,
+    session.outputFormat,
+    unit,
+  ]);
 
   const { zoom, setZoom, stageRef, fitToWidth } = useFitZoom({
     loading: session.loading,
@@ -139,7 +213,6 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
     setBanner: session.setBanner,
   });
 
-  const dirty = store.dirty || session.metaDirty;
   useEffect(() => {
     if (!dirty) return;
     const warn = (e: BeforeUnloadEvent) => {
@@ -163,21 +236,43 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
     [layout.sources, session.monthlyGoals],
   );
 
-  const { dragState, startBlockDrag, startBlockResize } = usePointerDrag({
+  const handleReorderBlock = useCallback(
+    (blockId: string, dir: -1 | 1) => {
+      if (!activePage) return;
+      store.apply("Reordenar camada", (prev) => reorderBlockInLayout(prev, activePage.id, blockId, dir));
+    },
+    [activePage, store],
+  );
+
+  const { dragState, activeDrag, startBlockDrag, startBlockResize } = usePointerDrag({
     zoom,
     pageWidth: layout.page.width,
     pageHeight: layout.page.height,
+    columns: layout.page.columns,
+    blocks: activePage?.blocks || [],
     onSelectBlock: setSelectedBlockId,
     onApplyBlockDrag: (id, label, key, upd) => actions.updateBlock(id, label, upd, key),
   });
 
   useKeyboardShortcuts({
     selectedBlockId,
-    modalOpen: Boolean(session.sourceModal || session.previewModal),
+    blocks: activePage?.blocks || [],
+    modalOpen: Boolean(session.sourceModal || session.previewModal || shortcutsOpen),
+    onClearSelection: () => setSelectedBlockId(null),
+    onSelectBlock: setSelectedBlockId,
     onDeleteBlock: actions.removeBlock,
     onNudgeBlock: actions.nudgeBlock,
+    onDuplicateBlock: actions.duplicateSelectedBlock,
+    onReorderBlock: handleReorderBlock,
     onUndo: store.undo,
     onRedo: store.redo,
+    onSave: () => void session.handleSaveCanvas(),
+    onTogglePanels: prefs.toggleLeftPanel,
+    onOpenShortcuts: () => setShortcutsOpen(true),
+    onZoomIn: () => setZoom((z) => round2(clamp(z + 0.1, 0.25, 2))),
+    onZoomOut: () => setZoom((z) => round2(clamp(z - 0.1, 0.25, 2))),
+    onZoomReset: () => setZoom(1),
+    onFitToWidth: () => fitToWidth(),
   });
 
   const limits = useMemo(
@@ -271,14 +366,6 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
     [store],
   );
 
-  const handleReorderBlock = useCallback(
-    (blockId: string, dir: -1 | 1) => {
-      if (!activePage) return;
-      store.apply("Reordenar camada", (prev) => reorderBlockInLayout(prev, activePage.id, blockId, dir));
-    },
-    [activePage, store],
-  );
-
   const handleFitToPage = useCallback(() => {
     const next = computeFitToPageZoom(stageRef.current, layout.page.width, layout.page.height);
     if (next !== null) setZoom(next);
@@ -326,6 +413,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
           problemCount={problems.count}
           problemSeverity={problems.highestSeverity}
           problems={problems.items}
+          onOpenProblems={() => setProblemsPanelOpen((open) => !open)}
           onSelectProblem={(item) => {
             if (item.pageId) setActivePageId(item.pageId);
             if (item.blockId) {
@@ -342,6 +430,30 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
           onSaveAndClose={handleSaveAndClose}
           onClose={onClose}
         />
+        {draftBanner && (
+          <div className="cv-banner cv-banner-conflict" role="alert">
+            <div className="cv-banner-main">
+              <AlertTriangle size={15} aria-hidden="true" />
+              <span className="cv-banner-text">{draftBanner.text}</span>
+            </div>
+            <div className="cv-banner-actions">
+              <button
+                type="button"
+                className="cv-btn cv-btn-primary"
+                onClick={draftBanner.onRestore}
+              >
+                Restaurar
+              </button>
+              <button
+                type="button"
+                className="cv-btn"
+                onClick={draftBanner.onDiscard}
+              >
+                Descartar
+              </button>
+            </div>
+          </div>
+        )}
         <Banner
           banner={session.banner}
           disabled={session.loading || session.busy}
@@ -436,7 +548,34 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
                 onChangeWidth={prefs.updateLeftWidth}
               />
             )}
-            <Stage stageRef={stageRef} pageConfig={layout.page} blocks={activePage?.blocks || []} zoom={zoom} showGrid={showGrid} selectedBlockId={selectedBlockId} draggingBlockId={dragState?.blockId || null} sources={layout.sources} assets={visibleAssets} assetUrls={session.assetUrls} availableSources={session.availableSources} localDatasets={localDatasets} reportName={report.name} showSampleData={showSampleData} onClearSelection={() => setSelectedBlockId(null)} onSelectBlock={setSelectedBlockId} onStartDrag={startBlockDrag} onStartResize={startBlockResize} />
+            <Stage
+              stageRef={stageRef}
+              pages={layout.pages}
+              activePageId={activePageId}
+              onSelectPage={selectPage}
+              pageConfig={layout.page}
+              blocks={activePage?.blocks || []}
+              zoom={zoom}
+              onChangeZoom={setZoom}
+              showGrid={showGrid}
+              selectedBlockId={selectedBlockId}
+              draggingBlockId={dragState?.blockId || null}
+              tempGeometries={activeDrag ? { [activeDrag.blockId]: activeDrag } : undefined}
+              activeGuides={activeDrag?.guides}
+              blockProblems={problems.byBlockId}
+              onOpenProblem={() => setProblemsPanelOpen(true)}
+              sources={layout.sources}
+              assets={visibleAssets}
+              assetUrls={session.assetUrls}
+              availableSources={session.availableSources}
+              localDatasets={localDatasets}
+              reportName={report.name}
+              showSampleData={showSampleData}
+              onClearSelection={() => setSelectedBlockId(null)}
+              onSelectBlock={setSelectedBlockId}
+              onStartDrag={startBlockDrag}
+              onStartResize={startBlockResize}
+            />
             {prefs.rightOpen ? (
               <PanelResizer
                 side="right"
@@ -457,6 +596,26 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
             <Inspector rightOpen={prefs.rightOpen} selectedBlock={selectedBlock} activePage={activePage} inspectorTab={inspectorTab} pageConfig={layout.page} sources={layout.sources} assets={visibleAssets} uploadingAsset={session.uploadingAsset} knownColumns={selectedKnownColumns} resolveKnownColumns={resolveKnownColumns} onSelectBlock={setSelectedBlockId} onChangeTab={setInspectorTab} onReorderLayer={actions.reorderBlockLayer} onDuplicateBlock={actions.duplicateSelectedBlock} onRemoveBlock={actions.removeBlock} onTriggerImageUpload={(blockId) => session.triggerImageUpload(blockId)} onOpenCreateSource={session.openCreateSourceModal} onColumnWidthsValidation={session.handleColumnWidthsValidation} onUpdateBlock={actions.updateBlock} />
           </div>
         )}
+        <ProblemsPanel
+          open={problemsPanelOpen}
+          problems={problems.items}
+          activePageId={activePageId}
+          onClose={() => setProblemsPanelOpen(false)}
+          onSelectProblem={(item) => {
+            if (item.pageId) selectPage(item.pageId);
+            if (item.blockId) {
+              setSelectedBlockId(item.blockId);
+              prefs.openRightPanel();
+            }
+          }}
+          onFixProblem={(item) => {
+            if (item.pageId) selectPage(item.pageId);
+            if (item.blockId) {
+              setSelectedBlockId(item.blockId);
+              prefs.openRightPanel();
+            }
+          }}
+        />
         <StatusBar
           dirty={dirty}
           saving={session.busy}
@@ -477,7 +636,19 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
         onClose={() => session.setSourceModal(null)}
         onSubmit={session.handleSaveSource}
       />
-      <PreviewDialog previewModal={session.previewModal} reportName={report.name} previewFields={session.previewFields} onChange={session.setPreviewModal} onClose={session.closePreviewDialog} onSubmit={(e) => void session.handleRunPreview(e)} />
+      <PreviewDialog
+        previewModal={session.previewModal}
+        reportName={report.name}
+        previewFields={session.previewFields}
+        onChange={session.setPreviewModal}
+        onClose={session.closePreviewDialog}
+        onSubmit={(e) => void session.handleRunPreview(e)}
+        onSelectBlock={(bId) => {
+          setSelectedBlockId(bId);
+          prefs.openRightPanel();
+        }}
+      />
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </>
   );
 }
