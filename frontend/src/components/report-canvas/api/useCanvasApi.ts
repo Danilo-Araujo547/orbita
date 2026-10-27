@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { query, request } from "../../../api";
 import type {
   CanvasAssetMeta,
@@ -158,5 +158,8 @@ export function useCanvasApi({ reportId, unit }: { reportId: number; unit: strin
     [reportId, unit],
   );
 
-  return { fetchCanvas, saveCanvas, previewCanvas, uploadAsset };
+  return useMemo(
+    () => ({ fetchCanvas, saveCanvas, previewCanvas, uploadAsset }),
+    [fetchCanvas, saveCanvas, previewCanvas, uploadAsset],
+  );
 }
