@@ -7,6 +7,7 @@ import type {
   CatalogSqlSource,
 } from "../model";
 import { isDarkHex } from "../model";
+import EmptyState from "../common/EmptyState";
 import type { CanvasProblemItem } from "../shell/problems";
 import BlockFrame from "./BlockFrame";
 import type { ResizeHandle, SnapGuide } from "./geometry";
@@ -39,6 +40,7 @@ export interface PageViewProps {
   onSelectBlock: (blockId: string) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
   onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
+  onAddBlock?: () => void;
 }
 
 export default function PageView({
@@ -66,6 +68,7 @@ export default function PageView({
   onSelectBlock,
   onStartDrag,
   onStartResize,
+  onAddBlock,
 }: PageViewProps) {
   return (
     <div
@@ -118,6 +121,17 @@ export default function PageView({
               {guide.label && <span className="rc-snap-guide-label">{guide.label}</span>}
             </div>
           ))}
+
+        {blocks.length === 0 && (
+          <div className="cv-page-empty-wrap">
+            <EmptyState
+              title="A página está vazia"
+              description="Adicione gráficos, tabelas ou indicadores para compor esta página."
+              actionLabel="Adicionar bloco"
+              onAction={onAddBlock}
+            />
+          </div>
+        )}
 
         {blocks.map((block) => (
           <BlockFrame

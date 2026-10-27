@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Image as ImageIcon, PanelLeftClose, Trash2, Upload } from "lucide-react";
 import InlineDialog from "../../InlineDialog";
+import EmptyState from "../common/EmptyState";
 import type { CanvasAssetMeta, CanvasBlock, CanvasPage } from "../model";
 import { classifyLimitRatio } from "../state/limits";
 
@@ -92,7 +93,13 @@ export default function ImagesPanel({
 
         <div className="cv-panel-body">
           {assets.length === 0 ? (
-            <p className="cv-empty-state">Nenhuma imagem enviada (PNG ou JPEG até 2 MB).</p>
+            <EmptyState
+              title="Nenhuma imagem disponível"
+              description="Envie logotipos e imagens institucionais em PNG ou JPEG de até 2 MB."
+              actionLabel="Enviar imagem"
+              actionDisabled={uploadingAsset || assets.length >= MAX_IMAGES}
+              onAction={onTriggerUpload}
+            />
           ) : (
             <div className="cv-image-list" role="list">
               {assets.map((asset) => {

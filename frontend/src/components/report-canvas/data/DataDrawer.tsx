@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Copy, Check, RefreshCw, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { CanvasSource, SourcePreview } from "../model";
+import EmptyState from "../common/EmptyState";
 import ColumnBadge from "./ColumnBadge";
 import { formatCellValue } from "./columnTypes";
 
@@ -156,7 +157,11 @@ export default function DataDrawer({
 
       <div className="cv-drawer-body">
         {columns.length === 0 ? (
-          <div className="cv-data-empty">Nenhuma coluna nesta fonte.</div>
+          <EmptyState
+            compact={true}
+            title="Nenhuma coluna encontrada"
+            description="Esta fonte não possui colunas registradas para exibição."
+          />
         ) : (
           <table className="cv-preview-table">
             <thead>
@@ -189,8 +194,12 @@ export default function DataDrawer({
             <tbody>
               {displayRows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 1} style={{ textAlign: "center", padding: "24px" }}>
-                    Nenhum registro encontrado.
+                  <td colSpan={columns.length + 1} style={{ textAlign: "center", padding: "20px" }}>
+                    <EmptyState
+                      compact={true}
+                      title="Nenhuma linha retornada"
+                      description="A fonte não retornou registros para estes parâmetros."
+                    />
                   </td>
                 </tr>
               ) : (

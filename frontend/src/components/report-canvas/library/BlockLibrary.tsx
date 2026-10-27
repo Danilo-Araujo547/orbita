@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { BlockType } from "../model";
 import { BLOCK_LABELS } from "../model";
+import EmptyState from "../common/EmptyState";
 import { DRAG_BLOCK_MIME } from "./structureOps";
 
 export const COMPONENT_ICONS = {
@@ -155,7 +156,13 @@ export default function BlockLibrary({
             })}
           </div>
         ) : (
-          <p className="cv-empty-state">Nenhum tipo de bloco corresponde à busca.</p>
+          <EmptyState
+            compact={true}
+            title="Nenhum bloco encontrado"
+            description={`Nenhum tipo de bloco corresponde a "${search}".`}
+            actionLabel="Limpar busca"
+            onAction={() => setSearch("")}
+          />
         )}
       </div>
     </section>

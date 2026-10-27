@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { AlertCircle, AlertTriangle, ArrowRight, Wrench, X } from "lucide-react";
+import EmptyState from "../common/EmptyState";
 import type { CanvasProblemItem } from "../shell/problems";
 
 export interface ProblemsPanelProps {
@@ -133,9 +134,11 @@ export default function ProblemsPanel({
       {/* Content list */}
       <div className="cv-problems-panel-content">
         {problems.length === 0 ? (
-          <div className="cv-problems-empty">
-            <p>Nenhum problema encontrado neste relatório.</p>
-          </div>
+          <EmptyState
+            compact={true}
+            title="Nenhum problema encontrado"
+            description="O layout e as fontes de dados estão válidos."
+          />
         ) : (
           groupedByPage.map(([pageKey, group]) => (
             <div key={pageKey} className="cv-problems-page-group">

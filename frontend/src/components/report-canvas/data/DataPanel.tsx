@@ -21,6 +21,7 @@ import type {
 } from "../model";
 import ColumnBadge from "./ColumnBadge";
 import DataDrawer from "./DataDrawer";
+import EmptyState from "../common/EmptyState";
 import { findSourceUsages } from "./sourceOps";
 
 export interface DataPanelProps {
@@ -272,18 +273,12 @@ export default function DataPanel({
 
       {/* Lista de Registros */}
       {sources.length === 0 ? (
-        <div className="cv-data-empty">
-          <p style={{ margin: 0 }}>
-            Nenhuma fonte. Adicione uma fonte para ligar dados aos blocos.
-          </p>
-          <button
-            type="button"
-            className="cv-btn-compact"
-            onClick={onCreateSource}
-          >
-            <Plus size={12} /> Adicionar fonte
-          </button>
-        </div>
+        <EmptyState
+          title="Nenhuma fonte conectada"
+          description="Nenhuma fonte. Adicione uma fonte para ligar dados aos blocos."
+          actionLabel="Adicionar fonte"
+          onAction={onCreateSource}
+        />
       ) : (
         <div className="cv-source-list">
           {sources.map((src) => {

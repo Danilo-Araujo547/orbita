@@ -571,6 +571,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
               localDatasets={localDatasets}
               reportName={report.name}
               showSampleData={showSampleData}
+              onAddBlock={() => prefs.openLeftPanel("components")}
               onClearSelection={() => setSelectedBlockId(null)}
               onSelectBlock={setSelectedBlockId}
               onStartDrag={startBlockDrag}
