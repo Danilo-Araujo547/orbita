@@ -6,7 +6,7 @@ from contextlib import ExitStack
 from types import SimpleNamespace
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from operations.models import ReportCanvasAsset
-from .schema import validate_layout, fail
+from .schema import validate_layout, validate_complete, fail, fail_at, error_messages
 from .sources import resolve_report, signature, SOURCES
 from .blocks import BLOCKS
 from .registry import EXPORTERS
@@ -30,6 +30,7 @@ def assets_for(report,layout,*,metadata_only=False):
 
 def definition_snapshot(report,layout=None):
     layout=validate_layout(report.canvas_layout if layout is None else layout)
+    validate_complete(layout)
     if not any(p["blocks"] for p in layout["pages"]):fail("Adicione ao menos um bloco ao Canvas.")
     sources={}
     signatures={}
@@ -52,7 +53,7 @@ def report_readiness(report):
     try:
         definition_snapshot(report)
         if report.output_format not in {"pdf","xlsx"}:fail("Canvas exporta PDF ou XLSX.")
-    except ValidationError as exc:return [str(x) for x in exc.detail] if isinstance(exc.detail,list) else [str(exc.detail)]
+    except ValidationError as exc:return error_messages(exc)
     return []
 
 
@@ -64,9 +65,9 @@ def build(report,layout,parameters,goals):
         used={b.get("source_id") for p in layout["pages"] for b in p["blocks"]}
         for s in layout["sources"]:
             if s["id"] in used:ctx.datasets[s["id"]]=SOURCES[s["type"]].read(ctx,s)
-        if sum(len(d.rows) for d in ctx.datasets.values())>30000:fail("Limite total de 30.000 linhas no Canvas.")
+        if sum(len(d.rows) for d in ctx.datasets.values())>30000:fail_at("Limite total de 30.000 linhas no Canvas.", code="canvas_lines_limit")
         size=sum(len(json.dumps(d.rows,default=str).encode()) for d in ctx.datasets.values())
-        if size>10*1024*1024:fail("Fontes excedem o limite de 10 MB.")
+        if size>10*1024*1024:fail_at("Fontes excedem o limite de 10 MB.", code="canvas_size_limit")
         pages=[{**p,"blocks":[BLOCKS[b["type"]].prepare(b,ctx) for b in p["blocks"]]} for p in layout["pages"]]
         count=sum(len(d.rows) for d in ctx.datasets.values()) if ctx.datasets else 1
         return {"name":report.name,"page":layout["page"],"pages":pages,"xlsx_mode":layout.get("xlsx_mode","layout")},count
