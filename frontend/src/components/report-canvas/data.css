@@ -456,6 +456,40 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.cv-segmented-btn:disabled {
+  color: var(--cv-text-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+[data-theme="dark"] .cv-segmented {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+[data-theme="dark"] .cv-segmented-btn {
+  color: var(--cv-text-2);
+}
+
+[data-theme="dark"] .cv-segmented-btn:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .cv-segmented-btn.active {
+  background: #242c38;
+  color: #ffffff;
+  box-shadow: 0 0 0 1px #3f4a5c, 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .cv-segmented-btn:disabled {
+  color: var(--cv-text-disabled);
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
 /* Seção de Parâmetros */
 .cv-params-section {
   display: flex;

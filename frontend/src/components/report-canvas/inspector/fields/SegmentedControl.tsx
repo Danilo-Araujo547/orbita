@@ -85,7 +85,13 @@ export default function SegmentedControl<T extends string>({
             aria-checked={checked}
             disabled={itemDisabled}
             tabIndex={idx === activeIdx ? 0 : -1}
-            title={disabled && disabledReason ? disabledReason : opt.title || opt.label}
+            title={
+              disabled
+                ? disabledReason || "Controle desabilitado"
+                : opt.disabled
+                  ? opt.title || "Opção desabilitada"
+                  : opt.title || opt.label
+            }
             className="cv-seg-item"
             onClick={() => !itemDisabled && onChange(opt.value)}
           >

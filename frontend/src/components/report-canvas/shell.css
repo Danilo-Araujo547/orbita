@@ -142,7 +142,42 @@
   background: var(--cv-surface);
   color: var(--cv-text);
   font-weight: var(--cv-fw-semibold);
-  box-shadow: 0 0 0 1px var(--cv-line-strong);
+  box-shadow: 0 1px 2px rgba(15, 36, 56, 0.08), 0 0 0 1px var(--cv-line-strong);
+}
+
+.cv-root .cv-seg-btn:disabled {
+  color: var(--cv-text-disabled);
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+[data-theme="dark"] .cv-root .cv-segmented {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+[data-theme="dark"] .cv-root .cv-seg-btn {
+  color: var(--cv-text-2);
+}
+
+[data-theme="dark"] .cv-root .cv-seg-btn:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .cv-root .cv-seg-btn.is-active,
+[data-theme="dark"] .cv-root .cv-seg-btn[aria-pressed="true"] {
+  background: #242c38;
+  color: #ffffff;
+  box-shadow: 0 0 0 1px #3f4a5c, 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .cv-root .cv-seg-btn:disabled {
+  color: var(--cv-text-disabled);
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
 }
 
 /* ==========================================================================

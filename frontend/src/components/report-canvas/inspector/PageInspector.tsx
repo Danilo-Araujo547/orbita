@@ -206,7 +206,12 @@ export default function PageInspector({
               ariaLabel="Modo de planilha"
               options={XLSX_MODE_OPTIONS}
               value={effectiveXlsxMode}
-              disabled={!onChangeXlsxMode}
+              disabled={!onChangeXlsxMode || outputFormat === "pdf"}
+              disabledReason={
+                outputFormat === "pdf"
+                  ? "Modo de planilha só está disponível na exportação em XLSX."
+                  : undefined
+              }
               onChange={(mode) => onChangeXlsxMode?.(mode)}
             />
             {singleTableInvalid && (
