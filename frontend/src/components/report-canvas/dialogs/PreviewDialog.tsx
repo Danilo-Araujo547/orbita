@@ -5,6 +5,7 @@ import InlineDialog from "../../InlineDialog";
 import Select from "../../Select";
 import type { OutputFormat } from "../model";
 import type { TestParameter } from "../parameters";
+import "../dialogs.css";
 
 export interface PreviewServerError {
   blockId?: string;
@@ -51,7 +52,7 @@ export default function PreviewDialog({
     <InlineDialog
       title="Testar relatório"
       subtitle=""
-      className={`rc-subdialog rc-test-dialog cv-root ${
+      className={`cv-subdialog cv-test-dialog cv-root ${
         previewModal.resultUrl ? "has-preview" : ""
       }`}
       busy={previewModal.busy}
@@ -82,27 +83,27 @@ export default function PreviewDialog({
         </>
       }
     >
-      <div className="rc-test-layout">
-        <form id={previewFormId} className="rc-subform rc-test-fields" onSubmit={onSubmit}>
+      <div className="cv-test-layout">
+        <form id={previewFormId} className="cv-subform cv-test-fields" onSubmit={onSubmit}>
           <strong>{reportName}</strong>
 
           {previewModal.error && (
-            <div className="rc-dialog-alert is-error" role="alert">
+            <div className="cv-dialog-alert is-error" role="alert">
               <AlertCircle size={15} />
               <span>{previewModal.error}</span>
             </div>
           )}
 
           {previewModal.serverErrors && previewModal.serverErrors.length > 0 && (
-            <div className="rc-test-server-errors" role="region" aria-label="Erros por bloco">
-              <span className="rc-test-errors-title">Erros detectados no servidor:</span>
-              <ul className="rc-test-errors-list">
+            <div className="cv-test-server-errors" role="region" aria-label="Erros por bloco">
+              <span className="cv-test-errors-title">Erros detectados no servidor:</span>
+              <ul className="cv-test-errors-list">
                 {previewModal.serverErrors.map((err, i) => (
                   <li key={i}>
                     {err.blockId && onSelectBlock ? (
                       <button
                         type="button"
-                        className="rc-test-error-link"
+                        className="cv-test-error-link"
                         onClick={() => {
                           onSelectBlock(err.blockId!);
                           onClose();
@@ -120,8 +121,8 @@ export default function PreviewDialog({
           )}
 
           {previewModal.info && (
-            <div className="rc-banner rc-banner-ok" role="status">
-              <div className="rc-banner-content">
+            <div className="cv-banner cv-banner-ok" role="status">
+              <div className="cv-banner-content">
                 <Check size={15} />
                 <span>{previewModal.info}</span>
               </div>
@@ -145,7 +146,7 @@ export default function PreviewDialog({
             </Select>
           </label>
 
-          <div className="rc-test-parameter-grid">
+          <div className="cv-test-parameter-grid">
             {previewFields.map((field) => (
               <label className="op-field" key={field.name}>
                 <span>
@@ -208,17 +209,17 @@ export default function PreviewDialog({
           </div>
 
           {!previewFields.length && (
-            <p className="rc-test-empty">Este relatório não exige parâmetros.</p>
+            <p className="cv-test-empty">Este relatório não exige parâmetros.</p>
           )}
         </form>
 
         {previewModal.resultUrl && (
-          <section className="rc-test-result" aria-label="Prévia gerada">
-            <div className="rc-test-result-bar">
-              <div className="rc-test-result-meta">
-                <span className="rc-test-result-name">{previewModal.resultName}</span>
+          <section className="cv-test-result" aria-label="Prévia gerada">
+            <div className="cv-test-result-bar">
+              <div className="cv-test-result-meta">
+                <span className="cv-test-result-name">{previewModal.resultName}</span>
                 {previewModal.generationTimeMs !== undefined && (
-                  <span className="rc-test-result-time">
+                  <span className="cv-test-result-time">
                     <Clock size={12} aria-hidden="true" />
                     Gerado em {(previewModal.generationTimeMs / 1000).toFixed(1)} s
                   </span>
@@ -238,12 +239,12 @@ export default function PreviewDialog({
               <iframe
                 title="Prévia do relatório"
                 src={previewModal.resultUrl}
-                className="rc-preview-pdf-frame"
+                className="cv-preview-pdf-frame"
               />
             ) : (
-              <div className="rc-test-xlsx-summary">
+              <div className="cv-test-xlsx-summary">
                 <p>Planilha Excel gerada com sucesso.</p>
-                <p className="rc-test-xlsx-note">
+                <p className="cv-test-xlsx-note">
                   O arquivo contém todas as abas e formatações configuradas no layout.
                 </p>
                 <a

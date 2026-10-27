@@ -22,7 +22,7 @@ export default function CanvasShell({
       const root = shellRef.current;
       if (!root) return;
       const openDetails = root.querySelectorAll<HTMLDetailsElement>(
-        "details.rc-panel-settings[open]",
+        "details.cv-panel-settings[open]",
       );
       openDetails.forEach((el) => {
         if (!target || !(target instanceof Node) || !el.contains(target)) {
@@ -55,22 +55,22 @@ export default function CanvasShell({
       className="report-canvas-page cv-root"
       aria-label="Editor de relatório"
     >
-      <header className="rc-page-header">
-        <div className="rc-header-nav">
+      <header className="cv-page-header">
+        <div className="cv-header-nav">
           <button
             type="button"
-            className="rc-back"
+            className="cv-back"
             onClick={onClose}
             disabled={busy}
           >
             <ArrowLeft size={15} aria-hidden="true" />
             <span>Voltar</span>
           </button>
-          <span className="rc-document-title" title={title}>{title}</span>
+          <span className="cv-document-title" title={title}>{title}</span>
         </div>
-        <div className="rc-header-main">{footer}</div>
+        <div className="cv-header-main">{footer}</div>
       </header>
-      <div className="rc-shell-body">{children}</div>
+      <div className="cv-shell-body">{children}</div>
     </main>
   );
 }

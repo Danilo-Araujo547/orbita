@@ -36,14 +36,14 @@ export interface BlockFrameProps {
 }
 
 const ALL_HANDLES: { handle: ResizeHandle; label: string; className: string }[] = [
-  { handle: "nw", label: "Redimensionar topo-esquerda", className: "rc-resize-handle rc-resize-handle-nw" },
-  { handle: "n", label: "Redimensionar altura para cima", className: "rc-resize-handle rc-resize-handle-n" },
-  { handle: "ne", label: "Redimensionar topo-direita", className: "rc-resize-handle rc-resize-handle-ne" },
-  { handle: "e", label: "Redimensionar largura", className: "rc-resize-handle rc-resize-handle-e" },
-  { handle: "se", label: "Redimensionar bloco", className: "rc-resize-handle rc-resize-handle-se" },
-  { handle: "s", label: "Redimensionar altura", className: "rc-resize-handle rc-resize-handle-s" },
-  { handle: "sw", label: "Redimensionar base-esquerda", className: "rc-resize-handle rc-resize-handle-sw" },
-  { handle: "w", label: "Redimensionar largura para esquerda", className: "rc-resize-handle rc-resize-handle-w" },
+  { handle: "nw", label: "Redimensionar topo-esquerda", className: "cv-resize-handle cv-resize-handle-nw" },
+  { handle: "n", label: "Redimensionar altura para cima", className: "cv-resize-handle cv-resize-handle-n" },
+  { handle: "ne", label: "Redimensionar topo-direita", className: "cv-resize-handle cv-resize-handle-ne" },
+  { handle: "e", label: "Redimensionar largura", className: "cv-resize-handle cv-resize-handle-e" },
+  { handle: "se", label: "Redimensionar bloco", className: "cv-resize-handle cv-resize-handle-se" },
+  { handle: "s", label: "Redimensionar altura", className: "cv-resize-handle cv-resize-handle-s" },
+  { handle: "sw", label: "Redimensionar base-esquerda", className: "cv-resize-handle cv-resize-handle-sw" },
+  { handle: "w", label: "Redimensionar largura para esquerda", className: "cv-resize-handle cv-resize-handle-w" },
 ];
 
 function BlockFrameComponent({
@@ -162,7 +162,7 @@ function BlockFrameComponent({
       role="group"
       tabIndex={0}
       aria-label={ariaLabel}
-      className={`rc-block rc-block-${block.type} ${isSelected ? "is-selected" : ""} ${
+      className={`cv-block cv-block-${block.type} ${isSelected ? "is-selected" : ""} ${
         isDragging ? "is-dragging" : ""
       } ${problem ? `has-problem is-${problem.severity}` : ""}`.trim()}
       style={{
@@ -176,14 +176,14 @@ function BlockFrameComponent({
     >
       {/* Origin Chip (Top-Left) */}
       <div
-        className={`rc-origin-chip is-${originState}`}
+        className={`cv-origin-chip is-${originState}`}
         title={lineage || (hasMissingSource ? "Nenhuma fonte associada ao bloco" : undefined)}
       >
         <span>{originLabel}</span>
         {canLoadPreview && blockSourceId && onLoadSourcePreview && (
           <button
             type="button"
-            className="rc-origin-chip-action"
+            className="cv-origin-chip-action"
             onClick={(e) => {
               e.stopPropagation();
               onLoadSourcePreview(blockSourceId!);
@@ -198,7 +198,7 @@ function BlockFrameComponent({
       {problem && (
         <button
           type="button"
-          className={`rc-problem-badge is-${problem.severity}`}
+          className={`cv-problem-badge is-${problem.severity}`}
           title={`${problem.severity === "error" ? "Erro" : "Aviso"}: ${problem.message}`}
           aria-label={`${problem.severity === "error" ? "Erro" : "Aviso"}: ${problem.message}`}
           onClick={(e) => {
@@ -213,14 +213,14 @@ function BlockFrameComponent({
 
       {/* Floating Tooltip during Drag/Resize */}
       {isDragging && tempGeometry?.tooltip && (
-        <div className="rc-drag-tooltip" aria-hidden="true">
+        <div className="cv-drag-tooltip" aria-hidden="true">
           {tempGeometry.tooltip}
         </div>
       )}
 
       {/* Static Coordinates when Selected and Not Dragging */}
       {isSelected && !isDragging && (
-        <span className="rc-block-coords">
+        <span className="cv-block-coords">
           {Math.round(block.x)}, {Math.round(block.y)} · {Math.round(block.width)}×
           {Math.round(block.height)}
         </span>
@@ -228,9 +228,9 @@ function BlockFrameComponent({
 
       {/* Block Preview Content or Inline Problem Message */}
       {problem && problem.severity === "error" && hasMissingSource ? (
-        <div className="rc-block-inner">
-          <div className="rc-block-problem-inline">
-            <p className="rc-block-error-text">{problem.message}</p>
+        <div className="cv-block-inner">
+          <div className="cv-block-problem-inline">
+            <p className="cv-block-error-text">{problem.message}</p>
           </div>
         </div>
       ) : (

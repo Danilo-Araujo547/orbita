@@ -384,7 +384,7 @@ export default function SourceDialog({
     <InlineDialog
       title={isCreate ? "Adicionar fonte de dados" : "Editar fonte de dados"}
       subtitle="Fontes integradas ao relatório para alimentar tabelas, gráficos e KPIs"
-      className="rc-subdialog cv-root"
+      className="cv-subdialog cv-root"
       onClose={onClose}
       footer={
         <>
@@ -412,7 +412,7 @@ export default function SourceDialog({
         </>
       }
     >
-      <form id={sourceFormId} className="rc-subform" onSubmit={onSubmit}>
+      <form id={sourceFormId} className="cv-subform" onSubmit={onSubmit}>
         {sourceModal.error && (
           <p className="inline-error" role="alert">
             <AlertCircle size={14} />
@@ -421,7 +421,7 @@ export default function SourceDialog({
         )}
 
         {/* 1. Nome amigável e Identificador técnico */}
-        <div className="rc-grid-2">
+        <div className="cv-grid-2">
           <label className="op-field">
             <span>Nome da fonte</span>
             <input
@@ -512,7 +512,7 @@ export default function SourceDialog({
         {/* 3. Conteúdo para Relatório Existente */}
         {sourceModal.type === "report" && (
           <>
-            <div className="rc-grid-2">
+            <div className="cv-grid-2">
               <label className="op-field">
                 <span>Relatório cadastrado na unidade</span>
                 <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
@@ -591,7 +591,7 @@ export default function SourceDialog({
               </div>
 
               {paramItems.length === 0 ? (
-                <p className="rc-hint" style={{ margin: "4px 0" }}>
+                <p className="cv-hint" style={{ margin: "4px 0" }}>
                   Nenhum parâmetro configurado. A fonte usará os valores padrão da consulta.
                 </p>
               ) : (
@@ -793,7 +793,7 @@ export default function SourceDialog({
                 </tbody>
               </table>
             </div>
-            <span className="rc-hint">
+            <span className="cv-hint">
               Dica: você pode copiar uma tabela do Excel ou Google Sheets e colar com Ctrl+V aqui.
             </span>
           </div>
@@ -802,7 +802,7 @@ export default function SourceDialog({
         {/* 5. Conteúdo para Metas Mensais */}
         {sourceModal.type === "goals" && (
           <div className="cv-table-editor">
-            <p className="rc-hint" style={{ margin: "4px 0" }}>
+            <p className="cv-hint" style={{ margin: "4px 0" }}>
               Utiliza as metas mensais cadastradas neste relatório com as colunas fixas:{" "}
               <code>year</code>, <code>month</code> e <code>value</code>.
             </p>
@@ -828,7 +828,7 @@ export default function SourceDialog({
                 </table>
               </div>
             ) : (
-              <p className="rc-hint" style={{ color: "var(--cv-warning)" }}>
+              <p className="cv-hint" style={{ color: "var(--cv-warning)" }}>
                 Nenhuma meta cadastrada nas configurações do relatório.
               </p>
             )}

@@ -96,7 +96,7 @@ export function computeVisibleCenterPosition(params: {
     };
   }
 
-  const pageEl = stageEl.querySelector<HTMLElement>(".rc-page");
+  const pageEl = stageEl.querySelector<HTMLElement>(".cv-page");
   if (!pageEl) {
     return {
       x: Math.round(clamp((pageWidth - size.w) / 2 + cascade, 0, maxX)),
@@ -142,7 +142,7 @@ export function computePageDropPosition(params: {
   const size = DEFAULT_SIZES[type];
   const maxX = Math.max(0, pageWidth - size.w);
   const maxY = Math.max(0, pageHeight - size.h);
-  const pageEl = stageEl?.querySelector<HTMLElement>(".rc-page");
+  const pageEl = stageEl?.querySelector<HTMLElement>(".cv-page");
   if (!pageEl || zoom <= 0) {
     return {
       x: Math.round(clamp((pageWidth - size.w) / 2, 0, maxX)),

@@ -307,9 +307,9 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
     expect(workspaceHtml).toContain("Estrutura");
     expect(workspaceHtml).toContain("cv-type-row");
     expect(workspaceHtml).toContain("Número com agregação");
-    expect(workspaceHtml).toContain("rc-column-grid");
-    expect(workspaceHtml).toContain("rc-block rc-block-kpi is-selected");
-    expect(workspaceHtml).toContain("rc-resize-handle-se");
-    expect(workspaceHtml).toContain("rc-inspector-tabs");
+    expect(workspaceHtml).toContain("cv-column-grid");
+    expect(workspaceHtml).toContain("cv-block cv-block-kpi is-selected");
+    expect(workspaceHtml).toContain("cv-resize-handle-se");
+    expect(workspaceHtml).toContain("cv-insp-tabs");
   });
 });

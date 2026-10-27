@@ -64,11 +64,11 @@ function BlockPreview({
   const src = sources.find((s) => s.id === block.source_id);
   if (!src) {
     return (
-      <div className="rc-block-inner">
-        {block.title && <div className="rc-block-title">{block.title}</div>}
-        <div className="rc-sql-placeholder">
-          <span className="rc-sql-badge">{BLOCK_LABELS[block.type]}</span>
-          <span className="rc-sql-meta">Selecione uma fonte de dados no inspetor à direita.</span>
+      <div className="cv-block-inner">
+        {block.title && <div className="cv-block-title">{block.title}</div>}
+        <div className="cv-sql-placeholder">
+          <span className="cv-sql-badge">{BLOCK_LABELS[block.type]}</span>
+          <span className="cv-sql-meta">Selecione uma fonte de dados no inspetor à direita.</span>
         </div>
       </div>
     );

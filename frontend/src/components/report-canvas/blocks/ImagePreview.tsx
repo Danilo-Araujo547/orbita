@@ -16,9 +16,9 @@ export default function ImagePreview({ block, assets, assetUrls }: ImagePreviewP
   const hasImage = Boolean(blobUrl && !loadError);
 
   return (
-    <div className="rc-block-inner cv-block-inner cv-block-image-inner">
+    <div className="cv-block-inner cv-block-image-inner">
       {hasImage ? (
-        <div className="cv-image-box rc-image-box">
+        <div className="cv-image-box">
           <img
             src={blobUrl}
             alt={meta?.filename || block.title || "Imagem do relatório"}
@@ -27,7 +27,7 @@ export default function ImagePreview({ block, assets, assetUrls }: ImagePreviewP
           />
         </div>
       ) : (
-        <div className="cv-image-placeholder rc-sql-placeholder" role="status">
+        <div className="cv-image-placeholder" role="status">
           <div className="cv-image-placeholder-icon" aria-hidden="true">
             <ImageIcon size={20} strokeWidth={1.5} />
           </div>

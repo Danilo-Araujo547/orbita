@@ -27,20 +27,20 @@ export default function KpiPreview({
       ? `${catalog.name} (${catalog.code})`
       : `Relatório #${source.report_id}`;
     return (
-      <div className="rc-block-inner cv-block-inner">
-        {block.title && <div className="rc-block-title cv-block-title">{block.title}</div>}
-        <div className="rc-kpi-body cv-kpi-body">
-          <div className="rc-kpi-value cv-kpi-value" style={{ fontSize: `${fontSize}px`, color: primaryColor }}>
+      <div className="cv-block-inner">
+        {block.title && <div className="cv-block-title">{block.title}</div>}
+        <div className="cv-kpi-body">
+          <div className="cv-kpi-value" style={{ fontSize: `${fontSize}px`, color: primaryColor }}>
             —
           </div>
-          <div className="rc-kpi-meta cv-kpi-meta">
+          <div className="cv-kpi-meta">
             <span className="cv-kpi-source">{source.id}</span>
             <span className="cv-kpi-sep">·</span>
             <span className="cv-kpi-aggregation">
               {opt.aggregate === "count" ? "Contagem" : opt.value_field || "coluna padrão"}
             </span>
           </div>
-          <div className="rc-kpi-meta cv-kpi-meta cv-kpi-sub">{sourceLabel}</div>
+          <div className="cv-kpi-meta cv-kpi-sub">{sourceLabel}</div>
         </div>
       </div>
     );
@@ -82,13 +82,13 @@ export default function KpiPreview({
       : `${mode === "sum" ? "Soma" : "Primeiro"} (${targetCol || "—"})`;
 
   return (
-    <div className="rc-block-inner cv-block-inner">
-      {block.title && <div className="rc-block-title cv-block-title">{block.title}</div>}
-      <div className="rc-kpi-body cv-kpi-body">
-        <div className="rc-kpi-value cv-kpi-value" style={{ fontSize: `${fontSize}px`, color: primaryColor }}>
+    <div className="cv-block-inner">
+      {block.title && <div className="cv-block-title">{block.title}</div>}
+      <div className="cv-kpi-body">
+        <div className="cv-kpi-value" style={{ fontSize: `${fontSize}px`, color: primaryColor }}>
           {formatted}
         </div>
-        <div className="rc-kpi-meta cv-kpi-meta">
+        <div className="cv-kpi-meta">
           <span className="cv-kpi-source">{source.id}</span>
           <span className="cv-kpi-sep">·</span>
           <span className="cv-kpi-aggregation">{aggregationLabel}</span>

@@ -121,7 +121,7 @@ export default function Stage({
   return (
     <div
       ref={stageRef}
-      className="rc-stage"
+      className="cv-stage"
       tabIndex={-1}
       style={{ gridColumn: 3, gridRow: 1 }}
       onPointerDown={handlePointerDown}
@@ -135,14 +135,14 @@ export default function Stage({
           return (
             <div
               key={p.id}
-              className="rc-page-wrapper"
+              className="cv-page-wrapper"
               onClick={() => {
                 if (!isActive) onSelectPage?.(p.id);
               }}
             >
               <button
                 type="button"
-                className={`rc-page-header ${isActive ? "is-active" : ""}`.trim()}
+                className={`cv-page-header ${isActive ? "is-active" : ""}`.trim()}
                 aria-label={`Página ${idx + 1} de ${pages.length} · ${p.name || `Página ${idx + 1}`}`}
                 onClick={(e) => {
                   e.stopPropagation();

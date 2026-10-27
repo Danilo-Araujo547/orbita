@@ -1,0 +1,222 @@
+/* ==========================================================================
+   REPORT CANVAS — SUBDIALOGS & PREVIEW MODAL
+   ========================================================================== */
+
+.modal.inline-dialog.cv-subdialog {
+  background: var(--cv-surface);
+  color: var(--cv-text);
+  border: 1px solid var(--cv-line-strong);
+  box-shadow: var(--cv-shadow-modal);
+  border-radius: var(--cv-r-lg);
+}
+
+.modal.inline-dialog.cv-subdialog .button {
+  height: var(--cv-h-control);
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-sm);
+  border-radius: var(--cv-r-sm);
+}
+
+.modal.inline-dialog.cv-subdialog .button.primary {
+  background: var(--cv-accent);
+  color: var(--cv-on-accent);
+  border-color: var(--cv-accent);
+}
+
+.modal.inline-dialog.cv-subdialog .button.primary:hover:not(:disabled) {
+  background: var(--cv-accent-hover);
+}
+
+.cv-subform {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-3);
+  min-width: 0;
+}
+
+.cv-subform .cv-dialog-alert {
+  padding: var(--cv-sp-2) var(--cv-sp-3);
+  border-radius: var(--cv-r-sm);
+  font-size: var(--cv-fs-sm);
+  line-height: var(--cv-lh-base);
+}
+
+.cv-subform .cv-dialog-alert.is-error {
+  background: var(--cv-danger-bg);
+  border: 1px solid var(--cv-danger-line);
+  color: var(--cv-danger);
+}
+
+.cv-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cv-sp-2);
+  min-width: 0;
+}
+
+.cv-hint {
+  font-size: var(--cv-fs-xs);
+  color: var(--cv-text-3);
+  line-height: var(--cv-lh-base);
+}
+
+/* ==========================================================================
+   PREVIEW DIALOG (PDF & XLSX)
+   ========================================================================== */
+
+.modal.inline-dialog.cv-test-dialog {
+  width: min(560px, calc(100vw - 48px));
+}
+
+.modal.inline-dialog.cv-test-dialog.has-preview {
+  width: min(1400px, calc(100vw - 48px));
+  height: calc(100dvh - 48px);
+}
+
+.cv-test-layout {
+  display: flex;
+  gap: var(--cv-sp-4);
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.cv-test-fields {
+  flex: 0 0 300px;
+  min-width: 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-3);
+}
+
+.cv-test-dialog:not(.has-preview) .cv-test-fields {
+  flex: 1;
+  width: 100%;
+}
+
+.cv-test-parameter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cv-sp-3);
+}
+
+.cv-test-empty {
+  font-size: var(--cv-fs-sm);
+  color: var(--cv-text-3);
+  font-weight: var(--cv-fw-regular);
+  margin: 0;
+}
+
+.cv-test-result {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 200px);
+  border: 1px solid var(--cv-line-strong);
+  border-radius: var(--cv-r-md);
+  overflow: hidden;
+  background: var(--cv-surface-2);
+}
+
+.cv-test-result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-sp-3);
+  padding: var(--cv-sp-2) var(--cv-sp-3);
+  border-bottom: 1px solid var(--cv-line);
+  background: var(--cv-surface);
+  font-size: var(--cv-fs-xs);
+  min-height: var(--cv-h-control);
+}
+
+.cv-test-result-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-sp-2);
+  min-width: 0;
+}
+
+.cv-test-result-name {
+  font-family: var(--cv-font-head);
+  font-weight: var(--cv-fw-semibold);
+  color: var(--cv-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-test-result-time {
+  font-family: var(--cv-font-mono);
+  color: var(--cv-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-preview-pdf-frame {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  background: var(--cv-stage);
+}
+
+.cv-test-xlsx-summary {
+  padding: var(--cv-sp-4);
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-r-sm);
+  margin: var(--cv-sp-3);
+}
+
+.cv-test-xlsx-note {
+  margin: 0;
+  font-size: var(--cv-fs-sm);
+  color: var(--cv-text-2);
+  line-height: var(--cv-lh-base);
+}
+
+.cv-test-server-errors {
+  padding: var(--cv-sp-2) var(--cv-sp-3);
+  background: var(--cv-danger-bg);
+  border: 1px solid var(--cv-danger-line);
+  border-radius: var(--cv-r-sm);
+  font-size: var(--cv-fs-sm);
+}
+
+.cv-test-errors-title {
+  font-weight: var(--cv-fw-semibold);
+  color: var(--cv-danger);
+  display: block;
+  margin-bottom: var(--cv-sp-1);
+}
+
+.cv-test-errors-list {
+  margin: 0;
+  padding-left: var(--cv-sp-4);
+  color: var(--cv-danger);
+}
+
+.cv-test-error-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: var(--cv-fs-sm);
+  color: var(--cv-danger);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cv-test-error-link:hover {
+  color: var(--cv-text);
+}
+
+@media (max-width: 1100px) {
+  .has-preview .cv-test-fields {
+    flex-basis: 240px;
+  }
+  .has-preview .cv-test-parameter-grid {
+    grid-template-columns: 1fr;
+  }
+}

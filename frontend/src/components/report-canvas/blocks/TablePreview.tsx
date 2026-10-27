@@ -31,10 +31,10 @@ export default function TablePreview({
     const known = sourceColumns(source, catalog);
     const headers = opt.columns?.length ? opt.columns : known.length ? known : [];
     return (
-      <div className="rc-block-inner">
-        {block.title && <div className="rc-block-title">{block.title}</div>}
-        <div className="rc-table-wrap">
-          <table className="rc-table-preview">
+      <div className="cv-block-inner">
+        {block.title && <div className="cv-block-title">{block.title}</div>}
+        <div className="cv-table-wrap">
+          <table className="cv-table-preview">
             <thead>
               <tr>
                 {headers.map((c) => (
@@ -67,18 +67,18 @@ export default function TablePreview({
   const totalWidth = hasValidWidths ? widths!.reduce((a, b) => a + b, 0) : 0;
 
   return (
-    <div className="rc-block-inner">
-      {block.title && <div className="rc-block-title">{block.title}</div>}
+    <div className="cv-block-inner">
+      {block.title && <div className="cv-block-title">{block.title}</div>}
       {chosenCols.length === 0 ? (
-        <div className="rc-sql-placeholder">
-          <span className="rc-sql-meta">
+        <div className="cv-sql-placeholder">
+          <span className="cv-sql-meta">
             A fonte "{source.id}" não informou as colunas. Configure as colunas da tabela no inspetor.
           </span>
         </div>
       ) : (
-        <div className="rc-table-wrap">
+        <div className="cv-table-wrap">
           <table
-            className="rc-table-preview"
+            className="cv-table-preview"
             style={{ fontSize: `${fontSize}px`, tableLayout: "fixed" }}
           >
             {hasValidWidths && (

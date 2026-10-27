@@ -83,7 +83,7 @@ export default function Inspector({
     <aside
       style={{ gridColumn: 4, gridRow: 1 }}
       hidden={!rightOpen}
-      className="cv-inspector rc-sidebar rc-sidebar-right"
+      className="cv-inspector"
       aria-label="Inspetor de propriedades"
     >
       {selectedBlock ? (

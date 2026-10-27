@@ -425,7 +425,7 @@ export default function BlockInspector({
 
       {/* Três abas: Conteúdo · Aparência · Dados */}
       <div
-        className="cv-insp-tabs rc-inspector-tabs"
+        className="cv-insp-tabs"
         role="tablist"
         aria-label="Propriedades do bloco"
         onKeyDown={handleTabKeyDown}

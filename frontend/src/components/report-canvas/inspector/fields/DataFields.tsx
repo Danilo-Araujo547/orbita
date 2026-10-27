@@ -80,7 +80,7 @@ export default function DataFields({
   onUpdateBlock,
 }: DataFieldsProps) {
   const autoId = useId();
-  const listId = `${autoId}-src-list`;
+  const listId = `${autoId}-source-list`;
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 

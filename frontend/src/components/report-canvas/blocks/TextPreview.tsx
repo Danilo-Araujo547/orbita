@@ -43,9 +43,9 @@ export default function TextPreview({
     .join("\n");
 
   return (
-    <div className="rc-block-inner">
+    <div className="cv-block-inner">
       <div
-        className="rc-block-text-body"
+        className="cv-block-text-body"
         style={{ fontSize: `${fontSize}px`, color: primaryColor }}
       >
         {value || "Edite o texto no painel direito"}

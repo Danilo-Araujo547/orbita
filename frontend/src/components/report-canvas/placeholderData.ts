@@ -39,7 +39,8 @@ export function placeholderDataset(
 
   if (!numeric.size) {
     const amount = fields.find((c) =>
-      /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|consultas?|procedimentos?|pacientes?|dias|leitos|meta/i.test(
+      !/^nm_|^nome/i.test(c) &&
+      /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|consultas?|procedimentos?|\bpacientes?\b|dias|leitos|meta/i.test(
         c,
       ),
     );
@@ -58,12 +59,14 @@ export function placeholderDataset(
   const rowCount = 6;
   const rows = Array.from({ length: rowCount }, (_, i) =>
     columns.map((column, j) => {
+      const isText = /^nm_|^nome|descri|ds_|sg_|status/i.test(column);
       const isNum =
-        numeric.has(column) ||
-        periodColumn.test(column) ||
-        /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|consultas?|procedimentos?|pacientes?|dias|leitos|ocupa|razão|meta|^sus$|convênio|particular|sansaúde|iamspe|^m\d+$|^ano$|^year$|^cd_|^id$/i.test(
-          column,
-        );
+        !isText &&
+        (numeric.has(column) ||
+          periodColumn.test(column) ||
+          /total|quant|valor|media|média|percent|taxa|qtd|count|exames|atendimentos|consultas?|procedimentos?|\bpacientes?\b|dias|leitos|ocupa|razão|meta|^sus$|convênio|particular|sansaúde|iamspe|^m\d+$|^ano$|^year$|^cd_|^id$/i.test(
+            column,
+          ));
 
       if (isNum) {
         return (i + 1) * 10 + j * 5;

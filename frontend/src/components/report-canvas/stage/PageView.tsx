@@ -72,14 +72,14 @@ export default function PageView({
 }: PageViewProps) {
   return (
     <div
-      className="rc-page-frame"
+      className="cv-page-frame"
       style={{
         width: `${Math.round(pageConfig.width * zoom)}px`,
         height: `${Math.round(pageConfig.height * zoom)}px`,
       }}
     >
       <div
-        className="rc-page"
+        className="cv-page"
         data-page-tone={isDarkHex(pageConfig.background) ? "dark" : "light"}
         style={{
           width: `${pageConfig.width}px`,
@@ -93,14 +93,14 @@ export default function PageView({
       >
         {showGrid && (
           <div
-            className="rc-column-grid"
+            className="cv-column-grid"
             style={{
               gridTemplateColumns: `repeat(${pageConfig.columns}, minmax(0, 1fr))`,
             }}
             aria-hidden="true"
           >
             {Array.from({ length: pageConfig.columns }).map((_, i) => (
-              <div key={i} className="rc-column-guide" />
+              <div key={i} className="cv-column-guide" />
             ))}
           </div>
         )}
@@ -110,7 +110,7 @@ export default function PageView({
           activeGuides.map((guide, idx) => (
             <div
               key={idx}
-              className={`rc-snap-guide rc-snap-guide-${guide.type}`}
+              className={`cv-snap-guide cv-snap-guide-${guide.type}`}
               style={
                 guide.type === "vertical"
                   ? { left: `${guide.position}px` }
@@ -118,7 +118,7 @@ export default function PageView({
               }
               aria-hidden="true"
             >
-              {guide.label && <span className="rc-snap-guide-label">{guide.label}</span>}
+              {guide.label && <span className="cv-snap-guide-label">{guide.label}</span>}
             </div>
           ))}
 

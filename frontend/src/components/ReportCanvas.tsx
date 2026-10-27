@@ -51,13 +51,12 @@ import {
   selectSelectedBlock,
 } from "./report-canvas/state/selectors";
 import "./report-canvas/tokens.css";
-import "./report-canvas.css";
-import "./canvas-studio.css";
 import "./report-canvas/layout.css";
 import "./report-canvas/shell.css";
 import "./report-canvas/library.css";
 import "./report-canvas/data.css";
 import "./report-canvas/stage.css";
+import "./report-canvas/dialogs.css";
 
 export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportCanvasProps) {
   const store = useCanvasStore();
@@ -379,8 +378,8 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
   }, [session]);
 
   const workspaceStyle = {
-    "--rc-left-w": prefs.leftOpen ? `${prefs.leftWidth}px` : "0px",
-    "--rc-right-w": prefs.rightOpen ? `${prefs.rightWidth}px` : "0px",
+    "--cv-left-w": prefs.leftOpen ? `${prefs.leftWidth}px` : "0px",
+    "--cv-right-w": prefs.rightOpen ? `${prefs.rightWidth}px` : "0px",
   } as CSSProperties;
 
   return (
@@ -464,7 +463,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
         {session.loading ? (
           <WorkspaceSkeleton />
         ) : (
-          <div className="rc-workspace" style={workspaceStyle}>
+          <div className="cv-workspace" style={workspaceStyle}>
             <LeftRail
               leftOpen={prefs.leftOpen}
               libraryTab={prefs.libraryTab}

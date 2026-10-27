@@ -71,19 +71,19 @@ export default function ChartPreview({
       ? `${catalog.name} (${catalog.code})`
       : `Relatório #${source.report_id}`;
     return (
-      <div className="rc-block-inner">
-        {block.title && <div className="rc-block-title">{block.title}</div>}
-        <div className="rc-sql-placeholder">
-          <span className="rc-sql-badge" style={{ color: primaryColor }}>
+      <div className="cv-block-inner">
+        {block.title && <div className="cv-block-title">{block.title}</div>}
+        <div className="cv-sql-placeholder">
+          <span className="cv-sql-badge" style={{ color: primaryColor }}>
             <Database size={11} />
             {BLOCK_LABELS[block.type]} · Dados ({source.id})
           </span>
-          <span className="rc-sql-meta">{sourceLabel}</span>
-          <span className="rc-sql-meta">
+          <span className="cv-sql-meta">{sourceLabel}</span>
+          <span className="cv-sql-meta">
             Eixo X: <strong>{opt.x_field || "1ª coluna"}</strong> · Série(s):{" "}
             <strong>{opt.y_fields?.length ? opt.y_fields.join(", ") : "2ª coluna"}</strong>
           </span>
-          <div className="rc-wireframe-bars" aria-hidden="true">
+          <div className="cv-wireframe-bars" aria-hidden="true">
             <span style={{ height: "45%", background: primaryColor }} />
             <span style={{ height: "75%", background: primaryColor }} />
             <span style={{ height: "60%", background: "#14b4cb" }} />
@@ -103,13 +103,13 @@ export default function ChartPreview({
 
   if (xIdx < 0 || yCols.length === 0 || dataset.rows.length === 0) {
     return (
-      <div className="rc-block-inner">
-        {block.title && <div className="rc-block-title">{block.title}</div>}
-        <div className="rc-sql-placeholder">
-          <span className="rc-sql-badge">
+      <div className="cv-block-inner">
+        {block.title && <div className="cv-block-title">{block.title}</div>}
+        <div className="cv-sql-placeholder">
+          <span className="cv-sql-badge">
             {BLOCK_LABELS[block.type]} · {source.id}
           </span>
-          <span className="rc-sql-meta">
+          <span className="cv-sql-meta">
             {dataset.rows.length === 0
               ? source.type === "goals"
                 ? "Sem metas mensais cadastradas neste relatório."
@@ -173,11 +173,11 @@ export default function ChartPreview({
     }
   } catch (err) {
     return (
-      <div className="rc-block-inner">
-        {block.title && <div className="rc-block-title">{block.title}</div>}
-        <div className="rc-block-error-card">
+      <div className="cv-block-inner">
+        {block.title && <div className="cv-block-title">{block.title}</div>}
+        <div className="cv-block-error-card">
           <AlertCircle size={16} aria-hidden="true" />
-          <p className="rc-block-error-text">
+          <p className="cv-block-error-text">
             {(err as Error).message || "Erro nos dados do gráfico."}
           </p>
         </div>
@@ -200,8 +200,8 @@ export default function ChartPreview({
   const palette = resolveSeriesPalette(opt.color, opt.series_colors);
 
   return (
-    <div className="rc-block-inner">
-      {block.title && <div className="rc-block-title">{block.title}</div>}
+    <div className="cv-block-inner">
+      {block.title && <div className="cv-block-title">{block.title}</div>}
       <div style={{ width: chartW, height: chartH, overflow: "hidden" }}>
         {block.type === "bar" && (
           <BarChart
