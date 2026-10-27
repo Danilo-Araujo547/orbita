@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import BlockPreview from "../blocks/BlockPreview";
 import type {
@@ -7,6 +8,9 @@ import type {
   CatalogSqlSource,
 } from "../model";
 import { BLOCK_LABELS } from "../model";
+import type { CanvasProblemItem } from "../shell/problems";
+import { describeBlockLineage } from "../shell/problems";
+import type { ResizeHandle } from "./geometry";
 
 export interface BlockFrameProps {
   block: CanvasBlock;
@@ -20,12 +24,29 @@ export interface BlockFrameProps {
   localDatasets: Map<string, { columns: string[]; rows: unknown[][] }>;
   reportName: string;
   showSampleData: boolean;
+  pageName?: string;
+  pageIndex?: number;
+  tempGeometry?: { x: number; y: number; width: number; height: number; tooltip?: string };
+  problem?: CanvasProblemItem;
+  onOpenProblem?: (problem: CanvasProblemItem) => void;
+  onLoadSourcePreview?: (sourceId: string) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
-  onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: "se" | "e" | "s") => void;
+  onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
   onFocusBlock: (blockId: string) => void;
 }
 
-export default function BlockFrame({
+const ALL_HANDLES: { handle: ResizeHandle; label: string; className: string }[] = [
+  { handle: "nw", label: "Redimensionar topo-esquerda", className: "rc-resize-handle rc-resize-handle-nw" },
+  { handle: "n", label: "Redimensionar altura para cima", className: "rc-resize-handle rc-resize-handle-n" },
+  { handle: "ne", label: "Redimensionar topo-direita", className: "rc-resize-handle rc-resize-handle-ne" },
+  { handle: "e", label: "Redimensionar largura", className: "rc-resize-handle rc-resize-handle-e" },
+  { handle: "se", label: "Redimensionar bloco", className: "rc-resize-handle rc-resize-handle-se" },
+  { handle: "s", label: "Redimensionar altura", className: "rc-resize-handle rc-resize-handle-s" },
+  { handle: "sw", label: "Redimensionar base-esquerda", className: "rc-resize-handle rc-resize-handle-sw" },
+  { handle: "w", label: "Redimensionar largura para esquerda", className: "rc-resize-handle rc-resize-handle-w" },
+];
+
+function BlockFrameComponent({
   block,
   isSelected,
   isDragging,
@@ -37,71 +58,256 @@ export default function BlockFrame({
   localDatasets,
   reportName,
   showSampleData,
+  pageName,
+  pageIndex = 0,
+  tempGeometry,
+  problem,
+  onOpenProblem,
+  onLoadSourcePreview,
   onStartDrag,
   onStartResize,
   onFocusBlock,
 }: BlockFrameProps) {
+  const currentX = tempGeometry ? tempGeometry.x : block.x;
+  const currentY = tempGeometry ? tempGeometry.y : block.y;
+  const currentW = tempGeometry ? tempGeometry.width : block.width;
+  const currentH = tempGeometry ? tempGeometry.height : block.height;
+
+  const assetFilenames = useMemo(
+    () => Object.fromEntries(assets.map((a) => [a.id, a.filename])),
+    [assets],
+  );
+  const lineage = useMemo(
+    () => describeBlockLineage(block, sources, assetFilenames),
+    [block, sources, assetFilenames],
+  );
+
+  let originState: "no_source" | "preview" | "sample" = "sample";
+  let originLabel = "Exemplo";
+  let hasMissingSource = false;
+  let canLoadPreview = false;
+  let blockSourceId: string | undefined;
+
+  if (block.type === "image") {
+    if (!block.asset_id) {
+      originState = "no_source";
+      originLabel = "Sem imagem";
+      hasMissingSource = true;
+    } else {
+      originState = "preview";
+      originLabel = "Imagem vinculada";
+    }
+  } else if (block.type === "text") {
+    if (block.source_id) {
+      blockSourceId = block.source_id;
+      const src = sources.find((s) => s.id === block.source_id);
+      if (!src) {
+        originState = "no_source";
+        originLabel = "Sem fonte";
+        hasMissingSource = true;
+      } else {
+        const local = localDatasets.get(src.id);
+        const rowsCount = local?.rows?.length || 0;
+        if (!showSampleData && rowsCount > 0) {
+          originState = "preview";
+          originLabel = `Prévia · ${rowsCount} linhas`;
+        } else {
+          originState = "sample";
+          originLabel = "Exemplo";
+          if (!showSampleData && rowsCount === 0 && src.type === "report") {
+            canLoadPreview = true;
+          }
+        }
+      }
+    } else {
+      originState = "sample";
+      originLabel = "Exemplo";
+    }
+  } else {
+    // table, kpi, bar, line, pie
+    if (!block.source_id) {
+      originState = "no_source";
+      originLabel = "Sem fonte";
+      hasMissingSource = true;
+    } else {
+      blockSourceId = block.source_id;
+      const src = sources.find((s) => s.id === block.source_id);
+      if (!src) {
+        originState = "no_source";
+        originLabel = "Sem fonte";
+        hasMissingSource = true;
+      } else {
+        const local = localDatasets.get(src.id);
+        const rowsCount = local?.rows?.length || 0;
+        if (!showSampleData && rowsCount > 0) {
+          originState = "preview";
+          originLabel = `Prévia · ${rowsCount} linhas`;
+        } else {
+          originState = "sample";
+          originLabel = "Exemplo";
+          if (!showSampleData && rowsCount === 0 && src.type === "report") {
+            canLoadPreview = true;
+          }
+        }
+      }
+    }
+  }
+
+  const isSmall = currentW < 120 || currentH < 60;
+  const isSampleHatching = originState === "sample";
+
+  const blockDisplayName = block.title || BLOCK_LABELS[block.type];
+  const pageLabel = pageName || `página ${pageIndex + 1}`;
+  const ariaLabel = `${BLOCK_LABELS[block.type]}, ${blockDisplayName}, ${pageLabel}`;
+
   return (
     <div
       role="group"
       tabIndex={0}
-      aria-label={`Bloco ${BLOCK_LABELS[block.type]} ${block.title || block.id}`}
+      aria-label={ariaLabel}
       className={`rc-block rc-block-${block.type} ${isSelected ? "is-selected" : ""} ${
         isDragging ? "is-dragging" : ""
+      } ${problem ? `has-problem is-${problem.severity}` : ""} ${
+        isSampleHatching ? "is-sample-hatching" : ""
       }`.trim()}
       style={{
-        left: `${block.x}px`,
-        top: `${block.y}px`,
-        width: `${block.width}px`,
-        height: `${block.height}px`,
+        left: `${currentX}px`,
+        top: `${currentY}px`,
+        width: `${currentW}px`,
+        height: `${currentH}px`,
       }}
       onPointerDown={(e) => onStartDrag(e, block)}
       onFocus={() => onFocusBlock(block.id)}
     >
-      {isSelected && (
+      {/* Origin Chip (Top-Left) */}
+      <div
+        className={`rc-origin-chip is-${originState}`}
+        title={lineage || (hasMissingSource ? "Nenhuma fonte associada ao bloco" : undefined)}
+      >
+        <span>{originLabel}</span>
+        {canLoadPreview && blockSourceId && onLoadSourcePreview && (
+          <button
+            type="button"
+            className="rc-origin-chip-action"
+            onClick={(e) => {
+              e.stopPropagation();
+              onLoadSourcePreview(blockSourceId!);
+            }}
+          >
+            Carregar prévia
+          </button>
+        )}
+      </div>
+
+      {/* Problem Badge in Top-Right */}
+      {problem && (
+        <button
+          type="button"
+          className={`rc-problem-badge is-${problem.severity}`}
+          title={`${problem.severity === "error" ? "Erro" : "Aviso"}: ${problem.message}`}
+          aria-label={`${problem.severity === "error" ? "Erro" : "Aviso"}: ${problem.message}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFocusBlock(block.id);
+            onOpenProblem?.(problem);
+          }}
+        >
+          !
+        </button>
+      )}
+
+      {/* Floating Tooltip during Drag/Resize */}
+      {isDragging && tempGeometry?.tooltip && (
+        <div className="rc-drag-tooltip" aria-hidden="true">
+          {tempGeometry.tooltip}
+        </div>
+      )}
+
+      {/* Static Coordinates when Selected and Not Dragging */}
+      {isSelected && !isDragging && (
         <span className="rc-block-coords">
           {Math.round(block.x)}, {Math.round(block.y)} · {Math.round(block.width)}×
           {Math.round(block.height)}
         </span>
       )}
 
-      <BlockPreview
-        block={block}
-        background={background}
-        sources={sources}
-        assets={assets}
-        assetUrls={assetUrls}
-        availableSources={availableSources}
-        localDatasets={localDatasets}
-        reportName={reportName}
-        showSampleData={showSampleData}
-      />
+      {/* Small sample watermark */}
+      {isSampleHatching && isSmall && (
+        <div className="rc-sample-watermark" aria-hidden="true">
+          Dados de exemplo
+        </div>
+      )}
 
+      {/* Block Preview Content or Inline Problem Message */}
+      {problem && problem.severity === "error" && hasMissingSource ? (
+        <div className="rc-block-inner">
+          <div className="rc-block-problem-inline">
+            <p className="rc-block-error-text">{problem.message}</p>
+          </div>
+        </div>
+      ) : (
+        <BlockPreview
+          block={
+            tempGeometry
+              ? { ...block, x: currentX, y: currentY, width: currentW, height: currentH }
+              : block
+          }
+          background={background}
+          sources={sources}
+          assets={assets}
+          assetUrls={assetUrls}
+          availableSources={availableSources}
+          localDatasets={localDatasets}
+          reportName={reportName}
+          showSampleData={showSampleData}
+        />
+      )}
+
+      {/* 8 Resize Handles */}
       {isSelected && (
         <>
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label="Redimensionar largura"
-            className="rc-resize-handle rc-resize-handle-e"
-            onPointerDown={(e) => onStartResize(e, block, "e")}
-          />
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label="Redimensionar altura"
-            className="rc-resize-handle rc-resize-handle-s"
-            onPointerDown={(e) => onStartResize(e, block, "s")}
-          />
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label="Redimensionar bloco"
-            className="rc-resize-handle rc-resize-handle-se"
-            onPointerDown={(e) => onStartResize(e, block, "se")}
-          />
+          {ALL_HANDLES.map((h) => (
+            <button
+              key={h.handle}
+              type="button"
+              tabIndex={-1}
+              aria-label={h.label}
+              className={h.className}
+              onPointerDown={(e) => onStartResize(e, block, h.handle)}
+            />
+          ))}
         </>
       )}
     </div>
   );
 }
+
+export default memo(BlockFrameComponent, (prev, next) => {
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.isDragging === next.isDragging &&
+    prev.background === next.background &&
+    prev.showSampleData === next.showSampleData &&
+    prev.pageName === next.pageName &&
+    prev.pageIndex === next.pageIndex &&
+    prev.problem === next.problem &&
+    prev.tempGeometry === next.tempGeometry &&
+    prev.sources === next.sources &&
+    prev.assets === next.assets &&
+    prev.assetUrls === next.assetUrls &&
+    prev.availableSources === next.availableSources &&
+    prev.localDatasets === next.localDatasets &&
+    prev.reportName === next.reportName &&
+    prev.block.id === next.block.id &&
+    prev.block.type === next.block.type &&
+    prev.block.x === next.block.x &&
+    prev.block.y === next.block.y &&
+    prev.block.width === next.block.width &&
+    prev.block.height === next.block.height &&
+    prev.block.title === next.block.title &&
+    prev.block.text === next.block.text &&
+    prev.block.source_id === next.block.source_id &&
+    prev.block.asset_id === next.block.asset_id &&
+    prev.block.options === next.block.options
+  );
+});
