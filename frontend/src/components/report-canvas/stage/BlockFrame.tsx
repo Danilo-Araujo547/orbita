@@ -166,12 +166,16 @@ function BlockFrameComponent({
         isDragging ? "is-dragging" : ""
       } ${problem ? `has-problem is-${problem.severity}` : ""}`.trim()}
       style={{
-        left: `${currentX}px`,
-        top: `${currentY}px`,
+        left: `${isDragging ? block.x : currentX}px`,
+        top: `${isDragging ? block.y : currentY}px`,
+        transform: isDragging ? `translate3d(${currentX - block.x}px, ${currentY - block.y}px, 0)` : undefined,
         width: `${currentW}px`,
         height: `${currentH}px`,
       }}
-      onPointerDown={(e) => onStartDrag(e, block)}
+      onPointerDown={(e) => {
+        if ((e.target as HTMLElement).closest("button, input, select, textarea, a, [contenteditable]")) return;
+        onStartDrag(e, block);
+      }}
       onFocus={() => onFocusBlock(block.id)}
     >
       {/* Origin Chip (Top-Left) */}

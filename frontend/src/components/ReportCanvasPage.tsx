@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { query, request } from "../api";
-import ReportCanvas from "./ReportCanvas";
+const ReportCanvas = lazy(() => import("./ReportCanvas"));
 import type { ReportSummary } from "./report-canvas/model";
 import ShellSkeleton from "./report-canvas/shell/ShellSkeleton";
 import "./report-canvas/tokens.css";
@@ -114,5 +114,5 @@ export default function ReportCanvasPage({ id, unit, admin }: ReportCanvasPagePr
     return <ShellSkeleton label="Carregando relatório…" />;
   }
 
-  return <ReportCanvas key={`${unit}:${id}`} unit={unit} report={report} onClose={back} />;
+  return <Suspense fallback={<ShellSkeleton label="Carregando editor…" />}><ReportCanvas key={`${unit}:${id}`} unit={unit} report={report} onClose={back} /></Suspense>;
 }
