@@ -1,0 +1,918 @@
+/* ==========================================================================
+   REPORT CANVAS STUDIO — APP BUILDER SHELL, RAIL, LIBRARY, STAGE & INSPECTOR
+   Scoped exclusively to .report-canvas-page (loaded after report-canvas.css)
+   ========================================================================== */
+
+.report-canvas-page {
+  --rc-bg: #ffffff;
+  --rc-rail-bg: #f8fafc;
+  --rc-toolbar-bg: #ffffff;
+  --rc-sidebar-bg: #ffffff;
+  --rc-subtle-bg: #f3f6fa;
+  --rc-symbol-bg: #f4f7fa;
+  --rc-control-hover: #edf3f8;
+  --rc-control-active: #e2eef7;
+  --rc-stage-bg: #edf1f6;
+  --rc-stage-dot: rgba(15, 36, 56, 0.11);
+  --rc-border: #e2e8f0;
+  --rc-border-strong: #cbd5e1;
+  --rc-accent: #075b94;
+  --rc-accent-hover: #064b7b;
+  --rc-cyan: #14b4cb;
+  --rc-primary-bg: #075b94;
+  --rc-primary-hover: #064b7b;
+  --rc-accent-soft: rgba(7, 91, 148, 0.08);
+  --rc-accent-border: rgba(7, 91, 148, 0.34);
+  --rc-accent-text: #075b94;
+  --rc-focus: #14b4cb;
+  --rc-select-line: #0a74b8;
+  --rc-popover-shadow: 0 8px 24px rgba(15, 36, 56, 0.12);
+  --brand-blue: #075b94;
+  --brand-cyan: #14b4cb;
+  --focus-ring: #14b4cb;
+}
+
+[data-theme="dark"] .report-canvas-page {
+  --rc-bg: #15181d;
+  --rc-rail-bg: #111419;
+  --rc-toolbar-bg: #15181d;
+  --rc-sidebar-bg: #15181d;
+  --rc-subtle-bg: #1c2128;
+  --rc-symbol-bg: #1e242c;
+  --rc-control-hover: #212832;
+  --rc-control-active: #25313e;
+  --rc-stage-bg: #0e1116;
+  --rc-stage-dot: rgba(148, 163, 184, 0.12);
+  --rc-border: #252c35;
+  --rc-border-strong: #353f4d;
+  --rc-accent: #14b4cb;
+  --rc-accent-hover: #26c4db;
+  --rc-cyan: #14b4cb;
+  --rc-primary-bg: #0a6eb0;
+  --rc-primary-hover: #0d7ec9;
+  --rc-accent-soft: rgba(20, 180, 203, 0.14);
+  --rc-accent-border: rgba(20, 180, 203, 0.44);
+  --rc-accent-text: #62dfee;
+  --rc-focus: #14b4cb;
+  --rc-select-line: #14b4cb;
+  --rc-popover-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --brand-blue: #14b4cb;
+  --brand-cyan: #14b4cb;
+  --focus-ring: #14b4cb;
+  --input-bg: #1a1f27;
+  --input-border: #2c3543;
+  --input-text: #f1f5f9;
+}
+
+/* Preserve HTML hidden semantics across flex/grid sections and panels */
+.report-canvas-page [hidden] {
+  display: none !important;
+}
+
+/* ==========================================================================
+   1. COMPACT STUDIO HEADER (.rc-page-header)
+   ========================================================================== */
+
+.report-canvas-page .rc-page-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  min-height: 44px;
+  padding: 5px 14px;
+  background: var(--rc-bg);
+  border-bottom: 1px solid var(--rc-border);
+}
+
+.report-canvas-page .rc-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: clamp(190px, 28vw, 420px);
+  padding-right: 14px;
+  border-right: 1px solid var(--rc-border);
+}
+
+.report-canvas-page .rc-back {
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.report-canvas-page .rc-back:hover:not(:disabled) {
+  background: var(--rc-control-hover);
+  border-color: var(--rc-border);
+  color: var(--text-heading);
+}
+
+.report-canvas-page .rc-document-title {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-header-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.report-canvas-page .rc-footer-bar {
+  gap: 6px 14px;
+}
+
+.report-canvas-page .rc-footer-left {
+  gap: 6px 14px;
+}
+
+.report-canvas-page .rc-footer-select .scv-select-trigger {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border-color: var(--rc-border-strong);
+  background: var(--rc-bg);
+  font-size: 12px;
+}
+
+.report-canvas-page .rc-state-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--rc-border);
+  border-radius: 999px;
+  background: var(--rc-subtle-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 550;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-footer-right .button {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border-color: var(--rc-border-strong);
+  background: var(--rc-bg);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.report-canvas-page .rc-footer-right .button:hover:not(:disabled) {
+  background: var(--rc-control-hover);
+  border-color: var(--rc-border-strong);
+  color: var(--text-heading);
+}
+
+.report-canvas-page .rc-footer-right .button.primary,
+[data-theme="dark"] .report-canvas-page .rc-footer-right .button.primary {
+  background: var(--rc-primary-bg);
+  border-color: var(--rc-primary-bg);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.report-canvas-page .rc-footer-right .button.primary:hover:not(:disabled),
+[data-theme="dark"] .report-canvas-page .rc-footer-right .button.primary:hover:not(:disabled) {
+  background: var(--rc-primary-hover);
+  border-color: var(--rc-primary-hover);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   2. SINGLE-ROW COMPACT VIEW TOOLBAR (.rc-toolbar)
+   Overrides legacy two-row @media (max-width: 1320px) rules
+   ========================================================================== */
+
+.report-canvas-page .rc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 10px;
+  min-height: 38px;
+  padding: 4px 12px;
+  background: var(--rc-toolbar-bg);
+  border-bottom: 1px solid var(--rc-border);
+}
+
+.report-canvas-page .rc-toolbar .rc-toolbar-group {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  width: auto;
+  gap: 4px;
+  padding: 0;
+  border-bottom: 0;
+  min-width: 0;
+}
+
+.report-canvas-page .rc-toolbar .rc-toolbar-group:first-child {
+  border-bottom: 0;
+}
+
+.report-canvas-page .rc-toolbar .rc-page-navigation {
+  flex: 0 1 auto;
+  gap: 7px;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.report-canvas-page .rc-toolbar .rc-page-navigation > svg {
+  flex-shrink: 0;
+  color: var(--rc-accent);
+}
+
+.report-canvas-page .rc-toolbar .rc-page-navigation .scv-select {
+  min-width: 128px;
+  max-width: 240px;
+}
+
+.report-canvas-page .rc-toolbar .scv-select > .scv-select-trigger {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 5px;
+  border-color: var(--rc-border-strong);
+  background: var(--rc-bg);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.report-canvas-page .rc-toolbar-group > .rc-toolbar-divider,
+.report-canvas-page .rc-toolbar-group:last-child > .rc-toolbar-divider:last-of-type {
+  width: 1px;
+  height: 16px;
+  margin: 0 6px;
+  background: var(--rc-border);
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-tool-btn {
+  height: 28px;
+  min-height: 28px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.report-canvas-page .rc-tool-btn.is-active,
+.report-canvas-page .rc-tool-btn[aria-expanded="true"] {
+  background: var(--rc-accent-soft);
+  border-color: var(--rc-accent-border);
+  color: var(--rc-accent-text);
+  font-weight: 600;
+}
+
+.report-canvas-page .rc-panel-settings > summary {
+  height: 28px;
+  border-radius: 5px;
+}
+
+.report-canvas-page .rc-panel-settings[open] > summary {
+  background: var(--rc-accent-soft);
+  border-color: var(--rc-accent-border);
+  color: var(--rc-accent-text);
+}
+
+/* ==========================================================================
+   3. 4-COLUMN STUDIO WORKSPACE & LEFT RAIL (.rc-workspace, .rc-studio-rail)
+   ========================================================================== */
+
+.report-canvas-page .rc-workspace {
+  display: grid;
+  grid-template-columns: 56px var(--rc-left-w, 224px) minmax(0, 1fr) var(--rc-right-w, 280px);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.report-canvas-page .rc-studio-rail {
+  grid-column: 1;
+  grid-row: 1;
+  width: 56px;
+  min-width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 2px;
+  background: var(--rc-rail-bg);
+  border-right: 1px solid var(--rc-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  z-index: 3;
+}
+
+.report-canvas-page .rc-studio-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.report-canvas-page .rc-rail-button {
+  position: relative;
+  width: 100%;
+  min-height: 50px;
+  padding: 6px 1px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.report-canvas-page .rc-rail-button > svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-rail-button > span {
+  display: block;
+  max-width: 100%;
+  font-size: 9px;
+  font-weight: 550;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-rail-button:hover:not(:disabled) {
+  background: var(--rc-control-hover);
+  color: var(--text-primary);
+}
+
+.report-canvas-page .rc-rail-button[aria-pressed="true"],
+.report-canvas-page .rc-rail-button.is-active {
+  background: var(--rc-accent-soft);
+  border-color: var(--rc-accent-border);
+  color: var(--rc-accent-text);
+  box-shadow: inset 2px 0 0 var(--rc-cyan);
+}
+
+.report-canvas-page .rc-rail-button[aria-pressed="true"] > span,
+.report-canvas-page .rc-rail-button.is-active > span {
+  font-weight: 650;
+}
+
+.report-canvas-page .rc-rail-footer,
+.report-canvas-page .rc-rail-button.is-footer {
+  margin-top: auto;
+}
+
+.report-canvas-page .rc-rail-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rc-border);
+}
+
+/* ==========================================================================
+   4. LEFT LIBRARY & CONTEXT PANELS (.rc-sidebar-left, .rc-library-*)
+   ========================================================================== */
+
+.report-canvas-page .rc-sidebar-left {
+  grid-column: 2;
+  grid-row: 1;
+  border-right: 1px solid var(--rc-border);
+  background: var(--rc-sidebar-bg);
+}
+
+.report-canvas-page .rc-library-heading {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 12px;
+  background: var(--rc-sidebar-bg);
+  border-bottom: 1px solid var(--rc-border);
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-library-heading > strong {
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-library-panel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.report-canvas-page .rc-sidebar .rc-library-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--rc-border-strong);
+  border-radius: 6px;
+  background: var(--rc-subtle-bg);
+  color: var(--text-muted);
+  cursor: text;
+  transition: border-color 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.report-canvas-page .rc-sidebar .rc-library-search:focus-within {
+  background: var(--rc-bg);
+  border-color: var(--rc-accent);
+  box-shadow: 0 0 0 2px var(--rc-accent-soft);
+  color: var(--rc-accent);
+}
+
+.report-canvas-page .rc-sidebar .rc-library-search > svg {
+  flex: 0 0 16px;
+  color: currentColor;
+}
+
+.report-canvas-page .rc-sidebar .rc-library-search input {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--text-primary);
+  font-size: 12.5px;
+}
+
+.report-canvas-page .rc-sidebar .rc-library-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.report-canvas-page .rc-library-group-title {
+  margin: 0 0 8px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
+}
+
+.report-canvas-page .rc-component-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+@container (min-width: 268px) {
+  .report-canvas-page .rc-component-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.report-canvas-page .rc-component-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 2px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: center;
+  min-width: 0;
+  transition: color 0.14s ease;
+}
+
+.report-canvas-page .rc-component-symbol {
+  width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rc-border);
+  border-radius: 8px;
+  background: var(--rc-symbol-bg);
+  color: var(--text-secondary);
+  transition: border-color 0.14s ease, background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.report-canvas-page .rc-component-symbol > svg {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-component-tile > span:last-child {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-component-tile:hover:not(:disabled) .rc-component-symbol,
+.report-canvas-page .rc-component-tile:focus-visible .rc-component-symbol {
+  border-color: var(--rc-accent);
+  background: var(--rc-accent-soft);
+  color: var(--rc-accent-text);
+  box-shadow: 0 0 0 1px var(--rc-accent-border);
+}
+
+.report-canvas-page .rc-component-tile:hover:not(:disabled) > span:last-child {
+  color: var(--rc-accent-text);
+  font-weight: 600;
+}
+
+.report-canvas-page .rc-component-tile:active:not(:disabled) .rc-component-symbol {
+  background: var(--rc-control-active);
+}
+
+/* ==========================================================================
+   5. CENTER STAGE, PAPER & SELECTION OUTLINE (.rc-stage, .rc-page)
+   Internal metrics of .rc-block and .rc-block-inner are strictly untouched
+   ========================================================================== */
+
+.report-canvas-page .rc-stage {
+  grid-column: 3;
+  grid-row: 1;
+  background-color: var(--rc-stage-bg);
+  background-image: radial-gradient(circle, var(--rc-stage-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.report-canvas-page .rc-page {
+  box-shadow: 0 1px 3px rgba(15, 36, 56, 0.06), 0 8px 24px rgba(15, 36, 56, 0.07);
+  border-color: rgba(15, 36, 56, 0.11);
+}
+
+[data-theme="dark"] .report-canvas-page .rc-page {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.report-canvas-page .rc-block:hover:not(.is-selected) {
+  border-color: color-mix(in srgb, var(--rc-select-line) 55%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--rc-select-line) 55%, transparent);
+  outline-offset: 0;
+}
+
+.report-canvas-page .rc-block.is-selected {
+  border-color: var(--rc-select-line);
+  outline: 1.5px solid var(--rc-select-line);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rc-select-line) 14%, transparent);
+}
+
+.report-canvas-page .rc-resize-handle {
+  background: #ffffff;
+  border-color: var(--rc-select-line);
+  box-shadow: 0 1px 2px rgba(15, 36, 56, 0.2);
+}
+
+.report-canvas-page .rc-resize-handle:hover {
+  background: var(--rc-select-line);
+}
+
+/* ==========================================================================
+   6. RIGHT INSPECTOR & UNIFIED SIDEBAR CONTROLS (.rc-sidebar-right)
+   ========================================================================== */
+
+.report-canvas-page .rc-sidebar-right {
+  grid-column: 4;
+  grid-row: 1;
+  border-left: 1px solid var(--rc-border);
+  background: var(--rc-sidebar-bg);
+}
+
+.report-canvas-page .rc-inspector-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px 6px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-inspector-heading > svg {
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 6px;
+  border: 1px solid var(--rc-border);
+  border-radius: 7px;
+  background: var(--rc-symbol-bg);
+  color: var(--rc-accent);
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-inspector-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.report-canvas-page .rc-inspector-heading strong {
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-inspector-heading small {
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-canvas-page .rc-inspector-actions {
+  display: flex;
+  align-items: center;
+  padding: 2px 14px 8px;
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-inspector-actions .rc-section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--rc-border);
+  border-radius: 6px;
+  background: var(--rc-subtle-bg);
+}
+
+.report-canvas-page .rc-inspector-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  padding: 0 14px;
+  background: var(--rc-sidebar-bg);
+  border-bottom: 1px solid var(--rc-border);
+  flex-shrink: 0;
+}
+
+.report-canvas-page .rc-inspector-tabs > button {
+  position: relative;
+  padding: 8px 2px 9px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.2;
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+
+.report-canvas-page .rc-inspector-tabs > button:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.report-canvas-page .rc-inspector-tabs > button.is-active,
+.report-canvas-page .rc-inspector-tabs > button[aria-selected="true"] {
+  color: var(--rc-accent-text);
+  font-weight: 650;
+  border-bottom-color: var(--rc-accent);
+}
+
+.report-canvas-page .rc-sidebar-right > [role="tabpanel"] {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Flat sections with dividers only between visible sibling sections */
+.report-canvas-page .rc-section {
+  flex: 0 0 auto;
+  padding: 14px;
+  gap: 11px;
+  border-bottom: 0;
+}
+
+.report-canvas-page .rc-section:not([hidden]) ~ .rc-section:not([hidden]) {
+  border-top: 1px solid var(--rc-border);
+}
+
+.report-canvas-page .rc-section-head h3 {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--text-heading);
+}
+
+.report-canvas-page .rc-sidebar .rc-field {
+  gap: 5px;
+}
+
+.report-canvas-page .rc-sidebar label.rc-field {
+  font-size: 11.5px;
+  font-weight: 550;
+  color: var(--text-secondary);
+}
+
+.report-canvas-page .rc-sidebar :is(
+  select,
+  input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]),
+  textarea
+) {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--rc-border-strong);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: 12.5px;
+}
+
+.report-canvas-page .rc-sidebar textarea {
+  height: auto;
+  min-height: 82px;
+  padding: 7px 10px;
+  line-height: 1.45;
+}
+
+.report-canvas-page .rc-sidebar :is(
+  select,
+  input:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]),
+  textarea
+):focus {
+  border-color: var(--rc-accent);
+  outline: 2px solid var(--rc-accent-soft);
+  outline-offset: 0;
+}
+
+.report-canvas-page .rc-sidebar .scv-select > .scv-select-trigger {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--rc-border-strong);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: 12.5px;
+}
+
+.report-canvas-page .rc-sidebar .scv-select > .scv-select-trigger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--rc-accent) 45%, var(--rc-border-strong));
+}
+
+.report-canvas-page .rc-sidebar .scv-select > .scv-select-trigger:focus-visible,
+.report-canvas-page .rc-sidebar .scv-select > .scv-select-trigger.is-open {
+  border-color: var(--rc-accent);
+  outline: 2px solid var(--rc-accent-soft);
+  outline-offset: 0;
+}
+
+.report-canvas-page input[type="color"].rc-color-input {
+  width: 26px;
+  min-width: 26px;
+  height: 32px;
+  min-height: 32px;
+  border: 1px solid var(--rc-border-strong);
+  border-radius: 6px;
+  flex: 0 0 26px;
+}
+
+.report-canvas-page .rc-sidebar .rc-color-control input[type="text"]:not([type="radio"]):not([type="checkbox"]):not([type="color"]):not([type="range"]) {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: 11.5px;
+}
+
+.report-canvas-page .rc-swatch {
+  width: 21px;
+  height: 21px;
+  border-radius: 5px;
+}
+
+.report-canvas-page .rc-swatch.is-selected {
+  outline: 2px solid var(--rc-accent);
+  outline-offset: 1.5px;
+}
+
+.report-canvas-page .rc-list-row {
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.report-canvas-page .rc-mini-btn {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border-color: var(--rc-border-strong);
+}
+
+/* ==========================================================================
+   7. RESPONSIVE DESKTOP CALIBRATION (1024px / 1366px / 1920px)
+   Preserves all essential actions without hiding controls
+   ========================================================================== */
+
+@media (max-width: 1220px) {
+  .report-canvas-page .rc-page-header {
+    padding: 4px 10px;
+    gap: 5px 10px;
+  }
+
+  .report-canvas-page .rc-header-nav {
+    max-width: 220px;
+    padding-right: 10px;
+    gap: 6px;
+  }
+
+  .report-canvas-page .rc-footer-bar,
+  .report-canvas-page .rc-footer-left {
+    gap: 5px 10px;
+  }
+
+  .report-canvas-page .rc-footer-right {
+    gap: 6px;
+  }
+
+  .report-canvas-page .rc-state-pill {
+    max-width: 190px;
+    padding: 0 7px;
+  }
+
+  .report-canvas-page .rc-toolbar {
+    padding: 4px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .report-canvas-page .rc-toolbar .rc-page-navigation .scv-select {
+    min-width: 110px;
+    max-width: 170px;
+  }
+
+  .report-canvas-page .rc-workspace {
+    grid-template-columns:
+      56px
+      min(var(--rc-left-w, 224px), 232px)
+      minmax(0, 1fr)
+      min(var(--rc-right-w, 280px), 264px);
+  }
+
+  .report-canvas-page .rc-stage {
+    padding: 18px 20px;
+  }
+}

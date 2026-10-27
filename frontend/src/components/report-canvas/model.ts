@@ -1,0 +1,492 @@
+export type BlockType = "text" | "kpi" | "table" | "bar" | "line" | "pie" | "image";
+export type AggregateMode = "sum" | "count" | "first";
+export type OutputFormat = "pdf" | "xlsx";
+
+export interface BlockOptions {
+  column_widths?: number[];
+  x_field?: string;
+  y_fields?: string[];
+  value_field?: string;
+  aggregate?: AggregateMode;
+  precision?: number;
+  font_size?: number;
+  color?: string;
+  columns?: string[];
+}
+
+export interface CanvasBlock {
+  id: string;
+  type: BlockType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  source_id?: string;
+  title?: string;
+  text?: string;
+  asset_id?: string;
+  options?: BlockOptions;
+}
+
+export interface CanvasPage {
+  id: string;
+  name: string;
+  blocks: CanvasBlock[];
+}
+
+export type CanvasSource =
+  | {
+      id: string;
+      type: "report";
+      report_id: number;
+      dataset?: string;
+      parameters?: Record<string, string | number | boolean | null | { parameter: string }>;
+    }
+  | {
+      id: string;
+      type: "inline";
+      columns: string[];
+      rows: Array<Array<string | number | boolean | null>>;
+    }
+  | {
+      id: string;
+      type: "goals";
+    };
+
+export interface CanvasPageConfig {
+  width: number;
+  height: number;
+  columns: number;
+  background: string;
+}
+
+export interface CanvasLayout {
+  schema_version: 1;
+  page: CanvasPageConfig;
+  sources: CanvasSource[];
+  pages: CanvasPage[];
+}
+
+export interface CatalogSqlSource {
+  datasets?: Array<{id:string;name:string;columns:string[]}>;
+
+  id: number;
+  name: string;
+  code: string;
+  columns?: string[];
+}
+
+export interface CanvasAssetMeta {
+  id: string;
+  filename: string;
+  width: number;
+  height: number;
+  content?: string;
+  mime?: string;
+}
+
+export interface CanvasGetResponse {
+  port_notice?: string;
+  monthly_goals?: Array<{year:number;month:number;value:number}>;
+  version: number;
+  layout: Partial<CanvasLayout> | null;
+  enabled: boolean;
+  output_format: string;
+  sources: CatalogSqlSource[];
+  assets: CanvasAssetMeta[];
+}
+
+export interface CanvasPreviewResponse {
+  content: string;
+  format: string;
+  rows?: number;
+  filename: string;
+}
+
+export interface ReportCanvasProps {
+  unit: string;
+  report: {
+    id: number;
+    name: string;
+    version: number;
+    [key: string]: any;
+  };
+  onClose: () => void;
+  onSaved?: () => void;
+}
+
+export const IDENT_RE = /^[A-Za-z][A-Za-z0-9_-]{0,49}$/;
+export const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const MAX_ASSET_BYTES = 2 * 1024 * 1024;
+
+export const SWATCH_COLORS = [
+  "#075b94",
+  "#14b4cb",
+  "#0f766e",
+  "#1d4ed8",
+  "#0f2438",
+  "#475569",
+  "#b45309",
+  "#b91c1c",
+];
+
+export const SERIES_PALETTE = [
+  "#075b94",
+  "#14b4cb",
+  "#0f766e",
+  "#2563eb",
+  "#0369a1",
+  "#64748b",
+];
+
+export const BLOCK_LABELS: Record<BlockType, string> = {
+  text: "Texto",
+  kpi: "KPI",
+  table: "Tabela",
+  bar: "Barras",
+  line: "Linhas",
+  pie: "Pizza",
+  image: "Imagem",
+};
+
+export const DEFAULT_SIZES: Record<BlockType, { w: number; h: number }> = {
+  text: { w: 380, h: 110 },
+  kpi: { w: 230, h: 125 },
+  table: { w: 540, h: 240 },
+  bar: { w: 430, h: 250 },
+  line: { w: 430, h: 250 },
+  pie: { w: 330, h: 250 },
+  image: { w: 240, h: 140 },
+};
+
+export function clamp(val: number, low: number, high: number): number {
+  if (!Number.isFinite(val)) return low;
+  return Math.max(low, Math.min(high, val));
+}
+
+export function round2(val: number): number {
+  return Math.round(val * 100) / 100;
+}
+
+export function validColor(val: unknown, fallback = "#075b94"): string {
+  return typeof val === "string" && HEX_COLOR_RE.test(val) ? val.toLowerCase() : fallback;
+}
+
+export function isDarkHex(hex: string): boolean {
+  const clean = validColor(hex, "#ffffff").slice(1);
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum < 0.45;
+}
+
+export function makeId(prefix: string, existing: Set<string>): string {
+  for (let i = 1; i <= 5000; i++) {
+    const candidate = `${prefix}${i}`;
+    if (!existing.has(candidate) && IDENT_RE.test(candidate)) return candidate;
+  }
+  const rand = `${prefix}_${Date.now().toString(36)}`;
+  return rand.slice(0, 50);
+}
+
+export function createDefaultLayout(): CanvasLayout {
+  return {
+    schema_version: 1,
+    page: {
+      width: 794,
+      height: 1123,
+      columns: 24,
+      background: "#ffffff",
+    },
+    sources: [],
+    pages: [
+      {
+        id: "p1",
+        name: "Página 1",
+        blocks: [],
+      },
+    ],
+  };
+}
+
+export function clampBlockToPage(b: CanvasBlock, pageW: number, pageH: number): CanvasBlock {
+  const width = round2(clamp(Number(b.width) || 200, 20, pageW));
+  const height = round2(clamp(Number(b.height) || 120, 20, pageH));
+  const x = round2(clamp(Number(b.x) || 0, 0, Math.max(0, pageW - width)));
+  const y = round2(clamp(Number(b.y) || 0, 0, Math.max(0, pageH - height)));
+  return { ...b, x, y, width, height };
+}
+
+export function normalizeLayout(raw: unknown): CanvasLayout {
+  if (!raw || typeof raw !== "object") return createDefaultLayout();
+  const obj = raw as Record<string, any>;
+  if (obj.schema_version !== 1 || !Array.isArray(obj.pages) || obj.pages.length === 0) {
+    return createDefaultLayout();
+  }
+  const rawPage = obj.page && typeof obj.page === "object" ? obj.page : {};
+  const width = round2(clamp(Number(rawPage.width) || 794, 150, 3000));
+  const height = round2(clamp(Number(rawPage.height) || 1123, 150, 3000));
+  const columns = Math.round(clamp(Number(rawPage.columns) || 24, 1, 48));
+  const background = validColor(rawPage.background, "#ffffff");
+
+  const sources: CanvasSource[] = [];
+  const seenSourceIds = new Set<string>();
+  if (Array.isArray(obj.sources)) {
+    for (const s of obj.sources) {
+      if (!s || typeof s !== "object" || !IDENT_RE.test(String(s.id || "")) || seenSourceIds.has(s.id)) {
+        continue;
+      }
+      if (s.type === "report" && Number.isInteger(Number(s.report_id)) && Number(s.report_id) >= 1) {
+        seenSourceIds.add(s.id);
+        sources.push({
+          id: s.id,
+          type: "report",
+          report_id: Number(s.report_id),
+          ...(typeof s.dataset === "string" ? {dataset:s.dataset} : {}),
+          parameters: s.parameters && typeof s.parameters === "object" && !Array.isArray(s.parameters) ? s.parameters : {},
+        });
+      } else if (s.type === "inline" && Array.isArray(s.columns) && Array.isArray(s.rows)) {
+        seenSourceIds.add(s.id);
+        sources.push({
+          id: s.id,
+          type: "inline",
+          columns: s.columns.map(String),
+          rows: s.rows,
+        });
+      } else if (s.type === "goals") {
+        seenSourceIds.add(s.id);
+        sources.push({ id: s.id, type: "goals" });
+      }
+    }
+  }
+
+  const pageIds = new Set<string>();
+  const blockIds = new Set<string>();
+  const pages: CanvasPage[] = [];
+  for (const p of obj.pages.slice(0, 30)) {
+    if (!p || typeof p !== "object") continue;
+    const pid = IDENT_RE.test(String(p.id || "")) && !pageIds.has(p.id) ? String(p.id) : makeId("p", pageIds);
+    pageIds.add(pid);
+    const pname = typeof p.name === "string" && p.name.trim() ? p.name.slice(0, 100) : `Página ${pages.length + 1}`;
+    const blocks: CanvasBlock[] = [];
+    if (Array.isArray(p.blocks)) {
+      for (const b of p.blocks) {
+        if (!b || typeof b !== "object" || !(b.type in BLOCK_LABELS)) continue;
+        if (blockIds.size >= 100) break;
+        const bid = IDENT_RE.test(String(b.id || "")) && !blockIds.has(b.id) ? String(b.id) : makeId("b", blockIds);
+        blockIds.add(bid);
+        const rawOpt = b.options && typeof b.options === "object" ? b.options : {};
+        const opt: BlockOptions = {
+          ...(Array.isArray(rawOpt.column_widths) ? {column_widths: rawOpt.column_widths.filter((v:unknown) => typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= 3000).slice(0,100)} : {}),
+          color: validColor(rawOpt.color, "#075b94"),
+          font_size: clamp(Number(rawOpt.font_size) || 14, 6, 100),
+          ...(rawOpt.aggregate === "sum" || rawOpt.aggregate === "count" || rawOpt.aggregate === "first"
+            ? { aggregate: rawOpt.aggregate }
+            : {}),
+          ...(typeof rawOpt.precision === "number"
+            ? { precision: Math.round(clamp(rawOpt.precision, 0, 4)) }
+            : {}),
+          ...(typeof rawOpt.x_field === "string" && rawOpt.x_field ? { x_field: rawOpt.x_field.slice(0, 100) } : {}),
+          ...(typeof rawOpt.value_field === "string" && rawOpt.value_field
+            ? { value_field: rawOpt.value_field.slice(0, 100) }
+            : {}),
+          ...(Array.isArray(rawOpt.y_fields)
+            ? { y_fields: rawOpt.y_fields.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 100)) }
+            : {}),
+          ...(Array.isArray(rawOpt.columns)
+            ? { columns: rawOpt.columns.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 100)) }
+            : {}),
+        };
+        const normalized: CanvasBlock = clampBlockToPage(
+          {
+            id: bid,
+            type: b.type as BlockType,
+            x: Number(b.x) || 0,
+            y: Number(b.y) || 0,
+            width: Number(b.width) || DEFAULT_SIZES[b.type as BlockType].w,
+            height: Number(b.height) || DEFAULT_SIZES[b.type as BlockType].h,
+            ...(typeof b.source_id === "string" && b.source_id ? { source_id: b.source_id } : {}),
+            ...(typeof b.title === "string" && b.title ? { title: b.title.slice(0, 300) } : {}),
+            ...(typeof b.text === "string" && b.text ? { text: b.text.slice(0, 20000) } : {}),
+            ...(b.type === "image" && typeof b.asset_id === "string" && b.asset_id ? { asset_id: b.asset_id } : {}),
+            options: opt,
+          },
+          width,
+          height,
+        );
+        blocks.push(normalized);
+      }
+    }
+    pages.push({ id: pid, name: pname, blocks });
+  }
+
+  if (pages.length === 0) {
+    pages.push({ id: "p1", name: "Página 1", blocks: [] });
+  }
+
+  return {
+    schema_version: 1,
+    page: { width, height, columns, background },
+    sources,
+    pages,
+  };
+}
+
+export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
+  const pageW = round2(clamp(layout.page.width, 150, 3000));
+  const pageH = round2(clamp(layout.page.height, 150, 3000));
+  const columns = Math.round(clamp(layout.page.columns, 1, 48));
+  const background = validColor(layout.page.background, "#ffffff");
+  const validSourceIds = new Set(layout.sources.map((s) => s.id));
+
+  const cleanSources: CanvasSource[] = layout.sources.map((s) => {
+    if (s.type === "report") {
+      return {
+        id: s.id,
+        type: "report",
+        report_id: Math.round(Number(s.report_id)),
+        ...(s.dataset ? {dataset:s.dataset} : {}),
+        parameters: s.parameters || {},
+      };
+    }
+    if (s.type === "inline") {
+      return {
+        id: s.id,
+        type: "inline",
+        columns: s.columns,
+        rows: s.rows,
+      };
+    }
+    return { id: s.id, type: "goals" };
+  });
+
+  const cleanPages: CanvasPage[] = layout.pages.map((p, idx) => ({
+    id: p.id,
+    name: p.name.trim().slice(0, 100) || `Página ${idx + 1}`,
+    blocks: p.blocks.map((rawBlock) => {
+      const b = clampBlockToPage(rawBlock, pageW, pageH);
+      const rawOpt = b.options || {};
+      const cleanOpt: BlockOptions = {
+        color: validColor(rawOpt.color, "#075b94"),
+        font_size: round2(clamp(Number(rawOpt.font_size) || 14, 6, 100)),
+      };
+      if (Array.isArray(rawOpt.column_widths)) cleanOpt.column_widths=rawOpt.column_widths.filter(v=>Number.isFinite(v) && v>=1 && v<=3000).slice(0,100);
+      if (rawOpt.aggregate === "sum" || rawOpt.aggregate === "count" || rawOpt.aggregate === "first") {
+        cleanOpt.aggregate = rawOpt.aggregate;
+      }
+      if (typeof rawOpt.precision === "number" && Number.isFinite(rawOpt.precision)) {
+        cleanOpt.precision = Math.round(clamp(rawOpt.precision, 0, 4));
+      }
+      if (rawOpt.x_field && rawOpt.x_field.trim()) {
+        cleanOpt.x_field = rawOpt.x_field.trim().slice(0, 100);
+      }
+      if (rawOpt.value_field && rawOpt.value_field.trim()) {
+        cleanOpt.value_field = rawOpt.value_field.trim().slice(0, 100);
+      }
+      if (Array.isArray(rawOpt.y_fields)) {
+        const ys = rawOpt.y_fields.map((v) => v.trim().slice(0, 100)).filter(Boolean);
+        if (ys.length > 0) cleanOpt.y_fields = ys.slice(0, 6);
+      }
+      if (Array.isArray(rawOpt.columns)) {
+        const cols = rawOpt.columns.map((v) => v.trim().slice(0, 100)).filter(Boolean);
+        if (cols.length > 0) cleanOpt.columns = cols.slice(0, 100);
+      }
+
+      const out: CanvasBlock = {
+        id: b.id,
+        type: b.type,
+        x: b.x,
+        y: b.y,
+        width: b.width,
+        height: b.height,
+        options: cleanOpt,
+      };
+      if (b.title !== undefined && b.title !== "") out.title = b.title.slice(0, 300);
+      if (b.text !== undefined && b.text !== "") out.text = b.text.slice(0, 20000);
+      if (b.type !== "image" && b.source_id && validSourceIds.has(b.source_id)) {
+        out.source_id = b.source_id;
+      }
+      if (b.type === "image" && b.asset_id) {
+        out.asset_id = b.asset_id;
+      }
+      return out;
+    }),
+  }));
+
+  return {
+    schema_version: 1,
+    page: { width: pageW, height: pageH, columns, background },
+    sources: cleanSources,
+    pages: cleanPages,
+  };
+}
+
+export function inferImageMime(filename: string, b64: string, explicitMime?: string): string {
+  if (explicitMime && explicitMime.startsWith("image/")) return explicitMime;
+  if (/\.jpe?g$/i.test(filename) || b64.startsWith("/9j/")) return "image/jpeg";
+  return "image/png";
+}
+
+export function base64ToBlob(b64: string, mime: string): Blob {
+  const clean = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
+  const bin = atob(clean);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) {
+    bytes[i] = bin.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
+export function parseNumberOrNull(v: unknown): number | null {
+  if (v === null || v === undefined || v === "" || typeof v === "boolean") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function interpolateText(raw: string, reportName: string): string {
+  return raw.replace(/\{\{\s*([A-Za-z][A-Za-z0-9_]*)\s*\}\}/g, (full, key: string) =>
+    key === "report_name" ? reportName : full,
+  );
+}
+
+export type SourceDialogState = {
+  mode: "create" | "edit";
+  originalId?: string;
+  id: string;
+  type: "report" | "inline" | "goals";
+  reportId: string;
+  dataset?: string;
+  parametersJson: string;
+  columnsJson: string;
+  rowsJson: string;
+  error: string;
+};
+
+export type DragSession =
+  | {
+      kind: "move";
+      blockId: string;
+      startClientX: number;
+      startClientY: number;
+      startX: number;
+      startY: number;
+      width: number;
+      height: number;
+    }
+  | {
+      kind: "resize";
+      handle: "se" | "e" | "s";
+      blockId: string;
+      startClientX: number;
+      startClientY: number;
+      startX: number;
+      startY: number;
+      startW: number;
+      startH: number;
+    };
+
+export function isParameterBinding(value: unknown): value is {parameter:string} {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length === 1 && "parameter" in value && typeof value.parameter === "string" && /^[A-Za-z][A-Za-z0-9_]{0,49}$/.test(value.parameter);
+}
