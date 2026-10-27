@@ -1,11 +1,32 @@
 export type BlockType = "text" | "kpi" | "table" | "bar" | "line" | "pie" | "image";
 export type AggregateMode = "sum" | "count" | "first";
+export type XGroupGranularity = "day" | "week" | "month" | "quarter" | "year";
+export type ChartAggregateMode = "sum" | "avg" | "count" | "min" | "max";
 export type OutputFormat = "pdf" | "xlsx";
+export type XlsxMode = "layout" | "table";
+
+export const X_GROUP_VALUES: readonly XGroupGranularity[] = [
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
+];
+export const Y_AGGREGATE_VALUES: readonly ChartAggregateMode[] = [
+  "sum",
+  "avg",
+  "count",
+  "min",
+  "max",
+];
 
 export interface BlockOptions {
   column_widths?: number[];
   x_field?: string;
   y_fields?: string[];
+  x_group?: XGroupGranularity;
+  y_aggregate?: ChartAggregateMode;
+  series_colors?: string[];
   value_field?: string;
   aggregate?: AggregateMode;
   precision?: number;
@@ -85,6 +106,7 @@ export interface CanvasPageConfig {
 
 export interface CanvasLayout {
   schema_version: 1;
+  xlsx_mode?: XlsxMode;
   page: CanvasPageConfig;
   sources: CanvasSource[];
   pages: CanvasPage[];
@@ -159,14 +181,25 @@ export const SWATCH_COLORS = [
   "#b91c1c",
 ];
 
-export const SERIES_PALETTE = [
+export const LEGACY_PDF_PALETTE = [
   "#075b94",
   "#14b4cb",
-  "#0f766e",
-  "#2563eb",
-  "#0369a1",
+  "#71bfa6",
+  "#7289ba",
+  "#af76b5",
+  "#db9d49",
+];
+
+export const NEW_SERIES_PALETTE = [
+  "#075b94",
+  "#c2610c",
+  "#0f7f73",
+  "#b5446e",
+  "#0e8fa3",
   "#64748b",
 ];
+
+export const SERIES_PALETTE = LEGACY_PDF_PALETTE;
 
 export const BLOCK_LABELS: Record<BlockType, string> = {
   text: "Texto",
@@ -312,6 +345,12 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
         const bid = IDENT_RE.test(String(b.id || "")) && !blockIds.has(b.id) ? String(b.id) : makeId("b", blockIds);
         blockIds.add(bid);
         const rawOpt = b.options && typeof b.options === "object" ? b.options : {};
+        const validSeriesColors = Array.isArray(rawOpt.series_colors)
+          ? rawOpt.series_colors
+              .filter((x: unknown): x is string => typeof x === "string" && HEX_COLOR_RE.test(x.trim()))
+              .map((x: string) => x.trim().toLowerCase())
+              .slice(0, 6)
+          : [];
         const opt: BlockOptions = {
           ...(Array.isArray(rawOpt.column_widths) ? {column_widths: rawOpt.column_widths.filter((v:unknown) => typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= 3000).slice(0,100)} : {}),
           color: validColor(rawOpt.color, "#075b94"),
@@ -329,6 +368,13 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
           ...(Array.isArray(rawOpt.y_fields)
             ? { y_fields: rawOpt.y_fields.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 100)) }
             : {}),
+          ...(typeof rawOpt.x_group === "string" && X_GROUP_VALUES.includes(rawOpt.x_group as XGroupGranularity)
+            ? { x_group: rawOpt.x_group as XGroupGranularity }
+            : {}),
+          ...(typeof rawOpt.y_aggregate === "string" && Y_AGGREGATE_VALUES.includes(rawOpt.y_aggregate as ChartAggregateMode)
+            ? { y_aggregate: rawOpt.y_aggregate as ChartAggregateMode }
+            : {}),
+          ...(validSeriesColors.length > 0 ? { series_colors: validSeriesColors } : {}),
           ...(Array.isArray(rawOpt.columns)
             ? { columns: rawOpt.columns.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 100)) }
             : {}),
@@ -360,8 +406,12 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
     pages.push({ id: "p1", name: "Página 1", blocks: [] });
   }
 
+  const xlsxMode: XlsxMode | undefined =
+    obj.xlsx_mode === "layout" || obj.xlsx_mode === "table" ? obj.xlsx_mode : undefined;
+
   return {
     schema_version: 1,
+    ...(xlsxMode ? { xlsx_mode: xlsxMode } : {}),
     page: { width, height, columns, background },
     sources,
     pages,
@@ -426,6 +476,19 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
         const ys = rawOpt.y_fields.map((v) => v.trim().slice(0, 100)).filter(Boolean);
         if (ys.length > 0) cleanOpt.y_fields = ys.slice(0, 6);
       }
+      if (rawOpt.x_group && X_GROUP_VALUES.includes(rawOpt.x_group)) {
+        cleanOpt.x_group = rawOpt.x_group;
+      }
+      if (rawOpt.y_aggregate && Y_AGGREGATE_VALUES.includes(rawOpt.y_aggregate)) {
+        cleanOpt.y_aggregate = rawOpt.y_aggregate;
+      }
+      if (Array.isArray(rawOpt.series_colors)) {
+        const sc = rawOpt.series_colors
+          .filter((v): v is string => typeof v === "string" && HEX_COLOR_RE.test(v.trim()))
+          .map((v) => v.trim().toLowerCase())
+          .slice(0, 6);
+        if (sc.length > 0) cleanOpt.series_colors = sc;
+      }
       if (Array.isArray(rawOpt.columns)) {
         const cols = rawOpt.columns.map((v) => v.trim().slice(0, 100)).filter(Boolean);
         if (cols.length > 0) cleanOpt.columns = cols.slice(0, 100);
@@ -452,8 +515,12 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
     }),
   }));
 
+  const xlsxMode: XlsxMode | undefined =
+    layout.xlsx_mode === "layout" || layout.xlsx_mode === "table" ? layout.xlsx_mode : undefined;
+
   return {
     schema_version: 1,
+    ...(xlsxMode ? { xlsx_mode: xlsxMode } : {}),
     page: { width: pageW, height: pageH, columns, background },
     sources: cleanSources,
     pages: cleanPages,
