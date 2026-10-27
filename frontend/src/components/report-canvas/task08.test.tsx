@@ -1,3 +1,4 @@
+import { resolveSeriesPalette, PDF_LEGACY_PALETTE } from "./blocks/ChartPreview";
 import BlockFrame, { type BlockFrameProps } from "./stage/BlockFrame";
 import { canvasStoreReducer, createCanvasStoreState } from "./state/canvasStore";
 import storedLayouts from "../../__fixtures__/canvas/stored-layouts.anonymous.json";
@@ -179,4 +180,11 @@ it("aborta prévia em andamento e ignora a resposta que chega depois da saída",
   await expect(pending).rejects.toMatchObject({name: "AbortError"});
   resolveResponse(new Response(JSON.stringify({columns: [], rows: [[99]], total_rows: 1, truncated: false}), {status: 200}));
   await Promise.resolve();
+});
+
+
+it("pizza legada ignora options.color como o PDF; cores explícitas prevalecem", () => {
+  expect(resolveSeriesPalette("#112233", undefined, "pie")).toEqual(PDF_LEGACY_PALETTE);
+  expect(resolveSeriesPalette("#112233", undefined, "bar")[0]).toBe("#112233");
+  expect(resolveSeriesPalette("#112233", ["#abcdef"], "pie")).toEqual(["#abcdef"]);
 });

@@ -35,11 +35,12 @@ export const CHART_NEW_PALETTE = [
   "#64748b",
 ];
 
-export function resolveSeriesPalette(optColor?: string, customSeriesColors?: string[]): string[] {
+export function resolveSeriesPalette(optColor?: string, customSeriesColors?: string[], chartType?: CanvasBlock["type"]): string[] {
   if (customSeriesColors && customSeriesColors.length > 0) {
     return customSeriesColors;
   }
-  const base = optColor || PDF_LEGACY_PALETTE[0];
+  // Legacy PDF pies ignore options.color; bars/lines use it for series 1.
+  const base = (chartType === "pie" ? undefined : optColor) || PDF_LEGACY_PALETTE[0];
   return [base, ...PDF_LEGACY_PALETTE.slice(1)];
 }
 
@@ -197,7 +198,7 @@ export default function ChartPreview({
 
   const chartW = Math.max(90, Math.floor(block.width - 24));
   const chartH = Math.max(54, Math.floor(block.height - (block.title ? 44 : 20)));
-  const palette = resolveSeriesPalette(opt.color, opt.series_colors);
+  const palette = resolveSeriesPalette(opt.color, opt.series_colors, block.type);
 
   return (
     <div className="cv-block-inner">
