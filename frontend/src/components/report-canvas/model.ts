@@ -126,14 +126,19 @@ export interface CanvasPreviewResponse {
   filename: string;
 }
 
+export interface ReportSummary {
+  id: number;
+  name: string;
+  version: number;
+  output_format?: string;
+  monthly_goals?: Array<{ year: number; month: number; value: number }>;
+  parameter_schema?: Record<string, any>;
+  [key: string]: any;
+}
+
 export interface ReportCanvasProps {
   unit: string;
-  report: {
-    id: number;
-    name: string;
-    version: number;
-    [key: string]: any;
-  };
+  report: ReportSummary;
   onClose: () => void;
   onSaved?: () => void;
 }
