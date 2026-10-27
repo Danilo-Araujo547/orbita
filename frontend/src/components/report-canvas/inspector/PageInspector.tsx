@@ -36,7 +36,13 @@ const PAGE_PRESETS: Record<Exclude<PagePresetKey, "custom">, { w: number; h: num
   letter: { w: 816, h: 1056 },
 };
 
-const PAGE_BG_SWATCHES = ["#ffffff", "#f8fafc", "#f1f5f9", "#fffbeb", "#0f172a"];
+const PAGE_BG_SWATCHES = [
+  { hex: "#ffffff", label: "Branco (#ffffff)" },
+  { hex: "#f1f5f9", label: "Cinza claro (#f1f5f9)" },
+  { hex: "#fefce8", label: "Creme (#fefce8)" },
+  { hex: "#f0f9ff", label: "Azul suave (#f0f9ff)" },
+  { hex: "#0f172a", label: "Grafite escuro (#0f172a)" },
+];
 
 const OUTPUT_FORMAT_OPTIONS = [
   { value: "pdf" as const, label: "PDF" },

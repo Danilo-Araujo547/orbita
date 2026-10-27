@@ -704,6 +704,7 @@
 }
 
 .cv-root .cv-swatch-btn {
+  position: relative;
   width: 24px;
   height: 24px;
   min-width: 24px;
@@ -712,11 +713,27 @@
   border-radius: var(--cv-r-sm);
   border: 1px solid var(--cv-line-strong);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--cv-dur-fast) var(--cv-ease), outline var(--cv-dur-fast) var(--cv-ease);
+}
+
+.cv-root .cv-swatch-btn:hover:not(:disabled) {
+  transform: scale(1.08);
 }
 
 .cv-root .cv-swatch-btn.is-selected {
   outline: 2px solid var(--cv-focus);
-  outline-offset: 1px;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--cv-surface);
+}
+
+.cv-root .cv-swatch-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* ==========================================================================
