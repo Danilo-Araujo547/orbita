@@ -61,6 +61,7 @@ export function useKeyboardShortcuts({
 }: UseKeyboardShortcutsParams) {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (e.defaultPrevented) return;
       const isCmdOrCtrl = e.ctrlKey || e.metaKey;
       const target = e.target as HTMLElement | null;
       const isInput = isInteractiveElement(target);

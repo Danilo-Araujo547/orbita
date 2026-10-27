@@ -332,3 +332,20 @@ configuração runtime e alterações de terceiros preservados. Nenhum push exec
 
 **Aceite integral pendente** pelos itens P1/P2 acima. Não declarar cobertura de todos
 os exports reais nem performance de 100 gráficos/leitor de tela com base no smoke.
+
+
+## Tarefa 09 — correções do QA1 (27/10/2026)
+
+- O editor agora fornece catálogo, relatório, unidade e prévias ao inspetor e ao palco. A aba Dados mostra fonte e conjunto; a linhagem quebra linhas e usa as mesmas colunas efetivas da aba Conteúdo. Cada coluna mostra tipo e caminho de origem.
+- Os exemplos usam texto, número, data e booleano coerentes. O catálogo atual contém nomes: antes de carregar uma prévia os tipos dos exemplos são inferidos pelo nome; após a consulta o inspetor usa os tipos retornados pelo servidor.
+- O modo Prévia carrega as fontes de relatório e renderiza os resultados no palco. Uma resposta 404/405 mantém o selo de estado e mostra erro específico com Tentar de novo; a ação também está disponível na aba Dados. Cache de prévia permanece apenas em memória; resultados de uma especificação antiga não substituem a atual.
+- Guias de encaixe incluem bordas e centros de blocos e folha. Sobreposição ganha contorno e aviso após soltar, sem impedir composições intencionais.
+- Tabelas novas começam com altura estimada pelas linhas; Ajustar altura ao conteúdo mede a tabela renderizada e altera somente o layout em edição.
+- Barra e indicadores reservam espaço. Selos ficam acima do bloco e usam superfície opaca para manter contraste no escuro. Upload desabilitado informa o motivo em tooltip; título/placeholder do inspetor têm contraste explícito.
+- Tab começa em Voltar, nome e ações, seguindo a ordem do DOM (trilho, painel, palco, inspetor). Redimensionadores ficam fora do Tab: Alt+Shift+L/R foca os painéis; Alt+Shift+B foca a alça do bloco, ajustável por setas (Shift = 10 px).
+- Problemas tem botão permanente na barra de status com contagens separadas de erros e avisos.
+- O item extra de series_colors já estava resolvido na entrada desta tarefa: normalizeLayout/sanitizeLayoutForApi preservam a caixa dos valores válidos. O teste original de round-trip permaneceu inalterado.
+
+Validação: scripts/canvas-check.sh verde (typecheck, 425 testes Vitest e build); pytest dos seis arquivos do Canvas verde (126 testes); scripts/canvas-task09-qa.cjs no Chromium em container contra 127.0.0.1:8091, com sessão/fontes sintéticas e todas as requisições de API interceptadas. O script bloqueia gravações e não acessa dados de relatório real. Resultado do navegador: linhagem, tipos, 404/retry, selo fora do conteúdo, ajuste de altura, guias, sobreposição, atalhos, botão de Problemas, Tab e ausência de overflow a 1100 px passaram; axe sem violações nos temas claro e escuro; zero pageerror e zero gravações. Capturas sintéticas em .canvas-task09-shots/qa09-light.png e qa09-dark.png.
+
+Pendências de ambiente: conferência visual com sessão real no relatório #6 e confirmação da rota na API real permanecem para o operador. Nenhum serviço da porta 8080 foi implantado ou reiniciado por esta tarefa; se a API real ainda estiver antiga, a disponibilização do endpoint exige procedimento próprio posterior. A cobertura automatizada não equivale a uma revisão manual completa com leitor de tela.

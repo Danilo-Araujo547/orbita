@@ -16,6 +16,7 @@ import type { ResizeHandle } from "./geometry";
 export interface BlockFrameProps {
   block: CanvasBlock;
   isSelected: boolean;
+  overlapping?: boolean;
   isDragging: boolean;
   background: string;
   sources: CanvasSource[];
@@ -34,6 +35,7 @@ export interface BlockFrameProps {
   onLoadSourcePreview?: (sourceId: string) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
   onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
+  onKeyboardResize?: (blockId: string, dx: number, dy: number) => void;
   onFocusBlock: (blockId: string) => void;
 }
 
@@ -51,6 +53,7 @@ const ALL_HANDLES: { handle: ResizeHandle; label: string; className: string }[] 
 function BlockFrameComponent({
   block,
   isSelected,
+  overlapping = false,
   isDragging,
   background,
   sources,
@@ -70,6 +73,7 @@ function BlockFrameComponent({
   onStartDrag,
   onStartResize,
   onFocusBlock,
+  onKeyboardResize,
 }: BlockFrameProps) {
   const currentX = tempGeometry ? tempGeometry.x : block.x;
   const currentY = tempGeometry ? tempGeometry.y : block.y;
@@ -168,12 +172,13 @@ function BlockFrameComponent({
 
   return (
     <div
+      data-block-id={block.id}
       role="group"
       tabIndex={0}
       aria-label={ariaLabel}
       className={`cv-block cv-block-${block.type} ${isSelected ? "is-selected" : ""} ${
         isDragging ? "is-dragging" : ""
-      } ${problem ? `has-problem is-${problem.severity}` : ""}`.trim()}
+      } ${problem ? `has-problem is-${problem.severity}` : ""} ${overlapping ? "is-overlapping" : ""}`.trim()}
       style={{
         left: `${isDragging ? block.x : currentX}px`,
         top: `${isDragging ? block.y : currentY}px`,
@@ -187,6 +192,7 @@ function BlockFrameComponent({
       }}
       onFocus={() => onFocusBlock(block.id)}
     >
+      {overlapping && isSelected && !isDragging && <span className="cv-overlap-warning" role="status">Sobreposição com outro bloco · mova ou redimensione</span>}
       {/* Origin Chip (Top-Left) */}
       <div
         className={`cv-origin-chip is-${originState}`}
@@ -279,6 +285,13 @@ function BlockFrameComponent({
               key={h.handle}
               type="button"
               tabIndex={-1}
+              aria-keyshortcuts={h.handle === "se" ? "Alt+Shift+B" : undefined}
+              onKeyDown={e => {
+                if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+                e.preventDefault(); e.stopPropagation();
+                const step = e.shiftKey ? 10 : 1;
+                onKeyboardResize?.(block.id, e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0, e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0);
+              }}
               aria-label={h.label}
               className={h.className}
               onPointerDown={(e) => onStartResize(e, block, h.handle)}
@@ -292,6 +305,7 @@ function BlockFrameComponent({
 
 export default memo(BlockFrameComponent, (prev, next) => {
   return (
+    prev.overlapping === next.overlapping &&
     prev.previewState === next.previewState &&
     prev.isSelected === next.isSelected &&
     prev.isDragging === next.isDragging &&

@@ -39,6 +39,16 @@ export default function EditorShell({
     const onKeyDown = (event: KeyboardEvent) => {
       const hasModal = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'));
       const mod = event.ctrlKey || event.metaKey;
+      if (!hasModal && event.altKey && event.shiftKey && ["l", "r", "b"].includes(event.key.toLowerCase())) {
+        event.preventDefault();
+        if (event.key.toLowerCase() === "b") {
+          shellRef.current?.querySelector<HTMLElement>(".cv-block.is-selected .cv-resize-handle-se")?.focus();
+          return;
+        }
+        const side = event.key.toLowerCase() === "l" ? "left" : "right";
+        shellRef.current?.querySelector<HTMLElement>(`.cv-resizer-${side}`)?.focus();
+        return;
+      }
 
       if (mod && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
@@ -58,6 +68,10 @@ export default function EditorShell({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    shellRef.current?.querySelector<HTMLButtonElement>(".cv-topbar button")?.focus();
   }, []);
 
   return (

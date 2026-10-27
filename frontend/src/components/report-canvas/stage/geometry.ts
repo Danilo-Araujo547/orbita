@@ -149,7 +149,7 @@ export function createBlockInLayout(params: {
       x: 40 + offset,
       y: 40 + offset,
       width: size.w,
-      height: size.h,
+      height: type === "table" ? estimateTableHeight(defaultSource?.type === "inline" ? Math.min(14, defaultSource.rows.length) : 6, 13) : size.h,
       ...(type === "text"
         ? { title: "Título", text: "Texto do bloco" }
         : type === "image"
@@ -279,6 +279,8 @@ export function computeSnapping(params: {
 
   // Targets on X
   const xTargets: { pos: number; label: string }[] = [
+    { pos: 0, label: "Borda esquerda" },
+    { pos: pageWidth, label: "Borda direita" },
     { pos: 24, label: "Margem esquerda (24px)" },
     { pos: pageWidth - 24, label: "Margem direita (24px)" },
     { pos: pageWidth / 2, label: "Centro da página" },
@@ -299,6 +301,8 @@ export function computeSnapping(params: {
 
   // Targets on Y
   const yTargets: { pos: number; label: string }[] = [
+    { pos: 0, label: "Borda superior" },
+    { pos: pageHeight, label: "Borda inferior" },
     { pos: 24, label: "Margem superior (24px)" },
     { pos: pageHeight - 24, label: "Margem inferior (24px)" },
     { pos: pageHeight / 2, label: "Centro vertical da página" },
@@ -328,7 +332,7 @@ export function computeSnapping(params: {
       if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDistX) {
         bestDistX = Math.abs(diff);
         bestDeltaX = diff;
-        snapGuideX = { type: "vertical", position: t.pos, label: `${Math.round(t.pos)} px` };
+        snapGuideX = { type: "vertical", position: t.pos, label: `${t.label} · ${Math.round(t.pos)} px` };
       }
     }
   }
@@ -350,7 +354,7 @@ export function computeSnapping(params: {
       if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDistY) {
         bestDistY = Math.abs(diff);
         bestDeltaY = diff;
-        snapGuideY = { type: "horizontal", position: t.pos, label: `${Math.round(t.pos)} px` };
+        snapGuideY = { type: "horizontal", position: t.pos, label: `${t.label} · ${Math.round(t.pos)} px` };
       }
     }
   }
@@ -410,7 +414,7 @@ export function computeResizeSnapping(params: {
   const threshold = 6 / Math.max(0.1, zoom);
   const guides: SnapGuide[] = [];
 
-  const xTargets: number[] = [24, pageWidth - 24, pageWidth / 2];
+  const xTargets: number[] = [0, pageWidth, 24, pageWidth - 24, pageWidth / 2];
   if (columns > 1) {
     const colW = pageWidth / columns;
     for (let c = 1; c < columns; c++) xTargets.push(Math.round(c * colW));
@@ -419,7 +423,7 @@ export function computeResizeSnapping(params: {
     xTargets.push(b.x, b.x + b.width / 2, b.x + b.width);
   }
 
-  const yTargets: number[] = [24, pageHeight - 24, pageHeight / 2];
+  const yTargets: number[] = [0, pageHeight, 24, pageHeight - 24, pageHeight / 2];
   for (const b of otherBlocks) {
     yTargets.push(b.y, b.y + b.height / 2, b.y + b.height);
   }
@@ -599,4 +603,12 @@ export function toggleMultiColumn(
   }
   if (curr.length >= maxItems) return curr;
   return [...curr, col];
+}
+
+export function rectanglesOverlap(a: {x:number;y:number;width:number;height:number}, b: {x:number;y:number;width:number;height:number}): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+export function estimateTableHeight(rows: number, fontSize = 13, hasTitle = true): number {
+  return Math.ceil(22 + (hasTitle ? 24 : 0) + (Math.max(1, rows) + 1) * (fontSize * 1.4 + 7));
 }

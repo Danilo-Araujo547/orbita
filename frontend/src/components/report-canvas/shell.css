@@ -943,3 +943,11 @@
   padding: 0;
   min-width: 0;
 }
+
+.cv-root .cv-save-indicator { display: inline-block; width: 142px; flex: 0 0 142px; white-space: nowrap; }
+.cv-root .cv-save-btn { min-width: 100px; }
+.cv-root .cv-panel-action-btn:disabled { color: var(--cv-text-2); opacity: 1; background: var(--cv-surface-3); border-style: dashed; cursor: not-allowed; }
+.cv-root .cv-status-problems { min-height: 24px; color: var(--cv-text-2); background: transparent; border: 1px solid var(--cv-line-strong); border-radius: var(--cv-r-sm); cursor: pointer; white-space: nowrap; font-size: var(--cv-fs-xs); }
+.cv-root .cv-status-problems:focus-visible { outline: 2px solid var(--cv-focus); }
+
+.cv-root .cv-save-dot-slot { display: inline-flex; width: 6px; flex: 0 0 6px; }

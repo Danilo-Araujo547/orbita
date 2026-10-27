@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { ArrowDown, ArrowUp, Braces, Image as ImageIcon, Plus, Upload } from "lucide-react";
+import { estimateTableHeight } from "../../stage/geometry";
 import ColumnBadge from "../../data/ColumnBadge";
 import type {
   AggregateMode,
@@ -1088,6 +1089,16 @@ export default function ContentFields({
               </p>
             )}
           </CollapsibleSection>
+
+          <div className="cv-field">
+            <button type="button" className="cv-btn-compact" onClick={() => {
+              const frame = Array.from(document.querySelectorAll<HTMLElement>(".cv-block")).find(el => el.dataset.blockId === block.id);
+              const table = frame?.querySelector<HTMLElement>(".cv-table-preview");
+              const title = frame?.querySelector<HTMLElement>(".cv-block-title");
+              const measured = table ? table.scrollHeight + 22 + (title ? title.offsetHeight + 6 : 0) : estimateTableHeight(hasRows ? Math.min(rows.length, 14) : 6, opt.font_size || 13, Boolean(block.title));
+              onUpdateBlock(block.id, "Ajustar altura ao conteúdo", b => ({...b, height: Math.ceil(measured)}));
+            }}>Ajustar altura ao conteúdo</button>
+          </div>
 
           <CollapsibleSection title="Larguras e tipografia" defaultOpen={true}>
             <div className="cv-field">

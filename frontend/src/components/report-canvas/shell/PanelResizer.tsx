@@ -62,7 +62,8 @@ export default function PanelResizer({ side, width, onChangeWidth }: PanelResize
   return (
     <div
       role="separator"
-      tabIndex={0}
+      tabIndex={-1}
+      aria-keyshortcuts={side === "left" ? "Alt+Shift+L" : "Alt+Shift+R"}
       aria-orientation="vertical"
       aria-label={label}
       aria-valuemin={PANEL_MIN_WIDTH}

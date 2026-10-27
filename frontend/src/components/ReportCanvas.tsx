@@ -571,6 +571,7 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
               showGrid={showGrid}
               selectedBlockId={selectedBlockId}
               draggingBlockId={dragState?.blockId || null}
+              onKeyboardResize={(id, dx, dy) => actions.updateBlock(id, "Redimensionar bloco pelo teclado", b => ({...b, width: Math.max(20, b.width + dx), height: Math.max(20, b.height + dy)}))}
               tempGeometries={activeDrag ? { [activeDrag.blockId]: activeDrag } : undefined}
               activeGuides={activeDrag?.guides}
               previewStates={stagePreviews.states}
@@ -637,7 +638,11 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
           hasSampleData={showSampleData}
           selectedBlock={selectedBlock}
           limits={limits}
-        />
+        >
+          <button type="button" className="cv-status-problems" aria-expanded={problemsPanelOpen} onClick={() => setProblemsPanelOpen(v => !v)}>
+            Problemas · {problems.items.filter(p => p.severity === "error").length} erros · {problems.items.filter(p => p.severity === "warning").length} avisos
+          </button>
+        </StatusBar>
       </EditorShell>
       <SourceDialog
         sourceModal={session.sourceModal}

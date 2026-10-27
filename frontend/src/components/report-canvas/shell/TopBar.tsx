@@ -153,7 +153,7 @@ export default function TopBar({
     }
   }, [busy, dirty, leaveDialogOpen]);
 
-  // Maintain roving tabindex across toolbar buttons (including ThemeToggle).
+  // Preserve natural Tab order; arrow keys remain available within the toolbar.
   useEffect(() => {
     const buttons = getToolbarButtons(toolbarRef.current);
     if (buttons.length === 0) return;
@@ -163,7 +163,7 @@ export default function TopBar({
         : buttons[0];
     activeButtonRef.current = current;
     buttons.forEach((btn) => {
-      btn.tabIndex = btn === current ? 0 : -1;
+      btn.tabIndex = 0;
     });
   });
 
@@ -198,7 +198,7 @@ export default function TopBar({
     activeButtonRef.current = target;
     const buttons = getToolbarButtons(toolbarRef.current);
     buttons.forEach((btn) => {
-      btn.tabIndex = btn === target ? 0 : -1;
+      btn.tabIndex = 0;
     });
   }, []);
 
@@ -281,7 +281,7 @@ export default function TopBar({
             </button>
 
             <div className="cv-topbar-identity">
-              <span className="cv-report-title" title={reportName}>
+              <span className="cv-report-title" tabIndex={0} title={reportName}>
                 {reportName}
               </span>
               <span
@@ -300,7 +300,7 @@ export default function TopBar({
             <div className="cv-topbar-cluster">
               <button
                 type="button"
-                tabIndex={-1}
+                tabIndex={0}
                 className="cv-btn-icon"
                 aria-label={undoTooltip}
                 title={undoTooltip}
@@ -311,7 +311,7 @@ export default function TopBar({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
+                tabIndex={0}
                 className="cv-btn-icon"
                 aria-label={redoTooltip}
                 title={redoTooltip}
@@ -327,7 +327,7 @@ export default function TopBar({
             <div className="cv-topbar-cluster cv-zoom-cluster" data-cv-anchor="zoom">
               <button
                 type="button"
-                tabIndex={-1}
+                tabIndex={0}
                 className="cv-btn-icon"
                 aria-label="Reduzir zoom"
                 title="Reduzir zoom"
@@ -338,7 +338,7 @@ export default function TopBar({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
+                tabIndex={0}
                 className="cv-btn cv-zoom-trigger"
                 aria-label={`Zoom ${zoomPercent}%. Abrir menu de zoom`}
                 aria-haspopup="menu"
@@ -350,7 +350,7 @@ export default function TopBar({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
+                tabIndex={0}
                 className="cv-btn-icon"
                 aria-label="Aumentar zoom"
                 title="Aumentar zoom"
@@ -377,7 +377,7 @@ export default function TopBar({
               <div className="cv-popover-anchor" data-cv-anchor="problems">
                 <button
                   type="button"
-                  tabIndex={-1}
+                  tabIndex={0}
                   className={`cv-btn cv-problems-btn is-${resolvedSeverity}`}
                   aria-label={`Problemas: ${problemCount}`}
                   aria-expanded={problems.length > 0 ? openPopover === "problems" : undefined}
@@ -413,7 +413,7 @@ export default function TopBar({
               <div className="cv-segmented">
                 <button
                   type="button"
-                  tabIndex={-1}
+                  tabIndex={0}
                   aria-label="Dados: Exemplo"
                   aria-pressed={dataMode === "sample"}
                   title="Exemplo: os blocos exibem estrutura e valores sintéticos para montagem visual sem consultar a fonte real."
@@ -424,7 +424,7 @@ export default function TopBar({
                 </button>
                 <button
                   type="button"
-                  tabIndex={-1}
+                  tabIndex={0}
                   aria-label="Dados: Prévia"
                   aria-pressed={dataMode === "preview"}
                   title="Prévia: os blocos exibem dados reais carregados das fontes ou metas configuradas, sem valores fictícios."
@@ -440,7 +440,7 @@ export default function TopBar({
               <div className="cv-popover-anchor" data-cv-anchor="more">
                 <button
                   type="button"
-                  tabIndex={-1}
+                  tabIndex={0}
                   className="cv-btn"
                   aria-label="Mais ações"
                   aria-haspopup="menu"
@@ -475,7 +475,7 @@ export default function TopBar({
                 <div className="cv-popover-anchor" data-cv-anchor="publish">
                   <button
                     type="button"
-                    tabIndex={-1}
+                    tabIndex={0}
                     className={`cv-btn ${openPopover === "publish" ? "is-open" : ""}`.trim()}
                     aria-label="Publicação"
                     aria-haspopup="dialog"
@@ -498,7 +498,7 @@ export default function TopBar({
 
                 <button
                   type="button"
-                  tabIndex={-1}
+                  tabIndex={0}
                   className="cv-btn"
                   aria-label="Gerar prévia do relatório"
                   disabled={loading || busy}
@@ -514,14 +514,14 @@ export default function TopBar({
 
             <button
               type="button"
-              tabIndex={-1}
+              tabIndex={0}
               className="cv-btn cv-btn-primary cv-save-btn"
               aria-label={dirty ? "Salvar alterações não salvas (Ctrl+S)" : "Salvar (Ctrl+S)"}
               title={dirty ? "Salvar alterações não salvas (Ctrl+S)" : "Salvar (Ctrl+S)"}
               disabled={loading || busy}
               onClick={onSave}
             >
-              {dirty && <span className="cv-unsaved-dot" aria-hidden="true" />}
+              <span className="cv-save-dot-slot" aria-hidden="true">{dirty && <span className="cv-unsaved-dot" />}</span>
               <span>{busy ? "Salvando…" : "Salvar"}</span>
             </button>
           </div>

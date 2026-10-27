@@ -70,6 +70,7 @@ export default function ImagesPanel({
               type="button"
               className="cv-panel-action-btn"
               aria-label="Enviar imagem"
+              title={uploadingAsset ? "Envio de imagem em andamento" : assets.length >= MAX_IMAGES ? "Limite de 20 imagens atingido; exclua uma imagem para enviar outra" : "Enviar PNG ou JPEG"}
               disabled={uploadingAsset || assets.length >= MAX_IMAGES}
               onClick={onTriggerUpload}
             >

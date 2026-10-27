@@ -64,6 +64,8 @@ export default function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps)
         category: "Painéis e Ajuda",
         items: [
           { action: "Alternar painéis laterais", keys: [modKey, "\\"] },
+          { action: "Focar alça do bloco (redimensionar com setas)", keys: ["Alt", "Shift", "B"] },
+          { action: "Focar redimensionador esquerdo / direito", keys: ["Alt", "Shift", "L / R"] },
           { action: "Abrir atalhos de teclado", keys: ["?"] },
         ],
       },

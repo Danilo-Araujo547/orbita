@@ -10,6 +10,7 @@ import type {
 import { isDarkHex } from "../model";
 import EmptyState from "../common/EmptyState";
 import type { CanvasProblemItem } from "../shell/problems";
+import { rectanglesOverlap } from "./geometry";
 import BlockFrame from "./BlockFrame";
 import type { ResizeHandle, SnapGuide } from "./geometry";
 
@@ -39,6 +40,7 @@ export interface PageViewProps {
   previewStates?: Record<string, SourcePreviewState>;
   onLoadSourcePreview?: (sourceId: string) => void;
   onClearSelection: () => void;
+  onKeyboardResize?: (blockId: string, dx: number, dy: number) => void;
   onSelectBlock: (blockId: string) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
   onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
@@ -69,6 +71,7 @@ export default function PageView({
   previewStates,
   onClearSelection,
   onSelectBlock,
+  onKeyboardResize,
   onStartDrag,
   onStartResize,
   onAddBlock,
@@ -140,6 +143,7 @@ export default function PageView({
           <BlockFrame
             key={block.id}
             block={block}
+            overlapping={blocks.some(other => other.id !== block.id && rectanglesOverlap(tempGeometries?.[block.id] || block, tempGeometries?.[other.id] || other))}
             isSelected={block.id === selectedBlockId}
             isDragging={draggingBlockId === block.id}
             background={pageConfig.background}
@@ -160,6 +164,7 @@ export default function PageView({
             onStartDrag={onStartDrag}
             onStartResize={onStartResize}
             onFocusBlock={onSelectBlock}
+            onKeyboardResize={onKeyboardResize}
           />
         ))}
       </div>

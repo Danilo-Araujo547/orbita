@@ -1247,3 +1247,6 @@
 .cv-root .cv-lineage-text { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 .cv-root .cv-source-breadcrumb, .cv-root .cv-column-origin { color: var(--cv-text-2); white-space: normal; overflow-wrap: anywhere; font-size: var(--cv-fs-xs); }
 .cv-root .cv-table-col-item { flex-wrap: wrap; }
+
+.cv-root input.cv-insp-title-input { color: var(--cv-text); opacity: 1; -webkit-text-fill-color: var(--cv-text); }
+.cv-root input.cv-insp-title-input::placeholder { color: var(--cv-text-2); opacity: 1; }

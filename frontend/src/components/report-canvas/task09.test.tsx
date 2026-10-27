@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { placeholderDataset } from "./placeholderData";
 import { formatSourceLineageLine, resolveSourceColumnInfos } from "./inspector/inspectorOps";
 import type { CanvasBlock, CanvasSource, CatalogSqlSource } from "./model";
+import { computeSnapping, rectanglesOverlap, estimateTableHeight, createBlockInLayout } from "./stage/geometry";
+import { createDefaultLayout } from "./model";
 import TablePreview from "./blocks/TablePreview";
 import BlockFrame from "./stage/BlockFrame";
 
@@ -31,5 +33,23 @@ describe("QA1: dados, linhagem e prévia", () => {
     expect(html).toContain("rota de prévia");
     const empty = renderToStaticMarkup(<BlockFrame {...props} localDatasets={new Map([["dados", {columns: ["Paciente"], rows: []}]])} />);
     expect(empty).toContain("Prévia · 0 linhas");
+  });
+});
+
+describe("QA1: geometria", () => {
+  it("encaixa nas bordas e no centro da folha e em outros blocos", () => {
+    const snap = (x:number, y:number, others:CanvasBlock[] = []) => computeSnapping({rect: {x,y,width:100,height:80}, otherBlocks: others, pageWidth:900,pageHeight:1200,columns:1,zoom:1});
+    expect(snap(3, 2)).toMatchObject({x:0,y:0});
+    expect(snap(403, 563)).toMatchObject({x:400,y:560});
+    expect(snap(503, 302, [{...block,x:500,y:300,width:120,height:100}])).toMatchObject({x:500,y:300});
+    expect(snap(3,2).guides).toHaveLength(2);
+  });
+  it("avisa sobre interseção, sem marcar blocos que só encostam", () => {
+    expect(rectanglesOverlap(block,{...block,x:50})).toBe(true);
+    expect(rectanglesOverlap(block,{...block,x:block.x+block.width})).toBe(false);
+    expect(estimateTableHeight(6)).toBeLessThan(300);
+    const layout=createDefaultLayout();
+    const added=createBlockInLayout({layout,activePageId:layout.pages[0].id,type:"table",assets:[],availableSources:[]});
+    expect(added.ok && added.layout.pages[0].blocks.at(-1)?.height).toBeLessThan(300);
   });
 });

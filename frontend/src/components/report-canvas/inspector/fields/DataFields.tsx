@@ -723,14 +723,10 @@ export default function DataFields({
             </>
           ) : previewLoading ? (
             <p className="cv-field-hint">Carregando prévia…</p>
-          ) : previewUnavailable ? (
-            <p className="cv-field-hint">
-              Prévia de dados indisponível nesta versão do servidor.
-            </p>
-          ) : previewError ? (
+          ) : previewUnavailable || previewError ? (
             <div className="cv-field">
               <p className="cv-field-error" role="alert">
-                {previewError}
+                {previewError || "Prévia indisponível: o servidor não respondeu à rota de prévia"}
               </p>
               {onLoadPreview && (
                 <button
@@ -738,7 +734,7 @@ export default function DataFields({
                   className="cv-btn-compact"
                   onClick={() => onLoadPreview(true)}
                 >
-                  Tentar novamente
+                  Tentar de novo
                 </button>
               )}
             </div>
