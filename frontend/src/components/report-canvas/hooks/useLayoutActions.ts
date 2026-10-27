@@ -107,7 +107,7 @@ export function useLayoutActions({
 
   const duplicateSelectedBlock = useCallback(() => {
     if (!selectedBlock) return;
-    const res = duplicateBlockInLayout({ layout, activePageId, block: selectedBlock });
+    const res = duplicateBlockInLayout({ layout, activePageId, block: selectedBlock, offset: 16 });
     if (!res.ok) {
       setBanner({ tone: "error", text: res.error });
       return;

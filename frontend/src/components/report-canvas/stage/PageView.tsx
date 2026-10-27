@@ -7,7 +7,9 @@ import type {
   CatalogSqlSource,
 } from "../model";
 import { isDarkHex } from "../model";
+import type { CanvasProblemItem } from "../shell/problems";
 import BlockFrame from "./BlockFrame";
+import type { ResizeHandle, SnapGuide } from "./geometry";
 
 export interface PageViewProps {
   pageConfig: CanvasPageConfig;
@@ -23,10 +25,20 @@ export interface PageViewProps {
   localDatasets: Map<string, { columns: string[]; rows: unknown[][] }>;
   reportName: string;
   showSampleData: boolean;
+  pageName?: string;
+  pageIndex?: number;
+  tempGeometries?: Record<
+    string,
+    { x: number; y: number; width: number; height: number; tooltip?: string }
+  >;
+  activeGuides?: SnapGuide[];
+  blockProblems?: Record<string, CanvasProblemItem>;
+  onOpenProblem?: (problem: CanvasProblemItem) => void;
+  onLoadSourcePreview?: (sourceId: string) => void;
   onClearSelection: () => void;
   onSelectBlock: (blockId: string) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
-  onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: "se" | "e" | "s") => void;
+  onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
 }
 
 export default function PageView({
@@ -43,6 +55,13 @@ export default function PageView({
   localDatasets,
   reportName,
   showSampleData,
+  pageName,
+  pageIndex = 0,
+  tempGeometries,
+  activeGuides,
+  blockProblems,
+  onOpenProblem,
+  onLoadSourcePreview,
   onClearSelection,
   onSelectBlock,
   onStartDrag,
@@ -83,6 +102,23 @@ export default function PageView({
           </div>
         )}
 
+        {/* Smart Guides Overlay */}
+        {activeGuides &&
+          activeGuides.map((guide, idx) => (
+            <div
+              key={idx}
+              className={`rc-snap-guide rc-snap-guide-${guide.type}`}
+              style={
+                guide.type === "vertical"
+                  ? { left: `${guide.position}px` }
+                  : { top: `${guide.position}px` }
+              }
+              aria-hidden="true"
+            >
+              {guide.label && <span className="rc-snap-guide-label">{guide.label}</span>}
+            </div>
+          ))}
+
         {blocks.map((block) => (
           <BlockFrame
             key={block.id}
@@ -97,6 +133,12 @@ export default function PageView({
             localDatasets={localDatasets}
             reportName={reportName}
             showSampleData={showSampleData}
+            pageName={pageName}
+            pageIndex={pageIndex}
+            tempGeometry={tempGeometries ? tempGeometries[block.id] : undefined}
+            problem={blockProblems ? blockProblems[block.id] : undefined}
+            onOpenProblem={onOpenProblem}
+            onLoadSourcePreview={onLoadSourcePreview}
             onStartDrag={onStartDrag}
             onStartResize={onStartResize}
             onFocusBlock={onSelectBlock}

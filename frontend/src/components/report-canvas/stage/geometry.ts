@@ -183,8 +183,9 @@ export function duplicateBlockInLayout(params: {
   layout: CanvasLayout;
   activePageId: string;
   block: CanvasBlock;
+  offset?: number;
 }): { ok: true; layout: CanvasLayout; blockId: string } | { ok: false; error: string } {
-  const { layout, activePageId, block } = params;
+  const { layout, activePageId, block, offset = 20 } = params;
   const allBlockIds = selectAllBlockIds(layout);
   if (allBlockIds.size >= 100) {
     return { ok: false, error: "Limite de 100 blocos atingido." };
@@ -195,8 +196,8 @@ export function duplicateBlockInLayout(params: {
     {
       ...block,
       id: newId,
-      x: block.x + 20,
-      y: block.y + 20,
+      x: block.x + offset,
+      y: block.y + offset,
       options: block.options ? { ...block.options } : undefined,
     },
     layout.page.width,
@@ -231,6 +232,310 @@ export function reorderBlockInLayout(
       next.splice(target, 0, moved);
       return { ...p, blocks: next };
     }),
+  };
+}
+
+export interface SnapGuide {
+  type: "vertical" | "horizontal";
+  position: number;
+  label?: string;
+}
+
+export interface SnapResult {
+  x: number;
+  y: number;
+  guides: SnapGuide[];
+  snappedX: boolean;
+  snappedY: boolean;
+}
+
+export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+
+export interface ResizeSnapResult {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  guides: SnapGuide[];
+}
+
+export function computeSnapping(params: {
+  rect: { x: number; y: number; width: number; height: number };
+  otherBlocks: CanvasBlock[];
+  pageWidth: number;
+  pageHeight: number;
+  columns?: number;
+  zoom: number;
+  disabled?: boolean;
+}): SnapResult {
+  const { rect, otherBlocks, pageWidth, pageHeight, columns = 1, zoom, disabled = false } = params;
+  if (disabled) {
+    const clampedX = clamp(rect.x, 0, Math.max(0, pageWidth - rect.width));
+    const clampedY = clamp(rect.y, 0, Math.max(0, pageHeight - rect.height));
+    return { x: clampedX, y: clampedY, guides: [], snappedX: false, snappedY: false };
+  }
+
+  const threshold = 6 / Math.max(0.1, zoom);
+
+  // Targets on X
+  const xTargets: { pos: number; label: string }[] = [
+    { pos: 24, label: "Margem esquerda (24px)" },
+    { pos: pageWidth - 24, label: "Margem direita (24px)" },
+    { pos: pageWidth / 2, label: "Centro da página" },
+  ];
+  if (columns > 1) {
+    const colW = pageWidth / columns;
+    for (let c = 1; c < columns; c++) {
+      xTargets.push({ pos: Math.round(c * colW), label: `Coluna ${c}` });
+    }
+  }
+  for (const b of otherBlocks) {
+    xTargets.push(
+      { pos: b.x, label: "Alinhamento à esquerda" },
+      { pos: b.x + b.width / 2, label: "Centro horizontal" },
+      { pos: b.x + b.width, label: "Alinhamento à direita" },
+    );
+  }
+
+  // Targets on Y
+  const yTargets: { pos: number; label: string }[] = [
+    { pos: 24, label: "Margem superior (24px)" },
+    { pos: pageHeight - 24, label: "Margem inferior (24px)" },
+    { pos: pageHeight / 2, label: "Centro vertical da página" },
+  ];
+  for (const b of otherBlocks) {
+    yTargets.push(
+      { pos: b.y, label: "Alinhamento ao topo" },
+      { pos: b.y + b.height / 2, label: "Centro vertical" },
+      { pos: b.y + b.height, label: "Alinhamento à base" },
+    );
+  }
+
+  // Check moving points on X: left (0), center (width/2), right (width)
+  const movingX = [
+    { offset: 0, name: "left" },
+    { offset: rect.width / 2, name: "center" },
+    { offset: rect.width, name: "right" },
+  ];
+  let bestDeltaX = 0;
+  let bestDistX = threshold + 1;
+  let snapGuideX: SnapGuide | null = null;
+
+  for (const t of xTargets) {
+    for (const m of movingX) {
+      const curPos = rect.x + m.offset;
+      const diff = t.pos - curPos;
+      if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDistX) {
+        bestDistX = Math.abs(diff);
+        bestDeltaX = diff;
+        snapGuideX = { type: "vertical", position: t.pos, label: `${Math.round(t.pos)} px` };
+      }
+    }
+  }
+
+  // Check moving points on Y: top (0), center (height/2), bottom (height)
+  const movingY = [
+    { offset: 0, name: "top" },
+    { offset: rect.height / 2, name: "center" },
+    { offset: rect.height, name: "bottom" },
+  ];
+  let bestDeltaY = 0;
+  let bestDistY = threshold + 1;
+  let snapGuideY: SnapGuide | null = null;
+
+  for (const t of yTargets) {
+    for (const m of movingY) {
+      const curPos = rect.y + m.offset;
+      const diff = t.pos - curPos;
+      if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDistY) {
+        bestDistY = Math.abs(diff);
+        bestDeltaY = diff;
+        snapGuideY = { type: "horizontal", position: t.pos, label: `${Math.round(t.pos)} px` };
+      }
+    }
+  }
+
+  const guides: SnapGuide[] = [];
+  let nextX = rect.x;
+  let snappedX = false;
+  if (snapGuideX) {
+    nextX = rect.x + bestDeltaX;
+    guides.push(snapGuideX);
+    snappedX = true;
+  }
+
+  let nextY = rect.y;
+  let snappedY = false;
+  if (snapGuideY) {
+    nextY = rect.y + bestDeltaY;
+    guides.push(snapGuideY);
+    snappedY = true;
+  }
+
+  // Clamp within page
+  const clampedX = clamp(nextX, 0, Math.max(0, pageWidth - rect.width));
+  const clampedY = clamp(nextY, 0, Math.max(0, pageHeight - rect.height));
+
+  return {
+    x: clampedX,
+    y: clampedY,
+    guides,
+    snappedX,
+    snappedY,
+  };
+}
+
+export function computeResizeSnapping(params: {
+  handle: ResizeHandle;
+  rect: { x: number; y: number; width: number; height: number };
+  otherBlocks: CanvasBlock[];
+  pageWidth: number;
+  pageHeight: number;
+  columns?: number;
+  zoom: number;
+  disabled?: boolean;
+}): ResizeSnapResult {
+  const { handle, rect, otherBlocks, pageWidth, pageHeight, columns = 1, zoom, disabled = false } = params;
+  let { x, y, width, height } = rect;
+
+  const minW = 20;
+  const minH = 20;
+
+  if (disabled) {
+    width = Math.max(minW, Math.min(width, pageWidth - x));
+    height = Math.max(minH, Math.min(height, pageHeight - y));
+    return { x, y, width, height, guides: [] };
+  }
+
+  const threshold = 6 / Math.max(0.1, zoom);
+  const guides: SnapGuide[] = [];
+
+  const xTargets: number[] = [24, pageWidth - 24, pageWidth / 2];
+  if (columns > 1) {
+    const colW = pageWidth / columns;
+    for (let c = 1; c < columns; c++) xTargets.push(Math.round(c * colW));
+  }
+  for (const b of otherBlocks) {
+    xTargets.push(b.x, b.x + b.width / 2, b.x + b.width);
+  }
+
+  const yTargets: number[] = [24, pageHeight - 24, pageHeight / 2];
+  for (const b of otherBlocks) {
+    yTargets.push(b.y, b.y + b.height / 2, b.y + b.height);
+  }
+
+  if (handle === "e" || handle === "se" || handle === "ne") {
+    const rightEdge = x + width;
+    let bestDelta = 0;
+    let bestDist = threshold + 1;
+    let guidePos: number | null = null;
+    for (const t of xTargets) {
+      const diff = t - rightEdge;
+      if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDist) {
+        bestDist = Math.abs(diff);
+        bestDelta = diff;
+        guidePos = t;
+      }
+    }
+    if (guidePos !== null) {
+      width += bestDelta;
+      guides.push({ type: "vertical", position: guidePos, label: `${Math.round(guidePos)} px` });
+    }
+  }
+
+  if (handle === "w" || handle === "sw" || handle === "nw") {
+    let bestDelta = 0;
+    let bestDist = threshold + 1;
+    let guidePos: number | null = null;
+    for (const t of xTargets) {
+      const diff = t - x;
+      if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDist) {
+        bestDist = Math.abs(diff);
+        bestDelta = diff;
+        guidePos = t;
+      }
+    }
+    if (guidePos !== null) {
+      const newX = x + bestDelta;
+      width += x - newX;
+      x = newX;
+      guides.push({ type: "vertical", position: guidePos, label: `${Math.round(guidePos)} px` });
+    }
+  }
+
+  if (handle === "s" || handle === "se" || handle === "sw") {
+    const bottomEdge = y + height;
+    let bestDelta = 0;
+    let bestDist = threshold + 1;
+    let guidePos: number | null = null;
+    for (const t of yTargets) {
+      const diff = t - bottomEdge;
+      if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDist) {
+        bestDist = Math.abs(diff);
+        bestDelta = diff;
+        guidePos = t;
+      }
+    }
+    if (guidePos !== null) {
+      height += bestDelta;
+      guides.push({ type: "horizontal", position: guidePos, label: `${Math.round(guidePos)} px` });
+    }
+  }
+
+  if (handle === "n" || handle === "nw" || handle === "ne") {
+    let bestDelta = 0;
+    let bestDist = threshold + 1;
+    let guidePos: number | null = null;
+    for (const t of yTargets) {
+      const diff = t - y;
+      if (Math.abs(diff) <= threshold && Math.abs(diff) < bestDist) {
+        bestDist = Math.abs(diff);
+        bestDelta = diff;
+        guidePos = t;
+      }
+    }
+    if (guidePos !== null) {
+      const newY = y + bestDelta;
+      height += y - newY;
+      y = newY;
+      guides.push({ type: "horizontal", position: guidePos, label: `${Math.round(guidePos)} px` });
+    }
+  }
+
+  if (width < minW) {
+    if (handle === "w" || handle === "sw" || handle === "nw") {
+      x -= minW - width;
+    }
+    width = minW;
+  }
+  if (height < minH) {
+    if (handle === "n" || handle === "nw" || handle === "ne") {
+      y -= minH - height;
+    }
+    height = minH;
+  }
+
+  if (x < 0) {
+    width += x;
+    x = 0;
+  }
+  if (y < 0) {
+    height += y;
+    y = 0;
+  }
+  if (x + width > pageWidth) {
+    width = pageWidth - x;
+  }
+  if (y + height > pageHeight) {
+    height = pageHeight - y;
+  }
+
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.max(minW, Math.round(width)),
+    height: Math.max(minH, Math.round(height)),
+    guides,
   };
 }
 
