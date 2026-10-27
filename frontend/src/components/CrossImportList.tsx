@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -19,6 +20,7 @@ import InlineDialog from "./InlineDialog";
 type Batch = {
   id: string;
   filename: string;
+  configuration: { source?: { origin?: string; item_type?: string; absence_date?: string } };
   layout_name: string;
   state: string;
   version: number;
@@ -80,6 +82,10 @@ export default function CrossImportList({
   const [selected, setSelected] = useState<string[]>([]),
     [recordsLoading, setRecordsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [allMatching, setAllMatching] = useState(false);
+  const [excluded, setExcluded] = useState<string[]>([]);
+  const [itemType, setItemType] = useState("");
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
     setPage(1);
@@ -89,7 +95,7 @@ export default function CrossImportList({
   useEffect(() => {
     let active = true;
     setLoading(true);
-    request<Paginated<Batch>>(query("sheet-imports", { unit, page: String(page) }))
+    request<Paginated<Batch>>(query("sheet-imports", { unit, page: String(page), item_type: itemType, origin }))
       .then((data) => {
         if (active) {
           setBatches(data.results);
@@ -101,7 +107,7 @@ export default function CrossImportList({
     return () => {
       active = false;
     };
-  }, [unit, revision, page, onError]);
+  }, [unit, revision, page, onError, itemType, origin]);
 
   useEffect(() => {
     if (!opened) return;
@@ -146,16 +152,20 @@ export default function CrossImportList({
     }
   }
 
-  async function toggleRecords(ids: string[], enabled: boolean) {
+  async function toggleRecords(ids: string[], enabled: boolean, bulk = false) {
     if (!batch) return;
     setError("");
     try {
       await act(`sheet-imports/${batch.id}/record-activation`, {
         version: batch.version,
-        records: ids,
+        ...(bulk && allMatching
+          ? { all_matching: true, excluded_records: excluded, search, recent_only: recentOnly }
+          : { records: ids }),
         enabled,
       });
       setSelected([]);
+      setAllMatching(false);
+      setExcluded([]);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -172,9 +182,17 @@ export default function CrossImportList({
     setError("");
   }
 
+  useEffect(() => {
+    setAllMatching(false);
+    setExcluded([]);
+    setSelected([]);
+  }, [opened, unit, search, recentOnly, revision]);
+
+  const selectionCount = allMatching ? Math.max(0, recordCount - excluded.length) : selected.length;
+  const isRecordSelected = (id: string) => allMatching ? !excluded.includes(id) : selected.includes(id);
   const totalRecordPages = Math.max(1, Math.ceil(recordCount / 50));
   const allPageSelected =
-    !!records.length && records.every((row) => selected.includes(row.record_id));
+    !!records.length && records.every((row) => isRecordSelected(row.record_id));
 
   return (
     <>
@@ -189,6 +207,18 @@ export default function CrossImportList({
             {error}
           </div>
         )}
+        <div className="cross-records-filters">
+          <label>Origem
+            <Select aria-label="Filtrar origem" value={origin} onChange={(e) => { setOrigin(e.target.value); setPage(1); }}>
+              <option value="">Todas</option><option value="sheet">Planilha</option><option value="oracle">Oracle</option>
+            </Select>
+          </label>
+          <label>Tipo de agendamento (Oracle)
+            <Select aria-label="Filtrar tipo de agendamento Oracle" value={itemType} onChange={(e) => { setItemType(e.target.value); setPage(1); }}>
+              <option value="">Todos</option><option value="A">Consulta</option><option value="I">Imagem / Exames</option><option value="L">Laboratório</option>
+            </Select>
+          </label>
+        </div>
         <div className="table-scroll">
           <table className="directory-table">
             <thead>
@@ -212,6 +242,7 @@ export default function CrossImportList({
                   <tr key={current.id}>
                     <td>
                       <strong>{current.filename || "Planilha"}</strong>
+                      <small>{current.configuration?.source?.origin === "oracle_absences" ? "Oracle · Sem atendimento vinculado" : "Planilha"}</small>
                       <small>{current.layout_name}</small>
                       <small>{current.template_name || "Sem template"}</small>
                       {current.errors.length > 0 && (
@@ -425,23 +456,31 @@ export default function CrossImportList({
 
             {operate && (
               <div className="cross-record-bulk-actions">
-                {selected.length > 0 && (
+                <button className="button cross-bulk-btn" disabled={busy || recordsLoading || !recordCount}
+                  onClick={() => { setAllMatching(true); setExcluded([]); setSelected([]); }}>
+                  Selecionar todos ({recordCount})
+                </button>
+                {selectionCount > 0 && (
+                  <button className="button cross-bulk-btn" disabled={busy || recordsLoading}
+                    onClick={() => { setAllMatching(false); setExcluded([]); setSelected([]); }}>Limpar seleção</button>
+                )}
+                {selectionCount > 0 && (
                   <span className="cross-selected-pill">
-                    {selected.length}{" "}
-                    {selected.length === 1 ? "selecionado" : "selecionados"}
+                    {selectionCount}{" "}
+                    {selectionCount === 1 ? "selecionado" : "selecionados"}
                   </span>
                 )}
                 <button
                   className="button cross-bulk-btn"
-                  disabled={busy || recordsLoading || !selected.length}
-                  onClick={() => void toggleRecords(selected, true)}
+                  disabled={busy || recordsLoading || !selectionCount}
+                  onClick={() => void toggleRecords(selected, true, true)}
                 >
                   <CheckCircle2 size={14} /> Ativar selecionados
                 </button>
                 <button
                   className="button cross-bulk-btn"
-                  disabled={busy || recordsLoading || !selected.length}
-                  onClick={() => void toggleRecords(selected, false)}
+                  disabled={busy || recordsLoading || !selectionCount}
+                  onClick={() => void toggleRecords(selected, false, true)}
                 >
                   <Pause size={14} /> Desativar selecionados
                 </button>
@@ -462,19 +501,15 @@ export default function CrossImportList({
                   <tr>
                     {operate && (
                       <th className="cross-col-check">
-                        <input
-                          type="checkbox"
-                          aria-label="Selecionar registros desta página"
-                          disabled={recordsLoading || !records.length}
-                          checked={allPageSelected}
-                          onChange={(e) =>
-                            setSelected(
-                              e.target.checked
-                                ? records.map((row) => row.record_id)
-                                : [],
-                            )
-                          }
-                        />
+                        <input type="checkbox" aria-label="Selecionar registros desta página"
+                            disabled={busy || recordsLoading || !records.length} checked={allPageSelected}
+                            onChange={(e) => {
+                              const ids = records.map(row => row.record_id);
+                              if (allMatching) setExcluded(current => e.target.checked
+                                ? current.filter(id => !ids.includes(id))
+                                : [...new Set([...current, ...ids])]);
+                              else setSelected(e.target.checked ? ids : []);
+                            }} />
                       </th>
                     )}
                     <th>Paciente</th>
@@ -487,7 +522,7 @@ export default function CrossImportList({
                 </thead>
                 <tbody>
                   {records.map((row) => {
-                    const isSelected = selected.includes(row.record_id);
+                    const isSelected = isRecordSelected(row.record_id);
                     return (
                       <tr
                         key={row.record_id}
@@ -500,19 +535,16 @@ export default function CrossImportList({
                       >
                         {operate && (
                           <td className="cross-col-check">
-                            <input
-                              type="checkbox"
-                              aria-label={`Selecionar ${row.nome_completo || row.patient}`}
-                              disabled={busy || recordsLoading}
-                              checked={isSelected}
-                              onChange={(e) =>
-                                setSelected((ids) =>
-                                  e.target.checked
-                                    ? [...ids, row.record_id]
-                                    : ids.filter((id) => id !== row.record_id),
-                                )
-                              }
-                            />
+                            <input type="checkbox" aria-label={`Selecionar ${row.nome_completo || row.patient}`}
+                              disabled={busy || recordsLoading} checked={isSelected}
+                              onChange={(e) => {
+                                if (allMatching) setExcluded(ids => e.target.checked
+                                  ? ids.filter(id => id !== row.record_id)
+                                  : [...new Set([...ids, row.record_id])]);
+                                else setSelected(ids => e.target.checked
+                                  ? [...new Set([...ids, row.record_id])]
+                                  : ids.filter(id => id !== row.record_id));
+                              }} />
                           </td>
                         )}
                         <td>

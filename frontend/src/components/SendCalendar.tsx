@@ -1,3 +1,4 @@
+import Select from "./Select";
 export const weekdayNames = [
   "Segunda-feira",
   "Terça-feira",
@@ -80,7 +81,7 @@ export default function SendCalendar({
     <div className="send-calendar">
       <label className="op-field">
         <span>Calendário de envios</span>
-        <select
+        <Select
           value={selected}
           onChange={(e) => {
             const p = presets.find((p) => p.id === e.target.value);
@@ -93,7 +94,7 @@ export default function SendCalendar({
               {p.label}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <div
         className="send-calendar-days"
@@ -129,7 +130,7 @@ export default function SendCalendar({
               <strong>{weekdayNames[day]}</strong>
               <label className="op-field">
                 <span className="sr-only">Ajuste para {weekdayNames[day]}</span>
-                <select
+                <Select
                   aria-label={"Ajuste para " + weekdayNames[day]}
                   value={policy[String(day)] || "previous"}
                   onChange={(e) =>
@@ -152,7 +153,7 @@ export default function SendCalendar({
                       </option>
                     );
                   })}
-                </select>
+                </Select>
               </label>
             </div>
           ))}

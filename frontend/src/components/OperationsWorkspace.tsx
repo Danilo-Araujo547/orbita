@@ -1,11 +1,12 @@
+import Select from "./Select";
+import ReportWorkspace from "./ReportWorkspace";
+import OracleAbsenceForm from "./OracleAbsenceForm";
 import CrossImportList from "./CrossImportList";
+import InlineDialog from "./InlineDialog";
 import LegacyLabel from "./LegacyLabel";
-import {
-  CrossImportForm,
-  CrossLayoutEditor,
-} from "./CrossImportConfiguration";
+import { CrossImportForm, CrossLayoutEditor } from "./CrossImportConfiguration";
 import FormAction, { FormActionContext } from "./FormAction";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
   ArrowLeft,
@@ -14,7 +15,6 @@ import {
   ClipboardList,
   Clock3,
   Database,
-  Download,
   FileSpreadsheet,
   MessageCircle,
   ShieldCheck,
@@ -278,13 +278,10 @@ export default function OperationsWorkspace({
           />
         )}
         {page === "reports" && (
-          <Reports
+          <ReportWorkspace
             unit={unit}
+            admin={role === "admin" && operate}
             operate={operate}
-            revision={revision}
-            act={act}
-            busy={busy}
-            onError={setError}
           />
         )}
         {page === "operationsAdmin" && (
@@ -555,7 +552,7 @@ function CaseDetail({
                       }[contact.status] || contact.status}
                 </span>
                 {operate && (
-                  <select
+                  <Select
                     aria-label={`Revisar contato ${contact.phone}`}
                     value=""
                     disabled={busy}
@@ -577,7 +574,7 @@ function CaseDetail({
                     <option value="verified">Verificado</option>
                     <option value="invalid">Inválido</option>
                     <option value="wrong_person">Destinatário incorreto</option>
-                  </select>
+                  </Select>
                 )}
               </div>
             ))}
@@ -660,7 +657,7 @@ function CaseDetail({
                   <UserRound size={17} /> Registrar atendimento
                 </h3>
                 <Field label="Ação">
-                  <select
+                  <Select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
                   >
@@ -672,11 +669,11 @@ function CaseDetail({
                         {v}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 {["call", "classify"].includes(mode) && (
                   <Field label="Número utilizado">
-                    <select
+                    <Select
                       value={phone}
                       required={contacts.length > 1}
                       onChange={(e) => setPhone(e.target.value)}
@@ -687,12 +684,12 @@ function CaseDetail({
                           {contact.phone}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                 )}
                 {mode === "classify" && (
                   <Field label="Resultado">
-                    <select
+                    <Select
                       required
                       value={outcome}
                       onChange={(e) => setOutcome(e.target.value)}
@@ -708,19 +705,19 @@ function CaseDetail({
                           {outcomes[v]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                 )}
                 {mode === "call" && (
                   <>
                     <Field label="Resultado da ligação">
-                      <select
+                      <Select
                         value={callResult}
                         onChange={(e) => setCallResult(e.target.value)}
                       >
                         <option value="not_answered">Não atendida</option>
                         <option value="answered">Atendida</option>
-                      </select>
+                      </Select>
                     </Field>
                     {callResult === "answered" && (
                       <Field label="Pessoa com quem falou">
@@ -771,14 +768,14 @@ function CaseDetail({
                 {operate && (
                   <>
                     <Field label="Solicitação">
-                      <select
+                      <Select
                         value={movementKind}
                         onChange={(e) => setMovementKind(e.target.value)}
                       >
                         <option value="reschedule">Reagendamento</option>
                         <option value="transfer">Transferência</option>
                         <option value="cancel">Cancelamento</option>
-                      </select>
+                      </Select>
                     </Field>
                     <button
                       className="button"
@@ -906,6 +903,12 @@ function Campaigns({
             act={act}
             busy={busy}
           />
+          <OracleAbsenceForm
+            layouts={layouts}
+            templates={templates}
+            busy={busy}
+            act={act}
+          />
           <FormAction title="Comunicação avulsa" label="Comunicação avulsa">
             <form
               className="op-card op-form"
@@ -934,7 +937,7 @@ function Campaigns({
                 />
               </Field>
               <Field label="Finalidade">
-                <select
+                <Select
                   value={purpose}
                   onChange={(e) => {
                     setPurpose(e.target.value);
@@ -944,10 +947,10 @@ function Campaigns({
                   <option value="waitlist">Permanência na fila CDR</option>
                   <option value="summons">Convocação CDR</option>
                   <option value="postoperative">Pós-cirúrgico</option>
-                </select>
+                </Select>
               </Field>
               <Field label="Template">
-                <select
+                <Select
                   value={template}
                   onChange={(e) => setTemplate(e.target.value)}
                 >
@@ -959,7 +962,7 @@ function Campaigns({
                         {t.name}
                       </option>
                     ))}
-                </select>
+                </Select>
               </Field>
               <Field label="Data prevista">
                 <input
@@ -998,254 +1001,134 @@ function Campaigns({
           </FormAction>
         </div>
       )}
-      <CrossImportList unit={unit} revision={revision} operate={operate} busy={busy} act={act} onError={onError} />
+      <CrossImportList
+        unit={unit}
+        revision={revision}
+        operate={operate}
+        busy={busy}
+        act={act}
+        onError={onError}
+      />
       <article className="op-card">
         <h3>Importa CROSS</h3>
-        {campaigns.filter((c) => !c.import_batch).map((c) => (
-          <div className="op-list-row" key={c.id}>
-            <div>
-              <strong>{c.name}</strong>
-              <small>
-                {purposes[c.purpose || ""]} · {c.cases?.length || 0} registros ·{" "}
-                {status[c.state || ""]}
-              </small>
-              <small>Envio {c.sends_enabled ? "ativado" : "desativado"}</small>
-            </div>
-            {operate && c.state === "draft" && (
-              <FormAction
-                title="Programar comunicação"
-                label="Programar"
-                busy={busy}
-              >
-                <form
-                  className="op-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const values = new FormData(e.currentTarget);
-                    void act(`campaigns/${c.id}/schedule`, {
-                      version: c.version,
-                      name: String(values.get("name") || ""),
-                      scheduled_for: new Date(
-                        String(values.get("scheduled_for")),
-                      ).toISOString(),
-                    }).catch(() => {});
-                  }}
-                >
-                  <label className="op-field">
-                    Nome
-                    <input
-                      name="name"
-                      required
-                      maxLength={150}
-                      defaultValue={c.name}
-                    />
-                  </label>
-                  <label className="op-field">
-                    Data e hora
-                    <input
-                      name="scheduled_for"
-                      required
-                      type="datetime-local"
-                    />
-                  </label>
-                  <button className="button primary" disabled={busy}>
-                    Salvar programação
-                  </button>
-                </form>
-              </FormAction>
-            )}
-            {admin && (
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() =>
-                  void act(`campaigns/${c.id}/sending`, {
-                    version: c.version,
-                    enabled: !c.sends_enabled,
-                  }).catch(() => {})
-                }
-              >
-                {c.sends_enabled ? "Desativar envio" : "Ativar envio"}
-              </button>
-            )}
-            {admin &&
-              c.sends_enabled &&
-              ["draft", "preview"].includes(c.state || "") && (
+        {campaigns
+          .filter((c) => !c.import_batch)
+          .map((c) => (
+            <div className="op-list-row" key={c.id}>
+              <div>
+                <strong>{c.name}</strong>
+                <small>
+                  {purposes[c.purpose || ""]} · {c.cases?.length || 0} registros
+                  · {status[c.state || ""]}
+                </small>
+                <small>
+                  Envio {c.sends_enabled ? "ativado" : "desativado"}
+                </small>
+              </div>
+              {operate && c.state === "draft" && (
                 <FormAction
-                  title="Enviar importação CROSS"
-                  label="Enviar agora"
+                  title="Programar comunicação"
+                  label="Programar"
+                  busy={busy}
                 >
                   <form
                     className="op-form"
                     onSubmit={(e) => {
                       e.preventDefault();
-                      void act(`campaigns/${c.id}/release`, {
+                      const values = new FormData(e.currentTarget);
+                      void act(`campaigns/${c.id}/schedule`, {
                         version: c.version,
+                        name: String(values.get("name") || ""),
+                        scheduled_for: new Date(
+                          String(values.get("scheduled_for")),
+                        ).toISOString(),
                       }).catch(() => {});
                     }}
                   >
-                    <p>
-                      {c.name} · {c.cases?.length || 0} registros
-                    </p>
-                    <p>
-                      Envio real aos contatos da importação CROSS, com intervalo
-                      de 5 segundos.
-                    </p>
+                    <label className="op-field">
+                      Nome
+                      <input
+                        name="name"
+                        required
+                        maxLength={150}
+                        defaultValue={c.name}
+                      />
+                    </label>
+                    <label className="op-field">
+                      Data e hora
+                      <input
+                        name="scheduled_for"
+                        required
+                        type="datetime-local"
+                      />
+                    </label>
                     <button className="button primary" disabled={busy}>
-                      Liberar envio
+                      Salvar programação
                     </button>
                   </form>
                 </FormAction>
               )}
-            {operate && c.state === "draft" && (
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() =>
-                  void act(`campaigns/${c.id}/preview`, {
-                    version: c.version,
-                  }).catch(() => {})
-                }
-              >
-                Preparar prévia
-              </button>
-            )}
-          </div>
-        ))}
+              {admin && (
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void act(`campaigns/${c.id}/sending`, {
+                      version: c.version,
+                      enabled: !c.sends_enabled,
+                    }).catch(() => {})
+                  }
+                >
+                  {c.sends_enabled ? "Desativar envio" : "Ativar envio"}
+                </button>
+              )}
+              {admin &&
+                c.sends_enabled &&
+                ["draft", "preview"].includes(c.state || "") && (
+                  <FormAction
+                    title="Enviar importação CROSS"
+                    label="Enviar agora"
+                  >
+                    <form
+                      className="op-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void act(`campaigns/${c.id}/release`, {
+                          version: c.version,
+                        }).catch(() => {});
+                      }}
+                    >
+                      <p>
+                        {c.name} · {c.cases?.length || 0} registros
+                      </p>
+                      <p>
+                        Envio real aos contatos da importação CROSS, com
+                        intervalo de 5 segundos.
+                      </p>
+                      <button className="button primary" disabled={busy}>
+                        Liberar envio
+                      </button>
+                    </form>
+                  </FormAction>
+                )}
+              {operate && c.state === "draft" && (
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void act(`campaigns/${c.id}/preview`, {
+                      version: c.version,
+                    }).catch(() => {})
+                  }
+                >
+                  Preparar prévia
+                </button>
+              )}
+            </div>
+          ))}
         {!campaigns.length && (
           <p className="op-muted">Nenhuma importação CROSS cadastrada.</p>
         )}
-      </article>
-    </div>
-  );
-}
-
-function Reports({
-  unit,
-  operate,
-  revision,
-  act,
-  busy,
-  onError,
-}: Common & { operate: boolean }) {
-  const reports = useRows<Row>("reports", unit, revision, onError),
-    jobs = useRows<Row>("report-requests", unit, revision, onError);
-  const [report, setReport] = useState(""),
-    [start, setStart] = useState(""),
-    [end, setEnd] = useState(""),
-    [format, setFormat] = useState("csv");
-  return (
-    <div className="op-stack">
-      {operate && (
-        <FormAction title="Solicitar relatório" label="Solicitar relatório">
-          <form
-            className="op-card op-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void act("report-requests", {
-                report: Number(report),
-                format,
-                parameters: {
-                  ...(start ? { start } : {}),
-                  ...(end ? { end } : {}),
-                },
-              }).catch(() => {});
-            }}
-          >
-            <h3>Solicitar relatório</h3>
-            <div className="op-toolbar">
-              <Field label="Relatório">
-                <select
-                  required
-                  value={report}
-                  onChange={(e) => setReport(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {reports
-                    .filter((r) => r.enabled)
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-              <Field label="De">
-                <input
-                  type="date"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
-              </Field>
-              <Field label="Até">
-                <input
-                  type="date"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
-              </Field>
-              <Field label="Formato">
-                <select
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value)}
-                >
-                  <option value="csv">Planilha CSV</option>
-                  <option value="pdf">PDF</option>
-                  <option value="text">Texto</option>
-                </select>
-              </Field>
-              <button className="button primary" disabled={busy}>
-                Gerar relatório
-              </button>
-            </div>
-          </form>
-        </FormAction>
-      )}
-      <article className="op-card">
-        <h3>Solicitações</h3>
-        {jobs.map((j) => (
-          <div className="op-list-row" key={j.id}>
-            <div>
-              <strong>{j.report_name}</strong>
-              <small>
-                {j.created_at && dateTime(j.created_at)} ·{" "}
-                {status[j.state || ""] || j.state} ·{" "}
-                {status[j.delivery_state || ""] || j.delivery_state}
-              </small>
-              {j.error_code && <small>{j.error_code}</small>}
-            </div>
-            {j.state === "ready" && (
-              <a
-                className="button"
-                href={query(`report-requests/${j.id}/download`, { unit })}
-              >
-                <Download size={15} />
-                Baixar {j.format?.toUpperCase()}
-              </a>
-            )}
-          </div>
-        ))}
-        {!jobs.length && (
-          <p className="op-muted">Nenhum relatório solicitado.</p>
-        )}
-      </article>
-      <article className="op-card">
-        <h3>Catálogo da unidade</h3>
-        {reports.map((r) => (
-          <div className="op-list-row" key={r.id}>
-            <div>
-              <strong>{r.name}</strong>
-              <small>
-                {r.enabled
-                  ? "Disponível"
-                  : r.unavailable_reason || "Ainda não homologado"}
-              </small>
-            </div>
-            <span className="op-pill">
-              {r.enabled ? "Ativo" : "Indisponível"}
-            </span>
-          </div>
-        ))}
       </article>
     </div>
   );
@@ -1265,9 +1148,25 @@ function Administration({
     layouts = useRows<Row>("layouts", unit, revision, onError),
     reportDefinitions = useRows<Row>("reports", unit, revision, onError),
     policies = useRows<Row>("policies", unit, revision, onError);
+  const distinctLayouts = useMemo(() => {
+    const map = new Map<string, Row>();
+    for (const l of layouts) {
+      const key = l.name || String(l.id);
+      const existing = map.get(key);
+      if (
+        !existing ||
+        (Number(l.version) || 0) > (Number(existing.version) || 0)
+      ) {
+        map.set(key, l);
+      }
+    }
+    return Array.from(map.values());
+  }, [layouts]);
   const [code, setCode] = useState(""),
     [name, setName] = useState(""),
     [text, setText] = useState("");
+  const [removingLayout, setRemovingLayout] = useState<Row | null>(null);
+  const [layoutDeleteError, setLayoutDeleteError] = useState("");
   const layoutTemplates = useRows<Row>("templates", unit, revision, onError);
   const labels: Record<string, string> = {
     external_id: "Coluna do identificador",
@@ -1316,7 +1215,7 @@ function Administration({
       )}
       <div className="admin-category-content" key={category}>
         {category === "reportDefinitions" && (
-          <Panel title="Catálogo de relatórios">
+          <Panel title={activeCategory ? "" : "Catálogo de relatórios"}>
             <div className="table-scroll">
               <table className="directory-table">
                 <thead>
@@ -1373,7 +1272,7 @@ function Administration({
           </Panel>
         )}
         {category === "policies" && (
-          <Panel title="Prazos de resposta">
+          <Panel title={activeCategory ? "" : "Prazos de resposta"}>
             <div className="table-scroll">
               <table className="directory-table">
                 <thead>
@@ -1443,7 +1342,7 @@ function Administration({
         )}
         {category === "preparations" && (
           <Panel
-            title="Preparos de procedimentos"
+            title={activeCategory ? "" : "Preparos de procedimentos"}
             action={
               admin ? (
                 <FormAction
@@ -1586,7 +1485,7 @@ function Administration({
         )}
         {category === "layouts" && (
           <Panel
-            title="Importa CROSS · modelos e templates"
+            title={activeCategory ? "" : "Importa CROSS · modelos e templates"}
             action={
               admin ? (
                 <CrossLayoutEditor
@@ -1598,7 +1497,7 @@ function Administration({
               ) : null
             }
           >
-            {layouts.length ? (
+            {distinctLayouts.length ? (
               <div className="table-scroll">
                 <table className="directory-table">
                   <thead>
@@ -1611,7 +1510,7 @@ function Administration({
                     </tr>
                   </thead>
                   <tbody>
-                    {layouts.map((l) => (
+                    {distinctLayouts.map((l) => (
                       <tr key={l.id}>
                         <td>
                           <strong>{l.name}</strong>
@@ -1645,13 +1544,32 @@ function Administration({
                         </td>
                         <td>
                           {admin && (
-                            <CrossLayoutEditor
-                              unit={unit}
-                              templates={layoutTemplates}
-                              record={l}
-                              act={act}
-                              busy={busy}
-                            />
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                alignItems: "center",
+                              }}
+                            >
+                              <CrossLayoutEditor
+                                unit={unit}
+                                templates={layoutTemplates}
+                                record={l}
+                                act={act}
+                                busy={busy}
+                              />
+                              <button
+                                type="button"
+                                className="button danger"
+                                disabled={busy}
+                                onClick={() => {
+                                  setLayoutDeleteError("");
+                                  setRemovingLayout(l);
+                                }}
+                              >
+                                Remover
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1663,6 +1581,58 @@ function Administration({
               <Empty text="Nenhum layout CROSS cadastrado." />
             )}
           </Panel>
+        )}
+        {removingLayout && (
+          <InlineDialog
+            title={`Remover modelo ${removingLayout.name}?`}
+            subtitle={`Versão ${removingLayout.version}`}
+            busy={busy}
+            onClose={() => {
+              setRemovingLayout(null);
+              setLayoutDeleteError("");
+            }}
+            footer={
+              <footer className="form-action-footer">
+                <button
+                  type="button"
+                  className="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setRemovingLayout(null);
+                    setLayoutDeleteError("");
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="button danger"
+                  disabled={busy}
+                  onClick={() => {
+                    setLayoutDeleteError("");
+                    void act(`layouts/${removingLayout.id}/remove`, {
+                      all_versions: true,
+                    })
+                      .then(() => setRemovingLayout(null))
+                      .catch((err: Error) => setLayoutDeleteError(err.message));
+                  }}
+                >
+                  Remover modelo
+                </button>
+              </footer>
+            }
+          >
+            <p>
+              O modelo <strong>{removingLayout.name}</strong> será excluído
+              desta unidade. Modelos já utilizados em lotes de importação
+              existentes são protegidos para preservar o histórico.
+            </p>
+            {layoutDeleteError && (
+              <p className="inline-error" role="alert">
+                {layoutDeleteError}
+              </p>
+            )}
+          </InlineDialog>
         )}
       </div>
     </div>

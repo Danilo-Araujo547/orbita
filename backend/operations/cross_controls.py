@@ -371,3 +371,28 @@ def transport_guard(message):
     if attempts.count() >= settings.META_PILOT_DAILY_LIMIT:
         return "pilot_daily_limit"
     return ""
+
+
+def filtered_records(batch, search="", recent_only=False, enabled=None):
+    rows = batch_rows(batch)
+    search = search.strip().casefold()
+    if search:
+        rows = [
+            row
+            for row in rows
+            if any(
+                search in str(row.get(key, "")).casefold()
+                for key in [
+                    "nome_completo",
+                    "patient",
+                    "codigo",
+                    "record_id",
+                    "phone_numbers",
+                ]
+            )
+        ]
+    if recent_only:
+        rows = [row for row in rows if row["recent_send_count"]]
+    if enabled is not None:
+        rows = [row for row in rows if row["enabled"] == enabled]
+    return rows

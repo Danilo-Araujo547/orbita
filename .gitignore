@@ -42,3 +42,14 @@ coverage/
 htmlcov/
 .coverage
 coverage.xml
+
+# Manually published operational PDFs
+/files/reports/painel-leitos/
+
+/files/reports/indicadores-gerenciais/
+
+/files/reports/indicadores-estrategicos/
+
+# Local QA captures and operational report output
+/.canvas-task*-shots/
+/files/reports/internacoes-ps/

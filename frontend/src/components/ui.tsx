@@ -41,22 +41,35 @@ export function Panel({
   action: extra,
   className = "",
 }: {
-  title: string;
+  title?: string;
   legacy?: boolean;
   subtitle?: string;
   children: ReactNode;
   action?: ReactNode;
   className?: string;
 }) {
+  const hasHeading = Boolean(title || subtitle || extra);
   return (
     <section className={`panel ${className}`}>
-      <div className="panel-heading">
-        <div>
-          <h2><LegacyLabel legacy={legacy}>{title}</LegacyLabel></h2>
-          {subtitle && <p>{subtitle}</p>}
+      {hasHeading && (
+        <div className="panel-heading">
+          {Boolean(title || subtitle) && (
+            <div>
+              {title && (
+                <h2>
+                  <LegacyLabel legacy={legacy}>{title}</LegacyLabel>
+                </h2>
+              )}
+              {subtitle && <p>{subtitle}</p>}
+            </div>
+          )}
+          {extra && (
+            <div className="panel-actions" style={{ marginLeft: "auto" }}>
+              {extra}
+            </div>
+          )}
         </div>
-        {extra}
-      </div>
+      )}
       {children}
     </section>
   );

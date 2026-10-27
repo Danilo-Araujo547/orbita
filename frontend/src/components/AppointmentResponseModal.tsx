@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useId, useState } from "react";
 import { Check, X } from "lucide-react";
 import { query, request } from "../api";
@@ -157,17 +158,17 @@ export default function AppointmentResponseModal({
         <div className="response-form-grid">
           <label className="op-field">
             <span>Recebida por</span>
-            <select
+            <Select
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
             >
               <option value="phone">Telefone</option>
               <option value="whatsapp">WhatsApp</option>
-            </select>
+            </Select>
           </label>
           <label className="op-field">
             <span>Contato da resposta</span>
-            <select
+            <Select
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -184,7 +185,7 @@ export default function AppointmentResponseModal({
                 !contactList.some((c) => c.phone === item.phone) && (
                   <option value={item.phone}>{item.phone}</option>
                 )}
-            </select>
+            </Select>
           </label>
           <label className="op-field">
             <span>Respondido por</span>

@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { query, request } from "../api";
@@ -93,7 +94,7 @@ export default function ExecutionLogs({ unit }: { unit: string }) {
       <div className="execution-log-filters">
         <label>
           Tipo
-          <select
+          <Select
             value={category}
             onChange={(e) => change(setCategory, e.target.value)}
           >
@@ -103,11 +104,11 @@ export default function ExecutionLogs({ unit }: { unit: string }) {
                 {title}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label>
           Situação
-          <select
+          <Select
             value={status}
             onChange={(e) => change(setStatus, e.target.value)}
           >
@@ -117,7 +118,7 @@ export default function ExecutionLogs({ unit }: { unit: string }) {
                 {title}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label>
           De

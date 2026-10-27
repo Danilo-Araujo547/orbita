@@ -757,6 +757,61 @@ class LayoutViewSet(ConfigViewSet):
     queryset = m.ImportLayout.objects.order_by("name", "-version")
     serializer_class = s.LayoutSerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        from django.db import connection
+
+        if connection.vendor == "postgresql":
+            return qs.order_by("name", "-version").distinct("name")
+        from django.db.models import Max
+
+        latest_versions = (
+            qs.values("name")
+            .annotate(max_v=Max("version"))
+            .values_list("name", "max_v")
+        )
+        q = Q()
+        for n, v in latest_versions:
+            q |= Q(name=n, version=v)
+        return (
+            qs.filter(q).order_by("name", "-version") if latest_versions else qs.none()
+        )
+
+    @extend_schema(request=None, responses=dict)
+    @action(detail=True, methods=["post", "delete"])
+    def remove(self, request, pk=None):
+        return self.destroy(request, pk)
+
+    def destroy(self, request, pk=None):
+        unit = get_unit(request, ["admin"])
+        layout = get_object_or_404(m.ImportLayout, unit=unit, pk=pk)
+        all_versions = True
+        if isinstance(request.data, dict) and "all_versions" in request.data:
+            all_versions = bool(request.data["all_versions"])
+
+        targets = (
+            m.ImportLayout.objects.filter(unit=unit, name=layout.name)
+            if all_versions
+            else m.ImportLayout.objects.filter(unit=unit, pk=pk)
+        )
+
+        if m.SheetImport.objects.filter(layout__in=targets).exists():
+            raise ValidationError(
+                "Este modelo já possui importações realizadas e não pode ser excluído para preservar o histórico."
+            )
+
+        name = layout.name
+        count = targets.count()
+        targets.delete()
+        Audit.objects.create(
+            unit=unit,
+            actor=request.user,
+            action="layout.deleted",
+            object_id=str(pk),
+            details={"name": name, "deleted_count": count},
+        )
+        return Response({"status": "deleted", "id": pk, "name": name, "count": count})
+
 
 class PolicyViewSet(ConfigViewSet):
     queryset = m.PurposePolicy.objects.order_by("purpose")
@@ -768,6 +823,47 @@ class SheetViewSet(ScopedRead):
         "unit", "layout", "template", "campaign"
     ).order_by("-created_at")
     serializer_class = s.SheetSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        item_type = self.request.query_params.get("item_type")
+        if item_type:
+            if item_type not in {"I", "A", "L"}:
+                raise ValidationError("Tipo de atendimento inválido.")
+            qs = qs.filter(configuration__source__item_type=item_type)
+        origin = self.request.query_params.get("origin")
+        if origin == "oracle":
+            qs = qs.filter(configuration__source__origin="oracle_absences")
+        elif origin == "sheet":
+            qs = qs.filter(
+                Q(configuration__source__isnull=True)
+                | ~Q(configuration__source__origin="oracle_absences")
+            )
+        return qs
+
+    @extend_schema(request=s.OracleAbsenceInput, responses=s.SheetSerializer)
+    @action(detail=False, methods=["post"], url_path="oracle-absences")
+    def oracle_absences(self, request):
+        from operations.oracle_absences import generate_absences
+
+        values = s.OracleAbsenceInput(data=request.data)
+        values.is_valid(raise_exception=True)
+        unit = get_unit(request, ["admin", "operator"])
+        data = values.validated_data
+        layout = get_object_or_404(m.ImportLayout, unit=unit, pk=data["layout"])
+
+        def execute():
+            batch = generate_absences(
+                unit,
+                request.user,
+                layout,
+                data["absence_date"],
+                data["item_type"],
+                data.get("template"),
+            )
+            return s.SheetSerializer(batch).data
+
+        return self.once(request, execute)
 
     @extend_schema(request=s.SheetPreviewInput, responses=s.SheetSerializer)
     def create(self, request):
@@ -841,30 +937,15 @@ class SheetViewSet(ScopedRead):
     @extend_schema(responses=s.CrossRecordSerializer(many=True))
     @action(detail=True, methods=["get"])
     def records(self, request, pk=None):
-        from operations.cross_controls import batch_rows
+        from operations.cross_controls import filtered_records
 
-        rows = batch_rows(self.get_object())
-        search = request.query_params.get("search", "").strip().casefold()
-        if search:
-            rows = [
-                row
-                for row in rows
-                if any(
-                    search in str(row.get(key, "")).casefold()
-                    for key in [
-                        "nome_completo",
-                        "patient",
-                        "codigo",
-                        "record_id",
-                        "phone_numbers",
-                    ]
-                )
-            ]
-        if request.query_params.get("recent_only") == "true":
-            rows = [row for row in rows if row["recent_send_count"]]
-        if request.query_params.get("enabled") in {"true", "false"}:
-            enabled = request.query_params["enabled"] == "true"
-            rows = [row for row in rows if row["enabled"] == enabled]
+        enabled = request.query_params.get("enabled")
+        rows = filtered_records(
+            self.get_object(),
+            search=request.query_params.get("search", ""),
+            recent_only=request.query_params.get("recent_only") == "true",
+            enabled=(enabled == "true") if enabled in {"true", "false"} else None,
+        )
         return self.get_paginated_response(self.paginate_queryset(rows))
 
     @extend_schema(request=s.CrossBatchControlInput, responses=s.SheetSerializer)
@@ -890,11 +971,20 @@ class SheetViewSet(ScopedRead):
         values.is_valid(raise_exception=True)
 
         def execute():
-            from operations.cross_controls import set_records_enabled
+            from operations.cross_controls import filtered_records, set_records_enabled
 
-            batch = set_records_enabled(
-                self.get_object(), actor=request.user, **values.validated_data
-            )
+            batch = self.get_object()
+            data = dict(values.validated_data)
+            all_matching = data.pop("all_matching")
+            excluded = set(data.pop("excluded_records"))
+            search, recent_only = data.pop("search"), data.pop("recent_only")
+            if all_matching:
+                rows = filtered_records(batch, search=search, recent_only=recent_only)
+                known = {row["record_id"] for row in rows}
+                if not excluded <= known:
+                    raise ValidationError("A seleção mudou. Atualize os registros.")
+                data["records"] = sorted(known - excluded)
+            batch = set_records_enabled(batch, actor=request.user, **data)
             return self.get_serializer(batch).data
 
         return self.once(request, execute)

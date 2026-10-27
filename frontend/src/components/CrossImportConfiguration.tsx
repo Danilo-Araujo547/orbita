@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import Select from "./Select";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, FormEvent } from "react";
 import FormAction from "./FormAction";
 import { query, request } from "../api";
@@ -65,6 +66,7 @@ export type CrossTemplate = {
 export type CrossLayout = {
   id: string | number;
   name?: string;
+  version?: number;
   format?: string;
   verified?: boolean;
   evidence?: string;
@@ -160,7 +162,7 @@ function TemplateFields({
       {Array.from({ length: count }, (_, index) => (
         <div className="cross-template-item" key={index}>
           <div className="cross-template-tag">{`{{${index + 1}}}`}</div>
-          <select
+          <Select
             required
             className="cross-template-select"
             value={fields[index] || ""}
@@ -178,7 +180,7 @@ function TemplateFields({
                 {field} {standardFieldLabels[field] ? `(${standardFieldLabels[field]})` : ""}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       ))}
     </div>
@@ -232,6 +234,8 @@ export function CrossLayoutEditor({
   );
   const [evidence, setEvidence] = useState(record?.evidence || ""),
     [verified, setVerified] = useState(record?.verified || false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removeError, setRemoveError] = useState("");
   const selected = templates.find((t) => String(t.id) === templateId),
     current = mapping || schema?.default_mappings[format] || {};
   return (
@@ -249,8 +253,8 @@ export function CrossLayoutEditor({
             name,
             format,
             standard_mapping: current,
-            default_template: Number(templateId),
-            parameter_fields: fields || suggestedParameters(selected),
+            default_template: templateId ? Number(templateId) : null,
+            parameter_fields: templateId ? (fields || suggestedParameters(selected)) : [],
             mapping:
               format === "table"
                 ? {
@@ -277,7 +281,7 @@ export function CrossLayoutEditor({
           </label>
           <label className="op-field">
             Formato
-            <select
+            <Select
               value={format}
               onChange={(e) => {
                 setFormat(e.target.value);
@@ -291,37 +295,54 @@ export function CrossLayoutEditor({
               <option value="cross_demand_csv">
                 Demanda por recurso CROSS (.csv)
               </option>
-            </select>
+            </Select>
           </label>
         </div>
         <label className="op-field">
           Template
-          <select
-            required
-            value={templateId}
-            onChange={(e) => {
-              setTemplateId(e.target.value);
-              setFields(null);
-            }}
-          >
-            <option value="">Selecione</option>
-            {templates
-              .filter((t) => compatible(t, format))
-              .map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-          </select>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <Select
+              value={templateId}
+              style={{ flex: 1 }}
+              onChange={(e) => {
+                setTemplateId(e.target.value);
+                setFields(null);
+              }}
+            >
+              <option value="">Sem template vinculado</option>
+              {templates
+                .filter((t) => compatible(t, format))
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </Select>
+            {templateId && (
+              <button
+                type="button"
+                className="button"
+                title="Remover vínculo do template com este modelo"
+                onClick={() => {
+                  setTemplateId("");
+                  setFields(null);
+                }}
+              >
+                Remover template
+              </button>
+            )}
+          </div>
         </label>
-        <div className="cross-mapping-subgroup">
-          <h4 className="cross-mapping-subtitle">Parâmetros do template</h4>
-          <TemplateFields
-            template={selected}
-            fields={fields || suggestedParameters(selected)}
-            onChange={setFields}
-          />
-        </div>
+        {selected && (
+          <div className="cross-mapping-subgroup">
+            <h4 className="cross-mapping-subtitle">Parâmetros do template</h4>
+            <TemplateFields
+              template={selected}
+              fields={fields || suggestedParameters(selected)}
+              onChange={setFields}
+            />
+          </div>
+        )}
         <div className="cross-mapping-subgroup">
           <h4 className="cross-mapping-subtitle">Mapeamento de colunas da planilha</h4>
           <MappingFields mapping={current} onChange={setMapping} />
@@ -356,6 +377,56 @@ export function CrossLayoutEditor({
         <button className="button primary" disabled={busy || !schema}>
           Salvar modelo
         </button>
+        {record && (
+          <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: "14px", marginTop: "10px" }}>
+            {!confirmRemove ? (
+              <button
+                type="button"
+                className="button danger"
+                disabled={busy}
+                onClick={() => setConfirmRemove(true)}
+              >
+                Remover modelo
+              </button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--danger-text, #dc2626)" }}>
+                  Tem certeza que deseja remover o modelo <strong>{record.name}</strong>?
+                </p>
+                {removeError && (
+                  <p className="inline-error" role="alert" style={{ margin: 0 }}>
+                    {removeError}
+                  </p>
+                )}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    className="button danger"
+                    disabled={busy}
+                    onClick={() => {
+                      setRemoveError("");
+                      void act(`layouts/${record.id}/remove`, { all_versions: true })
+                        .catch((err: Error) => setRemoveError(err.message));
+                    }}
+                  >
+                    Confirmar remoção
+                  </button>
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirmRemove(false);
+                      setRemoveError("");
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </form>
     </FormAction>
   );
@@ -385,7 +456,19 @@ export function CrossImportForm({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const layout = layouts.find((l) => String(l.id) === layoutId);
+  const distinctLayouts = useMemo(() => {
+    const map = new Map<string, CrossLayout>();
+    for (const l of layouts) {
+      const key = l.name || String(l.id);
+      const existing = map.get(key);
+      if (!existing || (Number(l.version) || 0) > (Number(existing.version) || 0)) {
+        map.set(key, l);
+      }
+    }
+    return Array.from(map.values());
+  }, [layouts]);
+
+  const layout = distinctLayouts.find((l) => String(l.id) === layoutId);
   const selected = templates.find((t) => String(t.id) === templateId);
   const current =
     mapping ||
@@ -495,7 +578,7 @@ export function CrossImportForm({
               <label className="cross-field-label-text">
                 Modelo homologado
               </label>
-              <select
+              <Select
                 required
                 className="cross-select"
                 value={layoutId}
@@ -514,14 +597,14 @@ export function CrossImportForm({
                 }}
               >
                 <option value="">Selecione um modelo</option>
-                {layouts
+                {distinctLayouts
                   .filter((l) => l.verified)
                   .map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
                     </option>
                   ))}
-              </select>
+              </Select>
               {layout && (
                 <div className="cross-field-tags">
                   <span className="cross-badge cross-badge-format">
@@ -538,7 +621,7 @@ export function CrossImportForm({
               <label className="cross-field-label-text">
                 Template de mensagem
               </label>
-              <select
+              <Select
                 required
                 className="cross-select"
                 value={templateId}
@@ -555,7 +638,7 @@ export function CrossImportForm({
                       {t.name}
                     </option>
                   ))}
-              </select>
+              </Select>
               {selected && (
                 <div className="cross-field-tags">
                   <span className="cross-badge cross-badge-template">

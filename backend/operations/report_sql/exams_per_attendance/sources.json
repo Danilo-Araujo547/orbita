@@ -1,0 +1,40 @@
+{
+  "legacy123-33": {
+    "file": "attendances.sql",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "legacy_id": 33
+  },
+  "legacy123-35": {
+    "file": "exams.sql",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "legacy_id": 35
+  }
+}

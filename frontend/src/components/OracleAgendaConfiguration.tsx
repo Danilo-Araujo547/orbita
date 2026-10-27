@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
@@ -49,6 +50,10 @@ type Config = {
   parameter_mapping: Record<string, Binding>;
   horizon_days: number;
   days_before: number;
+  days_after: number;
+  date_format: string;
+  refresh_interval_minutes: number;
+  expected_days: number;
   send_time: string;
   send_weekdays: number[];
   blocked_day_policy: DayPolicy;
@@ -105,6 +110,7 @@ const kinds: Record<string, string> = {
   consultation: "Consulta",
   exam: "Exame",
   lab: "Laboratório",
+  postprocedure: "Busca ativa - pós procedimento",
 };
 
 export default function OracleAgendaConfiguration({ unit }: { unit: string }) {
@@ -226,7 +232,7 @@ export default function OracleAgendaConfiguration({ unit }: { unit: string }) {
                         {c.appointment_count}
                         <br />
                         <small>
-                          {c.covered_days}/{c.horizon_days} dias
+                          {c.covered_days}/{c.expected_days ?? c.horizon_days} dias
                         </small>
                       </td>
                       <td>
@@ -338,7 +344,7 @@ export default function OracleAgendaConfiguration({ unit }: { unit: string }) {
             <div>
               <dt>Programação do lembrete</dt>
               <dd>
-                {config.days_before} dias antes · {config.send_time.slice(0, 5)}
+                {config.kind === "postprocedure" ? `${config.days_after} dias após o procedimento` : `${config.days_before} dias antes`} · {config.send_time.slice(0, 5)}
               </dd>
             </div>
             <div>
@@ -487,6 +493,8 @@ function Editor({
   onClose: () => void;
   onSaved: (data: Payload) => void;
 }) {
+  const [kind, setKind] = useState(config?.kind || "consultation");
+  const after = kind === "postprocedure";
   const [sendDays, setSendDays] = useState(
     config?.send_weekdays || [0, 1, 2, 3, 4, 5, 6],
   );
@@ -612,7 +620,7 @@ function Editor({
             ...(config ? { id: config.id } : {}),
             version: config?.version || 0,
             name: values.get("name"),
-            kind: values.get("kind"),
+            kind,
             view_name: view,
             column_mapping: mapping,
             template_id: template,
@@ -620,7 +628,10 @@ function Editor({
               (remote?.parameter_keys || []).map((key) => [key, bindings[key]]),
             ),
             horizon_days: Number(values.get("horizon_days")),
-            days_before: Number(values.get("days_before")),
+            days_before: after ? 0 : Number(values.get("offset_days")),
+            days_after: after ? Number(values.get("offset_days")) : 10,
+            date_format: values.get("date_format"),
+            refresh_interval_minutes: Number(values.get("refresh_interval_minutes")),
             send_time: values.get("send_time"),
             send_weekdays: sendDays,
             blocked_day_policy: Object.fromEntries(
@@ -628,7 +639,7 @@ function Editor({
                 ([day]) => !sendDays.includes(Number(day)),
               ),
             ),
-            enabled: values.get("enabled") === "on",
+            enabled: !!template && values.get("enabled") === "on",
           },
         ),
       );
@@ -665,7 +676,7 @@ function Editor({
             className="button primary"
             form="oracle-agenda-form"
             type="submit"
-            disabled={busy || isViewModified || !remote?.supported}
+            disabled={busy || isViewModified || (!remote?.supported && !(after && !template))}
           >
             Salvar
           </button>
@@ -697,9 +708,10 @@ function Editor({
               </label>
               <label className="op-field">
                 <span>Tipo</span>
-                <select
+                <Select
                   name="kind"
-                  defaultValue={config?.kind || "consultation"}
+                  value={kind}
+                  onChange={(e) => setKind(e.target.value)}
                   disabled={!!config}
                 >
                   {Object.entries(kinds).map(([value, label]) => (
@@ -707,7 +719,7 @@ function Editor({
                       {label}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {config && (
                   <input type="hidden" name="kind" value={config.kind} />
                 )}
@@ -765,14 +777,14 @@ function Editor({
                 </div>
                 <div className="agenda-mapping-grid">
                   {fields.map(([key, label]) => {
-                    const isReq = required.has(key);
+                    const isReq = required.has(key) && !(after && key === "time");
                     return (
                       <label
                         className="op-field agenda-mapping-field"
                         key={key}
                       >
                         <span className="agenda-field-title">
-                          {label}
+                          {after && key === "date" ? "Data do procedimento" : label}
                           {isReq && (
                             <span
                               className="agenda-required-mark"
@@ -782,7 +794,7 @@ function Editor({
                             </span>
                           )}
                         </span>
-                        <select
+                        <Select
                           required={isReq}
                           value={String(mapping[key] || "")}
                           onChange={(e) =>
@@ -795,7 +807,7 @@ function Editor({
                               {c.name}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </label>
                     );
                   })}
@@ -856,22 +868,22 @@ function Editor({
                 </div>
                 <label className="op-field">
                   <span>Template aprovado</span>
-                  <select
-                    required
+                  <Select
+                    required={!after}
                     value={template}
                     onChange={(e) => {
                       setTemplate(e.target.value);
                       setBindings({});
                     }}
                   >
-                    <option value="">Selecionar template</option>
+                    <option value="">{after ? "Pendente — somente dados" : "Selecionar template"}</option>
                     {data.templates.map((t) => (
                       <option key={t.id} value={t.id} disabled={!t.supported}>
                         {t.name} · {t.category}
                         {!t.supported ? " · indisponível nesta integração" : ""}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
 
                 {!data.templates.length && (
@@ -915,7 +927,7 @@ function Editor({
                       </div>
                       <div className="agenda-test-patient-row">
                         <label className="op-field agenda-test-patient-label">
-                          <span>Código do Paciente (CD_PACIENTE)</span>
+                          <span>Código do paciente ({String(mapping.patient_external_id || "CD_PACIENTE")})</span>
                           <input
                             type="text"
                             className="agenda-test-patient-input"
@@ -976,7 +988,7 @@ function Editor({
                         </div>
                         <div className="whatsapp-header-info">
                           <div className="whatsapp-header-name">
-                            <span>Órbita · WhatsApp</span>
+                            <span>SCV Messenger · WhatsApp</span>
                             <span
                               className="whatsapp-verified-badge"
                               title="Conta Comercial Verificada"
@@ -1096,7 +1108,7 @@ function Editor({
                               </div>
                               <label className="op-field agenda-param-field">
                                 <span>Coluna correspondente</span>
-                                <select
+                                <Select
                                   aria-label={"Coluna do parâmetro " + key}
                                   required
                                   value={bindings[key]?.column || ""}
@@ -1116,11 +1128,11 @@ function Editor({
                                       {c.name}
                                     </option>
                                   ))}
-                                </select>
+                                </Select>
                               </label>
                               <label className="op-field agenda-param-field">
                                 <span>Formato de exibição</span>
-                                <select
+                                <Select
                                   aria-label={"Formato do parâmetro " + key}
                                   value={bindings[key]?.format || "text"}
                                   onChange={(e) =>
@@ -1138,7 +1150,7 @@ function Editor({
                                     Data (dd/mm/aaaa)
                                   </option>
                                   <option value="time">Hora (hh:mm)</option>
-                                </select>
+                                </Select>
                               </label>
                             </div>
                           ))}
@@ -1157,25 +1169,27 @@ function Editor({
                 </div>
                 <div className="agenda-timing-grid">
                   <label className="op-field">
-                    <span>Janela futura (dias)</span>
+                    <span>{after ? "Histórico de procedimentos (dias)" : "Janela futura (dias)"}</span>
                     <input
+                      key={`horizon-${kind}`}
                       name="horizon_days"
                       type="number"
                       min="1"
-                      max="30"
+                      max={after ? 365 : 30}
                       required
-                      defaultValue={config?.horizon_days || 10}
+                      defaultValue={config?.horizon_days || (after ? 30 : 10)}
                     />
                   </label>
                   <label className="op-field">
-                    <span>Antecedência (dias)</span>
+                    <span>{after ? "Dias após o procedimento" : "Antecedência (dias)"}</span>
                     <input
-                      name="days_before"
+                      key={`offset-${kind}`}
+                      name="offset_days"
                       type="number"
                       min="0"
                       max="30"
                       required
-                      defaultValue={config?.days_before ?? 5}
+                      defaultValue={after ? (config?.days_after ?? 10) : (config?.days_before ?? 5)}
                     />
                   </label>
                   <label className="op-field">
@@ -1186,6 +1200,20 @@ function Editor({
                       required
                       defaultValue={(config?.send_time || "09:00").slice(0, 5)}
                     />
+                  </label>
+                </div>
+                <div className="agenda-mapping-grid">
+                  <label className="op-field">
+                    <span>Formato da data na view</span>
+                    <Select key={`format-${kind}`} name="date_format" defaultValue={config?.date_format || (after ? "br_date" : "native")}>
+                      <option value="native">DATE / TIMESTAMP</option>
+                      <option value="br_date">Texto: dd/mm/aaaa</option>
+                      <option value="iso_date">Texto: aaaa-mm-dd</option>
+                    </Select>
+                  </label>
+                  <label className="op-field">
+                    <span>Atualização (minutos)</span>
+                    <input key={`refresh-${kind}`} name="refresh_interval_minutes" type="number" min="5" max="1440" required defaultValue={config?.refresh_interval_minutes || (after ? 60 : 5)} />
                   </label>
                 </div>
                 <SendCalendar
@@ -1200,7 +1228,8 @@ function Editor({
                   <input
                     name="enabled"
                     type="checkbox"
-                    defaultChecked={config?.enabled ?? true}
+                    disabled={!template}
+                    defaultChecked={config?.enabled ?? false}
                   />
                   <div className="agenda-toggle-text">
                     <strong>Importação contínua automática</strong>

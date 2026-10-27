@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { query, request } from "../api";
@@ -268,7 +269,7 @@ export default function AppointmentMessagesModal({
           {!!data.results.length && (
             <label className="op-field">
               <span>Mensagem / destinatário</span>
-              <select value={selected} onChange={(e) => select(e.target.value)}>
+              <Select value={selected} onChange={(e) => select(e.target.value)}>
                 {data.results.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.recipient || "Sem contato"} ·{" "}
@@ -276,7 +277,7 @@ export default function AppointmentMessagesModal({
                     {labels[m.state] || m.state}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
           {message ? (

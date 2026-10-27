@@ -245,7 +245,9 @@ def dispatch(message_id, transport=None, now=None):
                     day_end,
                     group.scheduled_for
                     + timedelta(hours=message.snapshot.get("validity_hours", 24)),
-                    message.appointment.scheduled_at,
+                    message.appointment.scheduled_at
+                    if message.appointment.kind != "postprocedure"
+                    else day_end,
                 )
                 message.save(update_fields=["scheduled_for", "expires_at"])
         if message.scheduled_for > now:

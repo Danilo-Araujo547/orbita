@@ -1,3 +1,7 @@
+import Select from "./components/Select";
+import ReportCanvasPage from "./components/ReportCanvasPage";
+import MetaCosts from "./components/MetaCosts";
+import BrandLogo from "./components/BrandLogo";
 import LegacyLabel from "./components/LegacyLabel";
 import { settingsEntries } from "./settingsDirectory";
 import FormAction from "./components/FormAction";
@@ -35,6 +39,7 @@ import {
   ClipboardList,
   Clock3,
   Cloud,
+  Wallet,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -78,6 +83,7 @@ const navigation: { id: PageName; label: string; icon: typeof Activity }[] = [
   { id: "issues", label: "Pendências", icon: ClipboardList },
   { id: "campaigns", label: "Importa CROSS", icon: Send },
   { id: "reports", label: "Relatórios", icon: Activity },
+  { id: "costs", label: "Custos Meta", icon: Wallet },
   { id: "settings", label: "Configurações", icon: Settings2 },
 ];
 type Data = {
@@ -121,7 +127,7 @@ function AppRoot() {
   if (checking)
     return (
       <div className="boot">
-        <div className="logo-symbol" />
+        <BrandLogo />
         <span>Carregando painel…</span>
       </div>
     );
@@ -157,6 +163,7 @@ function Workspace({
     [modal, setModal] = useState<Modal>(null),
     [mobile, setMobile] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string | null>(null);
+  const [canvasId, setCanvasId] = useState<number | null>(() => readRoute().canvasId ?? null);
   const [groupId, setGroupId] = useState<string | null>(
     () => readRoute().groupId,
   );
@@ -164,6 +171,7 @@ function Workspace({
     const sync = () => {
       const next = readRoute();
       setPage(next.page);
+      setCanvasId(next.canvasId ?? null);
       setSettingsTab(null);
       setGroupId(next.groupId);
       const slug = new URLSearchParams(window.location.search).get("unit");
@@ -227,6 +235,7 @@ function Workspace({
   useEffect(() => { setSettingsTab(null); }, [unit]);
   useEffect(() => { if (page !== "settings") setSettingsTab(null); }, [page]);
   function changeUnit(slug: string) {
+    setCanvasId(null);
     setData(null);
     setUnit(slug);
     setGroupId(null);
@@ -244,6 +253,7 @@ function Workspace({
   }
   const loadSequence = useRef(0);
   const load = useCallback(async () => {
+    if (canvasId) return;
     const sequence = ++loadSequence.current;
     setBusy(true);
     setError("");
@@ -324,7 +334,7 @@ function Workspace({
     } finally {
       if (sequence === loadSequence.current) setBusy(false);
     }
-  }, [unit, kind, start, end, listPage, search, state, responseState, page, session.permissions]);
+  }, [unit, kind, start, end, listPage, search, state, responseState, page, canvasId, session.permissions]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -384,6 +394,7 @@ function Workspace({
   ) {
     selectAppointment(appointmentId);
     setPage(next);
+    setCanvasId(null);
     setGroupId(null);
     window.history.pushState(
       {},
@@ -454,6 +465,7 @@ function Workspace({
         : page === "messages"
           ? data?.messages
           : null;
+  if (canvasId) return <ReportCanvasPage id={canvasId} unit={unit} admin={role === "admin"} />;
   return (
     <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       {mobile && (
@@ -468,11 +480,8 @@ function Workspace({
         className={`sidebar ${mobile ? "open" : ""}`}
       >
         <div className="sidebar-heading">
-          <div className="brand" aria-label="Órbita">
-            <div className="logo-symbol" />
-            <span>
-              órbita<span className="brand-dot">.</span>
-            </span>
+          <div className="brand" aria-label="SCV Messenger">
+            <BrandLogo wordmark={!sidebarCollapsed} />
           </div>
           <button
             className="sidebar-toggle icon-button"
@@ -589,7 +598,8 @@ function Workspace({
           </div>
           <div className="topbar-right">
             <div className="topbar-actions">
-              <button
+              {page !== "costs" && (
+<button
                 className="button topbar-action-btn"
                 onClick={() => void load()}
                 disabled={busy}
@@ -598,6 +608,7 @@ function Workspace({
                 <RefreshCw size={14} className={busy ? "spin" : ""} />
                 <span>Atualizar</span>
               </button>
+)}
               {canOperate && ["overview", "appointments"].includes(page) && (
                 <button
                   className="button primary topbar-action-btn"
@@ -651,7 +662,7 @@ function Workspace({
           {page === "messages" && (
             <div className="filters">
               <div className="filter-left">
-                <select
+                <Select
                   aria-label="Tipo de agendamento"
                   value={kind}
                   onChange={(e) => {
@@ -665,7 +676,7 @@ function Workspace({
                       {label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               {periodFilter}
             </div>
@@ -678,6 +689,7 @@ function Workspace({
             </div>
           ) : (
             <>
+              {page === "costs" && <MetaCosts unit={unit} />}
               {page === "overview" && (
                 <OverviewWorkspace
                   data={d!}
@@ -726,7 +738,7 @@ function Workspace({
                   }
                 >
                   <div className="table-filters">
-                    <select
+                    <Select
                       aria-label="Situação da mensagem"
                       value={state}
                       onChange={(e) => {
@@ -752,8 +764,8 @@ function Workspace({
                           {labels[s]}
                         </option>
                       ))}
-                    </select>
-                    <select
+                    </Select>
+                    <Select
                       aria-label="Situação da resposta"
                       value={responseState}
                       onChange={(e) => {
@@ -774,7 +786,7 @@ function Workspace({
                           {labels[s]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   {!data.messages.results.length ? (
                     <Empty />
@@ -1259,7 +1271,7 @@ function Workspace({
                                   "sqlite_simulated" && (
                                   <label className="op-field">
                                     Regra
-                                    <select
+                                    <Select
                                       name="rule_id"
                                       required
                                       defaultValue={data.rules.results[0]?.id}
@@ -1269,7 +1281,7 @@ function Workspace({
                                           {rule.name}
                                         </option>
                                       ))}
-                                    </select>
+                                    </Select>
                                   </label>
                                 )}
                                 <button
@@ -1385,8 +1397,8 @@ function Workspace({
           )}
           <footer className="page-footer">
             <span>
-              <span className="footer-orbit" />
-              Órbita
+              <BrandLogo small />
+              SCV Messenger
             </span>
             <span>
               Horário de Brasília ·{" "}

@@ -212,7 +212,14 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             )
         kind = params.get("kind", "")
         if kind:
-            if kind.startswith("cross:") and kind[6:] in PATIENT_PURPOSES:
+            if kind in {"cross:absence:A", "cross:absence:I", "cross:absence:L"}:
+                qs = qs.filter(
+                    purpose="absence",
+                    event__appointment__isnull=True,
+                    event__data__source_origin="oracle_absences",
+                    event__data__tp_item=kind[-1],
+                )
+            elif kind.startswith("cross:") and kind[6:] in PATIENT_PURPOSES:
                 qs = qs.filter(event__appointment__isnull=True, purpose=kind[6:])
             elif kind in dict(Appointment.Kind.choices):
                 qs = qs.filter(purpose="appointment", event__appointment__kind=kind)
@@ -371,6 +378,27 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             for purpose, label in Purpose.choices
             if purpose in registered and purpose in PATIENT_PURPOSES
         )
+        oracle_types = set(
+            Case.objects.filter(
+                unit=unit,
+                event__unit=unit,
+                purpose="absence",
+                event__data__source_origin="oracle_absences",
+            ).values_list("event__data__tp_item", flat=True)
+        )
+        for code, label in [
+            ("A", "Consulta"),
+            ("I", "Imagem / Exames"),
+            ("L", "Laboratório"),
+        ]:
+            if code in oracle_types:
+                result.append(
+                    {
+                        "value": f"cross:absence:{code}",
+                        "label": f"Ausentes · {label}",
+                        "group": "Importa CROSS",
+                    }
+                )
         return Response(result)
 
     @action(detail=False, methods=["get"], pagination_class=None)
@@ -389,7 +417,9 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             .values_list("event__data__professional", flat=True)
             .distinct()[:200]
         )
-        profs = sorted(set(p.strip() for p in (appt_profs + cross_profs) if p and p.strip()))
+        profs = sorted(
+            set(p.strip() for p in (appt_profs + cross_profs) if p and p.strip())
+        )
 
         appt_specs = list(
             Appointment.objects.filter(unit=unit)
@@ -404,12 +434,16 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             .values_list("event__data__procedure", flat=True)
             .distinct()[:200]
         )
-        specs = sorted(set(s.strip() for s in (appt_specs + cross_specs) if s and s.strip()))
+        specs = sorted(
+            set(s.strip() for s in (appt_specs + cross_specs) if s and s.strip())
+        )
 
-        return Response({
-            "professionals": profs,
-            "specialties": specs,
-        })
+        return Response(
+            {
+                "professionals": profs,
+                "specialties": specs,
+            }
+        )
 
     @extend_schema(
         responses=AppointmentCommunicationsSerializer,

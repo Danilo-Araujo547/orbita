@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { LockKeyhole, PlugZap } from "lucide-react";
@@ -181,13 +182,13 @@ export default function OracleConfiguration({ unit }: { unit: string }) {
                 </label>
                 <label className="op-field">
                   Tipo de identificador
-                  <select
+                  <Select
                     name="identifier_type"
                     defaultValue={details?.identifier_type ?? "service"}
                   >
                     <option value="service">Service name</option>
                     <option value="sid">SID</option>
-                  </select>
+                  </Select>
                 </label>
                 <label className="op-field">
                   Identificador do banco

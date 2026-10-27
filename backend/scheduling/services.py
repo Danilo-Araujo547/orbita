@@ -88,7 +88,7 @@ def queue_appointment(appointment, rule, scheduled_for, now=None):
     expiry = min(
         end_of_day,
         scheduled_for + timedelta(hours=rule.validity_hours),
-        appointment.scheduled_at,
+        appointment.scheduled_at if appointment.kind != "postprocedure" else end_of_day,
     )
     # Bindings belong to the origin, even when it shares a Meta template.
     if hasattr(rule, "oracle_agenda"):
@@ -125,6 +125,7 @@ def queue_appointment(appointment, rule, scheduled_for, now=None):
             "unit": appointment.unit,
             "appointment": appointment,
             "revision": appointment.revision,
+            "purpose": case.purpose,
         },
     )
     messages = []
@@ -186,7 +187,7 @@ def _queue_recipient(
             "notification": notification,
             "unit": appointment.unit,
             "case": case,
-            "purpose": "appointment",
+            "purpose": case.purpose,
             "snapshot": {
                 "rule": rule.code,
                 "version": rule.version,
@@ -343,7 +344,7 @@ def import_rule(rule, source, now=None, retry=False, refresh=False):
             run.status, run.imported = "completed", len(rows)
             run.completed_at = now
             run.save()
-    except Exception as exc:  # noqa: BLE001 - sanitize connector error codes
+    except Exception as exc:
         # Do not persist SQL, patient data or credential-bearing exception messages.
         oracle_code = getattr(exc.args[0], "full_code", "") if exc.args else ""
         safe_code = (

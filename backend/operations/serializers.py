@@ -296,8 +296,28 @@ class CrossBatchControlInput(VersionInput):
 
 class CrossRecordsControlInput(CrossBatchControlInput):
     records = serializers.ListField(
-        child=serializers.CharField(max_length=200), min_length=1, max_length=1000
+        child=serializers.CharField(max_length=200),
+        min_length=1,
+        max_length=10000,
+        required=False,
     )
+    all_matching = serializers.BooleanField(default=False)
+    excluded_records = serializers.ListField(
+        child=serializers.CharField(max_length=200), max_length=10000, default=list
+    )
+    search = serializers.CharField(max_length=200, allow_blank=True, default="")
+    recent_only = serializers.BooleanField(default=False)
+
+    def validate(self, attrs):
+        if bool(attrs.get("records")) == attrs["all_matching"]:
+            raise serializers.ValidationError(
+                "Selecione registros ou todos os resultados filtrados."
+            )
+        if not attrs["all_matching"] and attrs["excluded_records"]:
+            raise serializers.ValidationError(
+                "Exclusões exigem seleção de todos os resultados."
+            )
+        return attrs
 
 
 class CrossRecordSerializer(StandardRowSerializer):
@@ -307,3 +327,19 @@ class CrossRecordSerializer(StandardRowSerializer):
     last_sent_at = serializers.DateTimeField(allow_null=True)
     history_match_basis = serializers.CharField()
     phone_numbers = serializers.ListField(child=serializers.CharField())
+
+
+class OracleAbsenceInput(serializers.Serializer):
+    layout = serializers.IntegerField(min_value=1)
+    absence_date = serializers.DateField()
+    item_type = serializers.ChoiceField(
+        choices=[("ALL", "Todos"), ("I", "Imagem / Exames"), ("A", "Consulta"), ("L", "Laboratório")]
+    )
+    template = serializers.IntegerField(min_value=1, required=False)
+
+    def validate_absence_date(self, value):
+        from django.utils import timezone
+
+        if value > timezone.localdate():
+            raise serializers.ValidationError("A data da ausência não pode ser futura.")
+        return value

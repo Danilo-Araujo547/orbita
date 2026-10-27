@@ -1,13 +1,13 @@
 import type { PageName, SectionPermissions, Session } from "./types";
 
 export const sectionLabels: Record<string, string> = {
-  overview: "Visão geral", appointments: "Agendamentos", groups: "Grupos", messages: "Mensagens",
+  costs: "Custos Meta", overview: "Visão geral", appointments: "Agendamentos", groups: "Grupos", messages: "Mensagens",
   issues: "Pendências", campaigns: "Importa CROSS", reports: "Relatórios",
   operationsAdmin: "Administração", settings: "Configurações", users: "Usuários",
 };
 export function defaultPermissions(role: string): SectionPermissions {
   return Object.fromEntries(Object.keys(sectionLabels).map(section => [section,
-    role === "admin" || (role === "operator" && !["settings", "operationsAdmin", "users"].includes(section)) ? "write" : section === "users" ? "none" : "read"]));
+    section === "costs" && role !== "admin" ? "none" : role === "admin" || (role === "operator" && !["settings", "operationsAdmin", "users"].includes(section)) ? "write" : section === "users" ? "none" : "read"]));
 }
 export function permissionsFor(session: Session, unit: string): SectionPermissions {
   if (!session.units.some(u=>u.slug===unit)) return Object.fromEntries(Object.keys(sectionLabels).map(key=>[key,"none"]));

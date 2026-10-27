@@ -2,14 +2,13 @@ import hashlib
 import json
 from datetime import timedelta
 
-from core.models import Audit, Membership
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
-from messaging.models import Message
 from rest_framework.exceptions import APIException, ValidationError
-from scheduling.connectors import normalize_phone
 
+from core.models import Audit, Membership
+from messaging.models import Message
 from operations.models import (
     ActionReceipt,
     Case,
@@ -18,6 +17,7 @@ from operations.models import (
     Purpose,
     SourceEvent,
 )
+from scheduling.connectors import normalize_phone
 
 
 class Conflict(APIException):
@@ -135,7 +135,11 @@ def ensure_appointment_case(appointment):
                 data={"revision": event.revision},
             )
     case, new = Case.objects.get_or_create(
-        unit=appointment.unit, event=event, purpose=Purpose.APPOINTMENT
+        unit=appointment.unit,
+        event=event,
+        purpose=Purpose.POSTOPERATIVE
+        if appointment.kind == "postprocedure"
+        else Purpose.APPOINTMENT,
     )
     if new:
         log(case, "created", "Acompanhamento criado a partir do agendamento.")

@@ -36,6 +36,7 @@ class Appointment(models.Model):
         CONSULTATION = "consultation", "Consulta"
         EXAM = "exam", "Exame"
         LAB = "lab", "Laboratório"
+        POSTPROCEDURE = "postprocedure", "Busca ativa - pós procedimento"
 
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     source = models.CharField(max_length=30, default="oracle")
@@ -142,6 +143,7 @@ class OracleAgenda(models.Model):
             ("consultation", "Consulta"),
             ("exam", "Exame"),
             ("lab", "Laboratório"),
+            ("postprocedure", "Busca ativa - pós procedimento"),
         ],
         default="consultation",
     )
@@ -155,6 +157,16 @@ class OracleAgenda(models.Model):
     template_id = models.CharField(max_length=40)
     template_snapshot = models.JSONField(default=dict)
     parameter_mapping = models.JSONField(default=dict)
+    days_after = models.PositiveIntegerField(default=10)
+    date_format = models.CharField(
+        max_length=20,
+        default="native",
+        choices=[
+            ("native", "DATE / TIMESTAMP"),
+            ("br_date", "dd/mm/aaaa"),
+            ("iso_date", "aaaa-mm-dd"),
+        ],
+    )
     horizon_days = models.PositiveIntegerField(default=10)
     days_before = models.PositiveIntegerField(default=5)
     send_time = models.TimeField(default="09:00")

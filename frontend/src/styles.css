@@ -427,8 +427,10 @@ tbody tr:hover {
 }
 .sidebar-heading .brand {
   padding: 0;
-  font-size: 27px;
-  gap: 10px;
+  font-size: 17px;
+  letter-spacing: -0.7px;
+  white-space: nowrap;
+  gap: 8px;
 }
 .sidebar-toggle {
   flex-shrink: 0;
@@ -2219,7 +2221,7 @@ body:has([role="dialog"][aria-modal="true"]) {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* Central Órbita Core Hub */
+/* Central SCV Conecta Core Hub */
 .orbit-hub {
   position: absolute;
   top: 50%;
@@ -3983,25 +3985,162 @@ body:has([role="dialog"][aria-modal="true"]) {
   outline-offset: 3px;
 }
 .theme-cycle {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 34px;
-  min-width: 91px;
-  padding: 0 11px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
   border: 1px solid var(--border-default);
-  border-radius: 7px;
-  color: var(--text-secondary);
-  background: transparent;
-  font: inherit;
-  font-size: 12px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  color: var(--text-heading);
   cursor: pointer;
-  transition: all 0.15s ease;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: background 0.4s ease, border-color 0.4s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+[data-theme="dark"] .theme-cycle {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 .theme-cycle:hover {
-  background: var(--bg-surface-muted);
-  color: var(--text-primary);
+  transform: scale(1.08);
+  border-color: var(--brand-cyan);
+}
+.theme-cycle:active {
+  transform: scale(0.94);
+}
+.theme-cycle svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+.theme-cycle .e {
+  transition: transform 0.65s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.5s ease, fill 0.5s ease, filter 0.5s ease;
+}
+
+/* Sol */
+.theme-cycle .sun {
+  transform-origin: 38px 38px;
+}
+.theme-cycle .rays {
+  transform-origin: 38px 38px;
+  animation: theme-spin 24s linear infinite;
+}
+.theme-cycle .halo {
+  transform-origin: 38px 38px;
+  animation: theme-pulse 3.5s ease-in-out infinite;
+}
+@keyframes theme-pulse {
+  50% {
+    transform: scale(1.12);
+    opacity: 0.12;
+  }
+}
+@keyframes theme-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Nuvens: fora no claro, cobrindo o sol no escuro */
+.theme-cycle .c1 {
+  transform: translateX(-56px);
+  opacity: 0;
+}
+.theme-cycle .c2 {
+  transform: translateX(56px);
+  opacity: 0;
+}
+.theme-cycle .c1 path {
+  fill: #dfe6f2;
+  transition: fill 0.5s ease;
+}
+.theme-cycle .c2 path {
+  fill: #ffffff;
+  transition: fill 0.5s ease;
+}
+[data-theme="dark"] .theme-cycle .c1 path {
+  fill: #6d7895;
+}
+[data-theme="dark"] .theme-cycle .c2 path {
+  fill: #9aa6c2;
+}
+
+/* Modo escuro */
+.theme-cycle.mode-dark .c1 {
+  transform: translateX(0);
+  opacity: 1;
+}
+.theme-cycle.mode-dark .c2 {
+  transform: translateX(0);
+  opacity: 1;
+  transition-delay: 0.12s;
+}
+.theme-cycle.mode-dark .sun {
+  transform: scale(0.85);
+  filter: brightness(0.75);
+}
+.theme-cycle.mode-dark .rays,
+.theme-cycle.mode-dark .halo {
+  opacity: 0;
+  animation: none;
+}
+
+/* Poste (Automático / Sistema) */
+.theme-cycle .lamp {
+  transform: translateY(60px);
+  opacity: 0;
+}
+.theme-cycle.mode-system .lamp {
+  transform: translateY(0);
+  opacity: 1;
+}
+.theme-cycle.mode-system .sun,
+.theme-cycle.mode-system .c1,
+.theme-cycle.mode-system .c2 {
+  opacity: 0;
+  transform: translateY(-50px);
+}
+.theme-cycle .glow {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.theme-cycle .bulb {
+  fill: #4a5268;
+  transition: fill 0.5s ease;
+}
+.theme-cycle .lamp.lit .glow {
+  opacity: 1;
+  animation: theme-flick 4s infinite;
+}
+.theme-cycle .lamp.lit .bulb {
+  fill: #ffd36b;
+}
+@keyframes theme-flick {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.6; }
+  97% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-cycle .e,
+  .theme-cycle .rays,
+  .theme-cycle .glow {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 .settings-workspace > .panel {
@@ -5735,3 +5874,25 @@ body:has([role="dialog"][aria-modal="true"]) {
   color: var(--text-muted);
   margin-left: 3px;
 }
+
+/* Shared original brand artwork: preserve proportions in every theme. */
+.brand-image {
+  display: block;
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.brand-image-small {
+  width: 14px;
+  height: 14px;
+}
+
+/* Supplied complete wordmark; keep the icon-only variant for compact surfaces. */
+.brand-image.brand-image-wordmark{width:76px;height:76px;object-fit:contain;}
+.sidebar-heading{align-items:flex-start;}
+.sidebar-heading .brand{min-width:0;flex:1;justify-content:center;}
+.sidebar-heading .sidebar-toggle{margin-top:7px;}
+.lg .brand-image.brand-image-wordmark{width:120px;height:120px;}
+.sidebar-collapsed .sidebar-heading{align-items:center;}
+.sidebar-collapsed .sidebar-heading .sidebar-toggle{margin-top:0;}

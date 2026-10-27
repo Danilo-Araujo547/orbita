@@ -16,8 +16,8 @@ from operations.models import Case, Contact, SheetImport, SourceEvent
 from operations.services import log
 from operations.standardization import (
     DEFAULT_MAPPINGS,
-    standard_row,
     standard_date,
+    standard_row,
     template_bindings,
     unique_headers,
     validate_mapping,
@@ -38,12 +38,14 @@ def preview_sheet(
     template_id=None,
     standard_mapping=None,
     parameter_fields=None,
+    source_rows=None,
+    source_metadata=None,
 ):
 
     if layout.unit_id != unit.id or not layout.verified:
         raise ValidationError("Layout não validado para esta unidade.")
 
-    if len(content) > 5 * 1024 * 1024:
+    if source_rows is None and len(content) > 5 * 1024 * 1024:
         raise ValidationError("Arquivo excede 5 MB.")
 
     if layout.format == "table" and not REQUIRED.issubset(layout.mapping):
@@ -91,6 +93,8 @@ def preview_sheet(
         "standard_mapping": mapping,
         "parameter_fields": fields,
     }
+    if source_metadata is not None:
+        configuration["source"] = source_metadata
     if template:
         configuration["template"] = {
             "id": template.pk,
@@ -105,7 +109,7 @@ def preview_sheet(
         content
         + (
             json.dumps(configuration, sort_keys=True).encode()
-            if template or standard_mapping is not None
+            if template or standard_mapping is not None or source_metadata is not None
             else b""
         )
     ).hexdigest()
@@ -118,7 +122,9 @@ def preview_sheet(
         return existing
 
     try:
-        if layout.format == "absence_html":
+        if source_rows is not None:
+            source = source_rows
+        elif layout.format == "absence_html":
             if not filename.lower().endswith(".xls"):
                 raise ValueError("unsupported_file")
 
@@ -392,7 +398,11 @@ def confirm_sheet(batch, purpose):
             log(
                 case,
                 "imported",
-                "Caso criado por importação CROSS.",
+                "Registro gerado pelo Oracle."
+                if batch.configuration.get("source", {}).get("origin")
+                == "oracle_absences"
+                else "Caso criado por importação CROSS.",
+                actor=batch.created_by,
                 data={"batch": str(batch.pk), "layout_version": batch.layout.version},
             )
 

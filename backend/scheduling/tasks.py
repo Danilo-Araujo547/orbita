@@ -22,7 +22,7 @@ def tick():
 
     for agenda in OracleAgenda.objects.filter(
         enabled=True, deleted_at__isnull=True
-    ).select_related("unit"):
+    ).select_related("unit", "rule"):
         if (
             agenda.last_state in {"running", "scheduled"}
             and agenda.last_started_at
@@ -38,7 +38,12 @@ def tick():
         covered = set(
             agenda.days.filter(version=agenda.version).values_list("date", flat=True)
         )
-        if set(window_dates(agenda, now)) - covered:
+        refresh = agenda.kind == "postprocedure" and (
+            not agenda.last_completed_at
+            or agenda.last_completed_at
+            <= now - timezone.timedelta(minutes=agenda.rule.refresh_interval_minutes)
+        )
+        if set(window_dates(agenda, now)) - covered or refresh:
             with transaction.atomic():
                 claimed = OracleAgenda.objects.select_for_update().get(pk=agenda.pk)
                 if claimed.version != agenda.version or (
@@ -50,7 +55,9 @@ def tick():
                 claimed.last_state, claimed.last_started_at = "scheduled", now
                 claimed.save(update_fields=["last_state", "last_started_at"])
                 transaction.on_commit(
-                    lambda pk=claimed.pk: sync_oracle_agenda.delay(pk)
+                    lambda pk=claimed.pk, refresh=refresh: sync_oracle_agenda.delay(
+                        pk, refresh=refresh
+                    )
                 )
     # A crashed importer is not silently retried. Make it visible for individual intervention.
     ImportRun.objects.filter(

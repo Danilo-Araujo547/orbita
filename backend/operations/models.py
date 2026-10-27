@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class Purpose(models.TextChoices):
@@ -291,11 +292,81 @@ class PurposePolicy(models.Model):
         ]
 
 
+class ReportConnection(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    name = models.CharField(max_length=150)
+    engine = models.CharField(
+        max_length=20,
+        choices=[(x, x) for x in ["oracle", "sqlite", "firebird", "mysql", "postgres"]],
+    )
+    host = models.CharField(max_length=253, blank=True)
+    port = models.PositiveIntegerField(default=1521)
+    database = models.CharField(max_length=500, blank=True)
+    username = models.CharField(max_length=128, blank=True)
+    options = models.JSONField(default=dict)
+    ciphertext = models.TextField(blank=True)
+    enabled = models.BooleanField(default=False)
+    validated = models.BooleanField(default=False)
+    checked_at = models.DateTimeField(null=True)
+    validation_error = models.CharField(max_length=80, blank=True)
+    timeout_seconds = models.PositiveIntegerField(default=30)
+    max_rows = models.PositiveIntegerField(default=1000)
+    version = models.PositiveIntegerField(default=1)
+    legacy = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "name"], name="report_connection_name"
+            )
+        ]
+
+
+class ReportApplicationConnection(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT, related_name="report_app_connections")
+    name = models.CharField(max_length=150)
+    mode = models.CharField(max_length=10, choices=[("local", "Instância local"), ("remote", "Instância remota")], default="local")
+    local_unit = models.ForeignKey("core.Unit", null=True, blank=True, on_delete=models.PROTECT, related_name="report_app_sources")
+    remote_instance = models.ForeignKey("core.RemoteInstance", null=True, blank=True, on_delete=models.PROTECT)
+    enabled = models.BooleanField(default=False)
+    version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["unit", "name"], name="report_app_connection_name")]
+
+
 class ReportDefinition(models.Model):
+    app_connection = models.ForeignKey(ReportApplicationConnection, null=True, blank=True, on_delete=models.PROTECT)
+
+    catalog_kind = models.CharField(
+        max_length=12, default="report",
+        choices=[("report", "Relatório"), ("component", "Componente")],
+        db_index=True,
+    )
+    request_message = models.TextField(blank=True, default="", max_length=2000)
+    review_queue = models.BooleanField(default=False)
+    connection = models.ForeignKey(
+        ReportConnection, null=True, blank=True, on_delete=models.PROTECT
+    )
+    query_sql = models.TextField(blank=True)
+    reviewed = models.BooleanField(default=False)
+    manual_enabled = models.BooleanField(default=True)
+    output_format = models.CharField(
+        max_length=10,
+        default="pdf",
+        choices=[("pdf", "PDF"), ("csv", "CSV"), ("xlsx", "XLSX"), ("text", "Texto")],
+    )
+    keywords = models.JSONField(default=list)
+    legacy = models.JSONField(default=dict)
+    components = models.JSONField(default=list)
+    monthly_goals = models.JSONField(default=list, blank=True)
+    canvas_layout = models.JSONField(default=dict, blank=True)
+    canvas_enabled = models.BooleanField(default=False)
+    dependencies = models.JSONField(default=list)
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     code = models.CharField(max_length=80)
     name = models.CharField(max_length=200)
-    keyword = models.CharField(max_length=80)
+    keyword = models.CharField(max_length=80, blank=True, default="")
     source = models.CharField(max_length=80, default="local")
     handler = models.CharField(max_length=80, blank=True)
     parameter_schema = models.JSONField(default=dict)
@@ -422,3 +493,237 @@ class FlowRun(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["rule", "run_date"], name="flow_daily_run")
         ]
+
+
+class ReportRecipient(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    legacy_key = models.CharField(max_length=80, blank=True, default="")
+    name = models.CharField(max_length=200)
+    address = models.CharField(max_length=100)
+    kind = models.CharField(
+        max_length=10,
+        choices=[("phone", "Telefone"), ("group", "Grupo")],
+        default="phone",
+    )
+    active = models.BooleanField(default=False)
+    manual_enabled = models.BooleanField(default=True)
+    verified_at = models.DateTimeField(null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT
+    )
+    version = models.PositiveIntegerField(default=1)
+    legacy = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "legacy_key"],
+                condition=~models.Q(legacy_key=""),
+                name="report_recipient_legacy",
+            )
+        ]
+
+
+class ReportGrant(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    report = models.ForeignKey(
+        ReportDefinition, on_delete=models.PROTECT, related_name="recipient_grants"
+    )
+    recipient = models.ForeignKey(
+        ReportRecipient, on_delete=models.PROTECT, related_name="grants"
+    )
+    active = models.BooleanField(default=False)
+    manual = models.BooleanField(default=True)
+    automatic = models.BooleanField(default=True)
+    parameters = models.JSONField(default=dict)
+    legacy = models.JSONField(default=dict)
+    version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["report", "recipient"], name="report_recipient_grant"
+            )
+        ]
+
+
+class ReportAutomation(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportDefinition, on_delete=models.PROTECT)
+    recipient = models.ForeignKey(ReportRecipient, on_delete=models.PROTECT)
+    send_time = models.TimeField()
+    weekdays = models.JSONField(default=list)
+    parameters = models.JSONField(default=dict)
+    enabled = models.BooleanField(default=False)
+    version = models.PositiveIntegerField(default=1)
+    legacy = models.JSONField(default=dict)
+
+
+class ReportExecution(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportDefinition, on_delete=models.PROTECT)
+    recipient = models.ForeignKey(
+        ReportRecipient, null=True, blank=True, on_delete=models.PROTECT
+    )
+    automation = models.ForeignKey(
+        ReportAutomation, null=True, on_delete=models.PROTECT
+    )
+    run_date = models.DateField(null=True)
+    requester = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT
+    )
+    origin = models.CharField(max_length=15, default="panel")
+    parameters = models.JSONField(default=dict)
+    definition_version = models.PositiveIntegerField()
+    recipient_version = models.PositiveIntegerField(null=True)
+    grant_version = models.PositiveIntegerField(null=True)
+    connection_version = models.PositiveIntegerField(null=True)
+    state = models.CharField(max_length=20, default="pending")
+    format = models.CharField(max_length=10, default="pdf")
+    result = models.TextField(blank=True)
+    row_count = models.PositiveIntegerField(default=0)
+    error_code = models.CharField(max_length=100, blank=True)
+    delivery_state = models.CharField(max_length=60, default="not_requested")
+    snapshot = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["automation", "run_date"], name="report_automation_day"
+            )
+        ]
+
+
+class ReportWhatsAppConfiguration(models.Model):
+    menu_title = models.CharField(max_length=60, default="Relatórios")
+    menu_button = models.CharField(max_length=20, default="Ver relatórios")
+    menu_section = models.CharField(max_length=24, default="Disponíveis para você")
+
+    unit = models.OneToOneField("core.Unit", on_delete=models.PROTECT)
+    version = models.PositiveIntegerField(default=1)
+    sends_enabled = models.BooleanField(default=False)
+    manual_enabled = models.BooleanField(default=False)
+    automatic_enabled = models.BooleanField(default=False)
+    greeting = models.CharField(max_length=1000, default="Selecione um relatório:")
+
+
+class ReportConversation(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    address = models.CharField(max_length=100)
+    is_group = models.BooleanField(default=False)
+    data = models.JSONField(default=dict)
+    expires_at = models.DateTimeField()
+    last_timestamp = models.BigIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "address"], name="report_conversation_identity"
+            )
+        ]
+
+
+class ReportInboundReceipt(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    message_id = models.CharField(max_length=180)
+    result = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["unit", "message_id"], name="report_baileys_inbound_identity"
+            )
+        ]
+
+
+
+def snapshot_weekdays():
+    return list(range(7))
+
+
+class ReportSnapshotConfiguration(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    code = models.SlugField(max_length=80)
+    name = models.CharField(max_length=150)
+    dataset_kind = models.CharField(max_length=20, default="beds", choices=[("beds", "Leitos totais"), ("capacity", "Capacidade SUS/convênio"), ("lives", "Vidas Sansaúde")])
+    reference_offset_days = models.SmallIntegerField(default=0)
+    consumers = models.ManyToManyField(ReportDefinition, blank=True, related_name="snapshot_dependencies")
+    source_report = models.ForeignKey(ReportDefinition, on_delete=models.PROTECT, related_name="snapshot_sources")
+    output_report = models.OneToOneField(ReportDefinition, on_delete=models.PROTECT, related_name="snapshot_configuration")
+    environment = models.CharField(max_length=20, choices=[("homologation", "Homologação"), ("production", "Produção")])
+    collection_time = models.TimeField()
+    weekdays = models.JSONField(default=snapshot_weekdays)
+    window_minutes = models.PositiveIntegerField(default=60)
+    enabled = models.BooleanField(default=False)
+    version = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["unit", "code"], name="snapshot_configuration_code")]
+
+
+class ReportSnapshotRun(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    configuration = models.ForeignKey(ReportSnapshotConfiguration, on_delete=models.PROTECT, related_name="runs")
+    reference_date = models.DateField()
+    dataset_key = models.CharField(max_length=64)
+    period_type = models.CharField(max_length=8, default="day", choices=[("day", "Diário"), ("month", "Mensal")])
+    origin = models.CharField(max_length=12)
+    state = models.CharField(max_length=12, default="pending", choices=[(s, s) for s in ("pending", "running", "ready", "failed", "missed")])
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
+    configuration_version = models.PositiveIntegerField()
+    source_snapshot = models.JSONField(default=dict)
+    scheduled_for = models.DateTimeField(null=True)
+    requested_at = models.DateTimeField(default=timezone.now)
+    started_at = models.DateTimeField(null=True)
+    captured_at = models.DateTimeField(null=True)
+    source_at = models.DateTimeField(null=True)
+    completed_at = models.DateTimeField(null=True)
+    attempt_count = models.PositiveIntegerField(default=0)
+    claim_token = models.UUIDField(null=True)
+    row_count = models.PositiveIntegerField(default=0)
+    error_code = models.CharField(max_length=80, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["configuration", "dataset_key", "reference_date"], name="snapshot_dataset_day")]
+        indexes = [models.Index(fields=["unit", "reference_date", "state"], name="snapshot_unit_date_state")]
+
+
+class BedSnapshotRow(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    run = models.ForeignKey(ReportSnapshotRun, on_delete=models.PROTECT, related_name="rows")
+    ward_code = models.PositiveIntegerField()
+    ward_name = models.CharField(max_length=150)
+    quantity = models.PositiveIntegerField()
+    source_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["run", "ward_code"], name="snapshot_run_ward")]
+
+
+class ReportCanvasAsset(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportDefinition, on_delete=models.CASCADE, related_name="canvas_assets")
+    filename = models.CharField(max_length=160)
+    data = models.BinaryField()
+    width = models.PositiveIntegerField()
+    height = models.PositiveIntegerField()
+    sha256 = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ReportSnapshotDataRow(models.Model):
+    unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
+    run = models.ForeignKey(ReportSnapshotRun, on_delete=models.PROTECT, related_name="data_rows")
+    record_key = models.CharField(max_length=200)
+    payload = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["run", "record_key"], name="snapshot_data_run_key")]

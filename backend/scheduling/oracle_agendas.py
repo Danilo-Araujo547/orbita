@@ -145,6 +145,17 @@ def phones(value):
     return sorted(set(result))
 
 
+def source_date(value, date_format="native"):
+    text = scalar(value)
+    if date_format == "br_date":
+        return datetime.strptime(text, "%d/%m/%Y").date()
+    if date_format == "iso_date":
+        return datetime.strptime(text, "%Y-%m-%d").date()
+    if date_format != "native":
+        raise ValueError("invalid_source_date_format")
+    return datetime.fromisoformat(text).date()
+
+
 def fetch_day(agenda, day):
     view = safe_view(agenda.view_name)
     columns = agenda.column_mapping
@@ -162,11 +173,21 @@ def fetch_day(agenda, day):
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SET TRANSACTION READ ONLY")
-                cursor.execute(
-                    f"SELECT {', '.join(names)} FROM {view} WHERE {date_column} >= :start_day AND {date_column} < :end_day",
-                    start_day=datetime.combine(day, time.min),
-                    end_day=datetime.combine(day + timedelta(days=1), time.min),
-                )
+                if agenda.date_format in {"br_date", "iso_date"}:
+                    # VARCHAR dates from hospital views: no implicit Oracle NLS conversion.
+                    fmt = "%d/%m/%Y" if agenda.date_format == "br_date" else "%Y-%m-%d"
+                    cursor.execute(
+                        f"SELECT {', '.join(names)} FROM {view} WHERE {date_column} = :source_day",
+                        source_day=day.strftime(fmt),
+                    )
+                elif agenda.date_format == "native":
+                    cursor.execute(
+                        f"SELECT {', '.join(names)} FROM {view} WHERE {date_column} >= :start_day AND {date_column} < :end_day",
+                        start_day=datetime.combine(day, time.min),
+                        end_day=datetime.combine(day + timedelta(days=1), time.min),
+                    )
+                else:
+                    raise ValueError("invalid_source_date_format")
                 rows = cursor.fetchmany(10001)
                 if len(rows) > 10000:
                     raise ValueError("source_row_limit")
@@ -181,10 +202,12 @@ def normalized_rows(agenda, day, rows):
     for raw in rows:
         value = {k: scalar(v) for k, v in raw.items()}
         field = lambda name, value=value: value.get(m.get(name), "")
-        event_date = datetime.fromisoformat(field("date")).date()
+        event_date = source_date(field("date"), agenda.date_format)
         if event_date != day:
             raise ValueError("source_contract_mismatch")
         hour = format_value(field("time"), "time")
+        if agenda.kind == "postprocedure" and not m.get("time"):
+            hour = "00:00"
         if not field("external_id") or not field("patient") or not hour:
             raise ValueError("source_required_value_missing")
         contacts = sorted(
@@ -251,18 +274,25 @@ def safe_error(exc):
         "source_required_value_missing",
         "configuration_changed",
         "invalid_parameter_format",
+        "invalid_source_date_format",
     }
     return str(exc) if str(exc) in allowed else "oracle_agenda_failed"
 
 
 def window_dates(agenda, now):
     today = timezone.localtime(now, ZoneInfo(agenda.unit.timezone)).date()
+    if agenda.kind == "postprocedure":
+        return [today - timedelta(days=i) for i in reversed(range(agenda.horizon_days))]
     return [today + timedelta(days=i) for i in range(1, agenda.horizon_days + 1)]
 
 
 def planned_send(agenda, appointment_day):
     """Move only reminders whose original send day is blocked, in unit time."""
-    original = appointment_day - timedelta(days=agenda.days_before)
+    original = (
+        appointment_day + timedelta(days=agenda.days_after)
+        if getattr(agenda, "kind", "consultation") == "postprocedure"
+        else appointment_day - timedelta(days=agenda.days_before)
+    )
     allowed = set(agenda.send_weekdays)
     if not allowed or not allowed <= set(range(7)):
         raise ValueError("invalid_send_calendar")
@@ -314,16 +344,21 @@ def sync_agenda(agenda_id, now=None, fetcher=None, refresh=False):
         meta = MetaConfiguration.objects.filter(
             unit=agenda.unit, validation_state="valid"
         ).first()
-        if (
+        if agenda.template_id and (
             not meta
             or meta.waba_id != agenda.template_snapshot.get("waba_id")
             or meta.phone_number_id != agenda.template_snapshot.get("phone_number_id")
         ):
             raise ValueError("configuration_changed")
         current_template = next(
-            (t for t in meta.templates if t.get("id") == agenda.template_id), None
+            (
+                t
+                for t in (meta.templates if meta else [])
+                if t.get("id") == agenda.template_id
+            ),
+            None,
         )
-        if (
+        if agenda.template_id and (
             not current_template
             or current_template.get("status") != "APPROVED"
             or current_template.get("components")
@@ -346,6 +381,8 @@ def sync_agenda(agenda_id, now=None, fetcher=None, refresh=False):
                 original_send, scheduled = planned_send(agenda, day)
                 for data in normalized:
                     appointment = upsert_appointment(agenda.unit, data)
+                    if not agenda.template_id:
+                        continue  # Source-only draft: no notification or message is created.
                     queue_appointment(appointment, rule, scheduled, now)
                     for message in Message.objects.filter(
                         appointment=appointment,
@@ -365,6 +402,13 @@ def sync_agenda(agenda_id, now=None, fetcher=None, refresh=False):
                                 "effective_send_at": message.scheduled_for.isoformat(),
                             },
                             "source_view": agenda.view_name,
+                            "reference_date": "performed"
+                            if agenda.kind == "postprocedure"
+                            else "scheduled",
+                            "days_after": agenda.days_after
+                            if agenda.kind == "postprocedure"
+                            else None,
+                            "date_format": agenda.date_format,
                             "column_mapping": agenda.column_mapping,
                             "parameter_mapping": agenda.parameter_mapping,
                             "meta_template_id": agenda.template_id,
@@ -375,21 +419,39 @@ def sync_agenda(agenda_id, now=None, fetcher=None, refresh=False):
                         }
                         message.save(update_fields=["snapshot"])
                         if (
-                            message.scheduled_for >= appointment.scheduled_at
+                            (
+                                (
+                                    agenda.kind != "postprocedure"
+                                    and message.scheduled_for
+                                    >= appointment.scheduled_at
+                                )
+                                or (
+                                    agenda.kind == "postprocedure"
+                                    and message.scheduled_for
+                                    <= appointment.scheduled_at
+                                )
+                            )
                             and message.state in {"preview", "blocked", "expired"}
                             and not message.attempt_count
                         ):
+                            calendar_error = (
+                                "send_calendar_before_procedure"
+                                if agenda.kind == "postprocedure"
+                                else "send_calendar_after_appointment"
+                            )
                             message.state, message.error_code = (
                                 "blocked",
-                                "send_calendar_after_appointment",
+                                calendar_error,
                             )
                             message.save(update_fields=["state", "error_code"])
                             from messaging.services import issue_once
 
                             issue_once(
                                 message,
-                                "send_calendar_after_appointment",
-                                "O ajuste de dia programou o lembrete para depois do horário do atendimento. Revise o calendário de envios.",
+                                calendar_error,
+                                "O ajuste de dia programou o envio antes do procedimento. Revise o calendário de envios."
+                                if agenda.kind == "postprocedure"
+                                else "O ajuste de dia programou o lembrete para depois do horário do atendimento. Revise o calendário de envios.",
                             )
                 current.last_started_at = timezone.now()
                 current.save(update_fields=["last_started_at"])
@@ -403,7 +465,7 @@ def sync_agenda(agenda_id, now=None, fetcher=None, refresh=False):
                     },
                 )
         state, error = "completed", ""
-    except Exception as exc:  # noqa: BLE001 - sanitize every source failure before persisting it
+    except Exception as exc:
         state, error = "failed", safe_error(exc)
     OracleAgenda.objects.filter(pk=agenda_id, version=version).update(
         last_state=state, last_error=error, last_completed_at=timezone.now()

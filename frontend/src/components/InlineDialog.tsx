@@ -40,17 +40,18 @@ export default function InlineDialog({
     openDialogs.add(node);
     document.body.style.overflow = "hidden";
     (
-      dialog.current?.querySelector<HTMLElement>("input,select,textarea") ||
+      dialog.current?.querySelector<HTMLElement>('input:not([aria-hidden="true"]),select:not([aria-hidden="true"]),textarea,[role="combobox"]' ) ||
       dialog.current?.querySelector<HTMLElement>("button")
     )?.focus();
     function keydown(event: KeyboardEvent) {
       const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
       if (dialogs[dialogs.length - 1] !== node) return;
+      if ((event.target as HTMLElement)?.closest("[data-select-popup]")) return;
       if (event.key === "Escape" && !locked.current) close.current();
       if (event.key !== "Tab") return;
       const fields = Array.from(
         dialog.current?.querySelectorAll<HTMLElement>(
-          "button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary",
+          'button:not(:disabled),input:not(:disabled),select:not(:disabled):not([aria-hidden="true"]),textarea:not(:disabled),a[href],summary' ,
         ) || [],
       ).filter((el) => el.offsetParent !== null);
       const first = fields[0],

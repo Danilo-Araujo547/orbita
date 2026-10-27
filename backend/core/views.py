@@ -607,6 +607,31 @@ class TemplateViewSet(ScopedReadViewSet):
             )
         return Response(self.get_serializer(template).data)
 
+    @extend_schema(request=None, responses=dict)
+    @action(detail=True, methods=["post", "delete"])
+    def remove(self, request, pk=None):
+        return self.destroy(request, pk)
+
+    def destroy(self, request, pk=None):
+        unit = get_unit(request, ["admin"])
+        template = get_object_or_404(Template, unit=unit, pk=pk)
+        from operations.models import ImportLayout, SheetImport
+        if (
+            Rule.objects.filter(template=template).exists()
+            or ImportLayout.objects.filter(default_template=template).exists()
+            or SheetImport.objects.filter(template=template).exists()
+        ):
+            raise ValidationError(
+                "Este template está vinculado a regras ou modelos e não pode ser excluído."
+            )
+        template_name = template.name
+        template.delete()
+        Audit.objects.create(
+            unit=unit, actor=request.user, action="template.deleted", object_id=str(pk),
+            details={"name": template_name}
+        )
+        return Response({"status": "deleted", "id": pk, "name": template_name})
+
 
 class ImportViewSet(ScopedReadViewSet):
     queryset = ImportRun.objects.select_related("rule").order_by("-started_at")

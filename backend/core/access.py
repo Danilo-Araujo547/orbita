@@ -7,6 +7,7 @@ from core.models import Membership, RemoteMembership, UserAccessProfile
 
 SECTIONS = {
     "overview": "Visão geral",
+    "costs": "Custos Meta",
     "appointments": "Agendamentos",
     "groups": "Grupos",
     "messages": "Mensagens",
@@ -21,6 +22,7 @@ LEVELS = {"none": 0, "read": 1, "write": 2}
 PRIVILEGED = {"operationsAdmin", "settings", "users"}
 RESOURCES = {
     "indicators": ["overview"],
+    "meta-costs": ["costs"],
     "appointments": ["appointments"],
     "agenda-items": ["appointments"],
     "appointment-groups": ["groups"],
@@ -35,6 +37,15 @@ RESOURCES = {
     "reports": ["reports", "operationsAdmin"],
     "report-requests": ["reports"],
     "report-access": ["reports", "operationsAdmin"],
+    "report-connections": ["reports"],
+    "report-app-connections": ["reports"],
+    "report-recipients": ["reports"],
+    "report-grants": ["reports"],
+    "report-automations": ["reports"],
+    "report-executions": ["reports"],
+    "report-snapshots": ["reports"],
+    "report-snapshot-runs": ["reports"],
+    "report-whatsapp": ["reports"],
     "report-schedules": ["reports", "operationsAdmin"],
     "preparations": ["operationsAdmin"],
     "layouts": ["operationsAdmin", "campaigns"],
@@ -79,6 +90,8 @@ def role_permissions(role, overrides=None):
     }
     if role != "admin":
         value["users"] = "none"
+    if role != "admin" or (overrides and "costs" not in overrides):
+        value["costs"] = "none"
     value.update(
         {k: v for k, v in (overrides or {}).items() if k in SECTIONS and v in LEVELS}
     )

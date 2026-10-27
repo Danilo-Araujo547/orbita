@@ -53,13 +53,20 @@ class AgendaInput(InspectInput):
     id = serializers.IntegerField(min_value=1, required=False)
     name = serializers.CharField(max_length=120, default="Agenda Oracle")
     kind = serializers.ChoiceField(
-        choices=["consultation", "exam", "lab"], default="consultation"
+        choices=["consultation", "exam", "lab", "postprocedure"], default="consultation"
     )
     version = serializers.IntegerField(min_value=0)
-    template_id = serializers.CharField(max_length=40)
+    template_id = serializers.CharField(max_length=40, allow_blank=True)
     column_mapping = serializers.JSONField()
     parameter_mapping = serializers.JSONField()
-    horizon_days = serializers.IntegerField(min_value=1, max_value=30, default=10)
+    horizon_days = serializers.IntegerField(min_value=1, max_value=365, default=10)
+    days_after = serializers.IntegerField(min_value=0, max_value=180, default=10)
+    date_format = serializers.ChoiceField(
+        choices=["native", "br_date", "iso_date"], default="native"
+    )
+    refresh_interval_minutes = serializers.IntegerField(
+        min_value=5, max_value=1440, required=False
+    )
     days_before = serializers.IntegerField(min_value=0, max_value=30, default=5)
     send_time = serializers.TimeField(default="09:00")
     enabled = serializers.BooleanField(default=True)
@@ -72,6 +79,25 @@ class AgendaInput(InspectInput):
     blocked_day_policy = serializers.JSONField(required=False)
 
     def validate(self, attrs):
+        if attrs["kind"] == "postprocedure":
+            if attrs["horizon_days"] < attrs["days_after"] + 7:
+                raise serializers.ValidationError(
+                    {
+                        "horizon_days": "Consulte pelo menos o intervalo após o procedimento mais 7 dias."
+                    }
+                )
+        elif attrs["horizon_days"] > 30:
+            raise serializers.ValidationError(
+                {"horizon_days": "A janela futura aceita até 30 dias."}
+            )
+        if not attrs["template_id"] and (
+            attrs["enabled"] or attrs["kind"] != "postprocedure"
+        ):
+            raise serializers.ValidationError(
+                {
+                    "template_id": "Selecione um template para ativar a importação automática."
+                }
+            )
         days = attrs.get("send_weekdays")
         if days is not None and len(days) != len(set(days)):
             raise serializers.ValidationError(
@@ -191,11 +217,17 @@ def serialize_config(config):
         "columns": config.columns,
         "column_mapping": config.column_mapping,
         "template_id": config.template_id,
-        "template_name": config.rule.template.name,
+        "template_name": config.rule.template.name
+        if config.template_id
+        else "Pendente",
         "template_snapshot": config.template_snapshot,
         "parameter_mapping": config.parameter_mapping,
         "horizon_days": config.horizon_days,
         "days_before": config.days_before,
+        "days_after": config.days_after,
+        "date_format": config.date_format,
+        "refresh_interval_minutes": config.rule.refresh_interval_minutes,
+        "expected_days": len(days),
         "send_time": config.send_time,
         "send_weekdays": config.send_weekdays,
         "blocked_day_policy": config.blocked_day_policy,
@@ -233,7 +265,9 @@ def validate_mappings(data, columns, template):
     m = data["column_mapping"]
     if not isinstance(m, dict) or set(m) - set(DEFAULT_COLUMNS):
         raise ValidationError("Mapeamento de colunas inválido.")
-    required = {"external_id", "patient", "date", "time", "phone_columns"}
+    required = {"external_id", "patient", "date", "phone_columns"}
+    if data.get("kind") != "postprocedure":
+        required.add("time")
     if not required <= set(m):
         raise ValidationError("Mapeie identificador, paciente, data, hora e telefones.")
     for key, value in m.items():
@@ -254,7 +288,7 @@ def validate_mappings(data, columns, template):
         ):
             raise ValidationError("Coluna de origem não encontrada.")
     try:
-        keys = template_keys(template)
+        keys = template_keys(template) if template else []
     except ValueError as exc:
         raise ValidationError(
             "Template não suportado nesta integração: " + str(exc)
@@ -299,7 +333,7 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         try:
             columns = describe(unit, serializer.validated_data["view_name"])
-        except Exception as exc:  # noqa: BLE001 - Oracle errors must never expose credentials or SQL
+        except Exception as exc:
             raise ValidationError(
                 "Não foi possível consultar a view: " + safe_error(exc)
             ) from None
@@ -362,7 +396,7 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
                                 values = dict(zip(names, [scalar(v) for v in row]))
                     finally:
                         connection.rollback()
-            except Exception as exc:  # noqa: BLE001 - sanitized connector errors only
+            except Exception as exc:
                 oracle_error = safe_error(exc)
 
         if not values and agenda and view.strip().upper() == agenda.view_name:
@@ -492,7 +526,7 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
         try:
             safe_view(values["view_name"])
             columns = describe(unit, values["view_name"])
-        except Exception as exc:  # noqa: BLE001 - Oracle errors must never expose credentials or SQL
+        except Exception as exc:
             raise ValidationError(
                 "Não foi possível consultar a view: " + safe_error(exc)
             ) from None
@@ -521,12 +555,16 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
             remote = next(
                 (t for t in templates if t.get("id") == values["template_id"]), None
             )
-            if not meta or not remote:
+            if values["template_id"] and (not meta or not remote):
                 raise ValidationError(
                     "Selecione um template do catálogo Meta validado desta unidade."
                 )
             keys = validate_mappings(values, columns, remote)
-            body = next(c["text"] for c in remote["components"] if c["type"] == "BODY")
+            body = (
+                next(c["text"] for c in remote["components"] if c["type"] == "BODY")
+                if remote
+                else ""
+            )
             fields = [
                 "oracle:"
                 + values["parameter_mapping"][k]["column"]
@@ -536,13 +574,15 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
             ]
             template, _ = Template.objects.select_for_update().get_or_create(
                 unit=unit,
-                name=remote["name"],
-                language=remote["language"],
+                name=remote["name"] if remote else "oracle-postprocedure-pending",
+                language=remote["language"] if remote else "pt_BR",
                 defaults={
                     "body": body,
                     "fields": fields,
-                    "components": remote["components"],
-                    "purpose": "appointment",
+                    "components": remote["components"] if remote else [],
+                    "purpose": "postoperative"
+                    if values["kind"] == "postprocedure"
+                    else "appointment",
                 },
             )
             rule = (
@@ -566,6 +606,12 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
                 values["days_before"],
                 values["send_time"],
             )
+            rule.refresh_interval_minutes = values.get(
+                "refresh_interval_minutes",
+                current.rule.refresh_interval_minutes
+                if current
+                else (60 if values["kind"] == "postprocedure" else 5),
+            )
             rule.enabled, rule.weekdays = False, values["send_weekdays"]
             if current:
                 rule.version += 1
@@ -577,7 +623,10 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
                 Issue.objects.filter(
                     message__rule=rule,
                     message__state="cancelled",
-                    category="send_calendar_after_appointment",
+                    category__in=[
+                        "send_calendar_after_appointment",
+                        "send_calendar_before_procedure",
+                    ],
                     resolved_at__isnull=True,
                 ).update(
                     resolved_at=timezone.now(),
@@ -594,6 +643,8 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
                 "parameter_mapping",
                 "horizon_days",
                 "days_before",
+                "days_after",
+                "date_format",
                 "send_time",
                 "send_weekdays",
                 "blocked_day_policy",
@@ -601,11 +652,15 @@ class OracleAgendaViewSet(viewsets.GenericViewSet):
             ]:
                 setattr(current, key, values[key])
             current.columns = columns
-            current.template_snapshot = {
-                **remote,
-                "waba_id": meta.waba_id,
-                "phone_number_id": meta.phone_number_id,
-            }
+            current.template_snapshot = (
+                {
+                    **remote,
+                    "waba_id": meta.waba_id,
+                    "phone_number_id": meta.phone_number_id,
+                }
+                if remote
+                else {}
+            )
             current.version += 1
             current.deleted_at = None
             current.last_state, current.last_error = "pending", ""

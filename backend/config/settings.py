@@ -94,12 +94,12 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
 }
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Orbita API",
+    "TITLE": "SCV  API",
     "VERSION": "1.0.0",
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
     "ENUM_NAME_OVERRIDES": {
         "MembershipRoleEnum": [("admin", "Administrador"), ("operator", "Operador"), ("viewer", "Consulta")],
-        "AppointmentKindEnum": [("consultation", "Consulta"), ("exam", "Exame"), ("lab", "Laboratório")],
+        "AppointmentKindEnum": [("consultation", "Consulta"), ("exam", "Exame"), ("lab", "Laboratório"), ("postprocedure", "Busca ativa - pós procedimento")],
         "SourceKindEnum": [
             ("consultation", "Consulta"),
             ("exam", "Exame"),
@@ -140,6 +140,7 @@ ASYNC_TASKS = bool(os.getenv("REDIS_URL"))
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "0") == "1"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
+    "bed-snapshots": {"task": "operations.tick_bed_snapshots", "schedule": 30.0},
     "tick": {"task": "scheduling.tick", "schedule": 60.0},
     "dispatch": {"task": "messaging.dispatch_due", "schedule": 1.0},
     "operations": {"task": "operations.tick", "schedule": 60.0},
@@ -176,3 +177,8 @@ META_CREDENTIALS_KEY = os.getenv("META_CREDENTIALS_KEY", "")
 INSTANCE_CREDENTIALS_KEY = os.getenv("INSTANCE_CREDENTIALS_KEY", "")
 ORACLE_CREDENTIALS_KEY = os.getenv("ORACLE_CREDENTIALS_KEY", "")
 ORBITA_INSTANCE_ID = os.getenv("ORBITA_INSTANCE_ID", "")
+
+# Report-only WhatsApp Web transport. Independent from Meta notification policies.
+REPORT_BAILEYS_URL = os.getenv("REPORT_BAILEYS_URL", "http://baileys:9322")
+REPORT_BAILEYS_TOKEN = os.getenv("REPORT_BAILEYS_TOKEN", "")
+REPORT_BAILEYS_ALLOW_SENDS = os.getenv("REPORT_BAILEYS_ALLOW_SENDS", "0") == "1"
