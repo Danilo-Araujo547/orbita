@@ -80,7 +80,7 @@ const FIXTURE_RAW_LAYOUT = {
 };
 
 describe("Operações puras de geometria, fontes, validação e paridade byte-a-byte do layout JSON", () => {
-  it("gera exatamente o mesmo JSON byte-a-byte que a lógica legada do baseline após sequência completa de ações", () => {
+  it("preserva o JSON após sequência completa de ações, incluindo título vazio existente", () => {
     let layout: CanvasLayout = normalizeLayout(FIXTURE_RAW_LAYOUT);
 
     // 1. Adicionar gráfico de barras (usa defaultSource = dados1 e colunas Setor / Leitos)
@@ -234,6 +234,8 @@ describe("Operações puras de geometria, fontes, validação e paridade byte-a-
               width: 674,
               height: 110,
               options: { color: "#075b94", font_size: 26 },
+              // Tarefa 08: uma chave vazia existente não deve ser descartada.
+              title: "",
               text: "{{report_name}}",
             },
           ],
