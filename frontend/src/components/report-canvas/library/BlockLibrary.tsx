@@ -1,9 +1,11 @@
 import { useState } from "react";
+import type { DragEvent } from "react";
 import {
   BarChart3,
   Hash,
   Image as ImageIcon,
   LineChart as LineChartIcon,
+  PanelLeftClose,
   PieChart as PieChartIcon,
   Search,
   Table2,
@@ -11,6 +13,7 @@ import {
 } from "lucide-react";
 import type { BlockType } from "../model";
 import { BLOCK_LABELS } from "../model";
+import { DRAG_BLOCK_MIME } from "./structureOps";
 
 export const COMPONENT_ICONS = {
   text: Type,
@@ -24,7 +27,7 @@ export const COMPONENT_ICONS = {
 
 export const COMPONENT_NAMES: Record<BlockType, string> = {
   text: "Texto",
-  kpi: "Indicador",
+  kpi: "KPI",
   table: "Tabela",
   bar: "Barras",
   line: "Linhas",
@@ -32,9 +35,24 @@ export const COMPONENT_NAMES: Record<BlockType, string> = {
   image: "Imagem",
 };
 
-const GROUPS: ReadonlyArray<{ title: string; types: readonly BlockType[] }> = [
-  { title: "Conteúdo", types: ["text", "kpi", "table", "image"] },
-  { title: "Gráficos", types: ["bar", "line", "pie"] },
+const COMPONENT_DESCRIPTIONS: Record<BlockType, string> = {
+  text: "Título, parágrafo ou variável",
+  kpi: "Número com agregação",
+  table: "Colunas da fonte em tabela",
+  bar: "Comparação por categoria",
+  line: "Evolução ao longo do tempo",
+  pie: "Participação no total",
+  image: "Logotipo ou figura do relatório",
+};
+
+const ORDERED_TYPES: readonly BlockType[] = [
+  "text",
+  "kpi",
+  "table",
+  "bar",
+  "line",
+  "pie",
+  "image",
 ];
 
 function normalizeSearch(value: string): string {
@@ -48,62 +66,98 @@ export interface BlockLibraryProps {
   active: boolean;
   loading: boolean;
   onAddComponent: (type: BlockType) => void;
+  onClosePanel?: () => void;
 }
 
-export default function BlockLibrary({ active, loading, onAddComponent }: BlockLibraryProps) {
-  const [componentSearch, setComponentSearch] = useState("");
+export default function BlockLibrary({
+  active,
+  loading,
+  onAddComponent,
+  onClosePanel,
+}: BlockLibraryProps) {
+  const [search, setSearch] = useState("");
 
   if (!active) return null;
 
-  const queryNorm = normalizeSearch(componentSearch);
-  const matchesComponent = (type: BlockType) =>
-    normalizeSearch(
-      `${COMPONENT_NAMES[type]} ${BLOCK_LABELS[type]} ${
-        ["bar", "line", "pie"].includes(type) ? "Gráfico" : ""
-      }`,
+  const queryNorm = normalizeSearch(search);
+  const filteredTypes = ORDERED_TYPES.filter((type) => {
+    if (!queryNorm) return true;
+    const extra =
+      type === "kpi"
+        ? "indicador metrica"
+        : type === "bar" || type === "line" || type === "pie"
+          ? "grafico chart"
+          : "";
+    return normalizeSearch(
+      `${COMPONENT_NAMES[type]} ${BLOCK_LABELS[type]} ${COMPONENT_DESCRIPTIONS[type]} ${extra}`,
     ).includes(queryNorm);
+  });
 
-  const anyMatch = (Object.keys(COMPONENT_NAMES) as BlockType[]).some(matchesComponent);
+  const handleDragStart = (event: DragEvent<HTMLButtonElement>, type: BlockType) => {
+    event.dataTransfer.setData(DRAG_BLOCK_MIME, type);
+    event.dataTransfer.setData("text/plain", type);
+    event.dataTransfer.effectAllowed = "copy";
+  };
 
   return (
-    <section className="rc-library-panel">
-      <label className="rc-library-search">
-        <Search size={16} />
-        <input
-          aria-label="Buscar componente"
-          placeholder="Buscar componente"
-          value={componentSearch}
-          onChange={(e) => setComponentSearch(e.target.value)}
-        />
-      </label>
-      {GROUPS.map((group) => {
-        const types = group.types.filter(matchesComponent);
-        return types.length ? (
-          <div key={group.title}>
-            <h3 className="rc-library-group-title">{group.title}</h3>
-            <div className="rc-component-grid">
-              {types.map((type) => {
-                const Icon = COMPONENT_ICONS[type];
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    className="rc-component-tile"
-                    disabled={loading}
-                    onClick={() => onAddComponent(type)}
-                  >
-                    <span className="rc-component-symbol">
-                      <Icon size={30} strokeWidth={1.6} />
-                    </span>
-                    <span>{COMPONENT_NAMES[type]}</span>
-                  </button>
-                );
-              })}
-            </div>
+    <section className="cv-panel" aria-label="Adicionar bloco">
+      <header className="cv-panel-header">
+        <h2>Adicionar</h2>
+        {onClosePanel && (
+          <div className="cv-panel-header-actions">
+            <button
+              type="button"
+              className="cv-panel-icon-btn"
+              aria-label="Recolher painel esquerdo"
+              title="Recolher painel (Ctrl+\)"
+              onClick={onClosePanel}
+            >
+              <PanelLeftClose size={15} aria-hidden="true" />
+            </button>
           </div>
-        ) : null;
-      })}
-      {!anyMatch && <p className="rc-empty-note">Nenhum componente encontrado.</p>}
+        )}
+      </header>
+
+      <div className="cv-panel-body">
+        <label className="cv-search-field">
+          <Search size={14} aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Buscar tipo de bloco"
+            placeholder="Buscar tipo de bloco…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+
+        {filteredTypes.length > 0 ? (
+          <div className="cv-type-list" role="list">
+            {filteredTypes.map((type) => {
+              const Icon = COMPONENT_ICONS[type];
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  role="listitem"
+                  draggable={!loading}
+                  disabled={loading}
+                  className="cv-type-row"
+                  aria-label={`Adicionar ${COMPONENT_NAMES[type]}: ${COMPONENT_DESCRIPTIONS[type]}`}
+                  title={`${COMPONENT_NAMES[type]} — clique para adicionar ou arraste para a folha`}
+                  onDragStart={(e) => handleDragStart(e, type)}
+                  onClick={() => onAddComponent(type)}
+                >
+                  <Icon className="cv-type-icon" size={16} strokeWidth={1.8} aria-hidden="true" />
+                  <span className="cv-type-name">{COMPONENT_NAMES[type]}</span>
+                  <span className="cv-type-desc">{COMPONENT_DESCRIPTIONS[type]}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="cv-empty-state">Nenhum tipo de bloco corresponde à busca.</p>
+        )}
+      </div>
     </section>
   );
 }

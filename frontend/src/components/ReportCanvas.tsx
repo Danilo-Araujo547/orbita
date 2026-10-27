@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { PanelRightOpen } from "lucide-react";
 import DataPanel from "./report-canvas/data/DataPanel";
 import SourceDialog from "./report-canvas/data/SourceDialog";
 import PreviewDialog from "./report-canvas/dialogs/PreviewDialog";
@@ -12,7 +13,12 @@ import Inspector from "./report-canvas/inspector/Inspector";
 import BlockLibrary from "./report-canvas/library/BlockLibrary";
 import ImagesPanel from "./report-canvas/library/ImagesPanel";
 import PagesPanel from "./report-canvas/library/PagesPanel";
-import type { CanvasBlock, ReportCanvasProps } from "./report-canvas/model";
+import {
+  computeVisibleCenterPosition,
+  duplicatePageInLayout,
+  useStageBlockDrop,
+} from "./report-canvas/library/structureOps";
+import type { BlockType, CanvasBlock, ReportCanvasProps } from "./report-canvas/model";
 import Banner from "./report-canvas/shell/Banner";
 import EditorShell, { computeFitToPageZoom } from "./report-canvas/shell/EditorShell";
 import LeftRail from "./report-canvas/shell/LeftRail";
@@ -23,7 +29,12 @@ import TopBar from "./report-canvas/shell/TopBar";
 import { computeCanvasProblems } from "./report-canvas/shell/problems";
 import { useShellLayoutPrefs } from "./report-canvas/shell/useShellLayoutPrefs";
 import Stage from "./report-canvas/stage/Stage";
-import { applyBlockUpdate } from "./report-canvas/stage/geometry";
+import {
+  applyBlockUpdate,
+  createBlockInLayout,
+  renamePageInLayout,
+  reorderBlockInLayout,
+} from "./report-canvas/stage/geometry";
 import { usePointerDrag } from "./report-canvas/stage/usePointerDrag";
 import { useCanvasStore } from "./report-canvas/state/canvasStore";
 import {
@@ -37,6 +48,7 @@ import "./report-canvas.css";
 import "./canvas-studio.css";
 import "./report-canvas/layout.css";
 import "./report-canvas/shell.css";
+import "./report-canvas/library.css";
 import "./report-canvas/data.css";
 
 export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportCanvasProps) {
@@ -49,10 +61,12 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
   const [showSampleData, setShowSampleData] = useState(true);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("content");
   const [displayVersion, setDisplayVersion] = useState<number>(report.version || 1);
+  const [hiddenAssetIds, setHiddenAssetIds] = useState<string[]>([]);
   const pendingCloseRef = useRef(false);
 
   useEffect(() => {
     setDisplayVersion(report.version || 1);
+    setHiddenAssetIds([]);
   }, [report.id, report.version]);
 
   const prefs = useShellLayoutPrefs();
@@ -107,12 +121,17 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
   });
   fitRef.current = fitToWidth;
 
+  const visibleAssets = useMemo(
+    () => session.assets.filter((asset) => !hiddenAssetIds.includes(asset.id)),
+    [hiddenAssetIds, session.assets],
+  );
+
   const actions = useLayoutActions({
     store,
     activePage,
     activePageId,
     selectedBlock,
-    assets: session.assets,
+    assets: visibleAssets,
     availableSources: session.availableSources,
     setActivePageId,
     setSelectedBlockId,
@@ -168,6 +187,90 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
         availableSources: session.availableSources,
       }),
     [layout, session.availableSources, session.enabled],
+  );
+
+  const addBlockAtPosition = useCallback(
+    (type: BlockType, pos: { x: number; y: number }, explicitAssetId?: string) => {
+      const res = createBlockInLayout({
+        layout,
+        activePageId,
+        type,
+        explicitAssetId,
+        assets: visibleAssets,
+        availableSources: session.availableSources,
+      });
+      if (!res.ok) {
+        session.setBanner({ tone: "error", text: res.error });
+        return;
+      }
+      const targetPage = selectActivePage(res.layout, activePageId);
+      const positioned = targetPage
+        ? applyBlockUpdate(res.layout, targetPage.id, res.blockId, (b) => ({
+            ...b,
+            x: pos.x,
+            y: pos.y,
+          }))
+        : res.layout;
+      store.apply(res.label, () => positioned);
+      setSelectedBlockId(res.blockId);
+      setInspectorTab("content");
+      prefs.openRightPanel();
+      session.setBanner(null);
+    },
+    [activePageId, layout, prefs, session, store, visibleAssets],
+  );
+
+  const handleAddBlockCentered = useCallback(
+    (type: BlockType, explicitAssetId?: string) => {
+      const pos = computeVisibleCenterPosition({
+        stageEl: stageRef.current,
+        type,
+        pageWidth: layout.page.width,
+        pageHeight: layout.page.height,
+        zoom,
+        blockCountOnPage: activePage?.blocks.length || 0,
+      });
+      addBlockAtPosition(type, pos, explicitAssetId);
+    },
+    [activePage?.blocks.length, addBlockAtPosition, layout.page.height, layout.page.width, stageRef, zoom],
+  );
+
+  useStageBlockDrop({
+    stageRef,
+    zoom,
+    pageWidth: layout.page.width,
+    pageHeight: layout.page.height,
+    disabled: session.loading,
+    onDropBlock: (type, pos) => addBlockAtPosition(type, pos),
+  });
+
+  const handleDuplicatePage = useCallback(
+    (pageId: string) => {
+      const res = duplicatePageInLayout(layout, pageId);
+      if (!res.ok) {
+        session.setBanner({ tone: "error", text: res.error });
+        return;
+      }
+      store.apply("Duplicar página", () => res.layout);
+      setActivePageId(res.pageId);
+      setSelectedBlockId(null);
+    },
+    [layout, session, store],
+  );
+
+  const handleRenamePage = useCallback(
+    (pageId: string, name: string) => {
+      store.apply("Renomear página", (prev) => renamePageInLayout(prev, pageId, name));
+    },
+    [store],
+  );
+
+  const handleReorderBlock = useCallback(
+    (blockId: string, dir: -1 | 1) => {
+      if (!activePage) return;
+      store.apply("Reordenar camada", (prev) => reorderBlockInLayout(prev, activePage.id, blockId, dir));
+    },
+    [activePage, store],
   );
 
   const handleFitToPage = useCallback(() => {
@@ -238,24 +341,81 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
           <WorkspaceSkeleton />
         ) : (
           <div className="rc-workspace" style={workspaceStyle}>
-            <LeftRail leftOpen={prefs.leftOpen} libraryTab={prefs.libraryTab} onSelectLibrary={prefs.selectLibrary} onCloseLeftPanel={prefs.closeLeftPanel}>
-              <BlockLibrary active={prefs.libraryTab === "components"} loading={session.loading} onAddComponent={(type) => { actions.addBlock(type); setInspectorTab("content"); prefs.openRightPanel(); }} />
-              <PagesPanel active={prefs.libraryTab === "pages"} pages={layout.pages} activePage={activePage} pageConfig={layout.page} onSelectPage={selectPage} onAddCoverPage={actions.addCoverPage} onAddBlankPage={actions.addBlankPage} onMovePage={actions.movePage} onDeletePage={actions.deletePage} onRenameActivePage={actions.renameActivePage} onUpdatePageConfig={actions.updatePageConfig} />
-              <DataPanel
-                active={prefs.libraryTab === "data"}
-                sources={layout.sources}
-                availableSources={session.availableSources}
-                layout={layout}
-                selectedBlock={selectedBlock}
-                reportId={report.id}
-                unit={unit}
-                onCreateSource={session.openCreateSourceModal}
-                onEditSource={session.openEditSourceModal}
-                onRemoveSource={session.removeSource}
-                onSelectBlock={setSelectedBlockId}
-                onUpdateBlock={actions.updateBlock}
+            <LeftRail
+              leftOpen={prefs.leftOpen}
+              libraryTab={prefs.libraryTab}
+              onSelectLibrary={prefs.selectLibrary}
+              onOpenTab={prefs.openLeftPanel}
+              onCloseLeftPanel={prefs.closeLeftPanel}
+            >
+              <BlockLibrary
+                active={prefs.libraryTab === "components"}
+                loading={session.loading}
+                onAddComponent={(type) => handleAddBlockCentered(type)}
+                onClosePanel={prefs.closeLeftPanel}
               />
-              <ImagesPanel active={prefs.libraryTab === "images"} assets={session.assets} assetUrls={session.assetUrls} uploadingAsset={session.uploadingAsset} onTriggerUpload={() => session.triggerImageUpload()} onInsertImageBlock={(assetId) => actions.addBlock("image", assetId)} />
+              <PagesPanel
+                active={prefs.libraryTab === "pages"}
+                pages={layout.pages}
+                activePage={activePage}
+                pageConfig={layout.page}
+                selectedBlockId={selectedBlockId}
+                sources={layout.sources}
+                assets={visibleAssets}
+                blockProblems={problems.byBlockId}
+                onSelectPage={selectPage}
+                onSelectBlock={(blockId) => {
+                  setSelectedBlockId(blockId);
+                  prefs.openRightPanel();
+                }}
+                onAddCoverPage={actions.addCoverPage}
+                onAddBlankPage={actions.addBlankPage}
+                onDuplicatePage={handleDuplicatePage}
+                onMovePage={actions.movePage}
+                onDeletePage={actions.deletePage}
+                onRenamePage={handleRenamePage}
+                onRenameActivePage={actions.renameActivePage}
+                onReorderBlock={handleReorderBlock}
+                onUpdatePageConfig={actions.updatePageConfig}
+                onClosePanel={prefs.closeLeftPanel}
+              />
+              <div className="cv-panel-slot" hidden={prefs.libraryTab !== "data"}>
+                <DataPanel
+                  active={prefs.libraryTab === "data"}
+                  sources={layout.sources}
+                  availableSources={session.availableSources}
+                  layout={layout}
+                  selectedBlock={selectedBlock}
+                  reportId={report.id}
+                  unit={unit}
+                  onCreateSource={session.openCreateSourceModal}
+                  onEditSource={session.openEditSourceModal}
+                  onRemoveSource={session.removeSource}
+                  onSelectBlock={setSelectedBlockId}
+                  onUpdateBlock={actions.updateBlock}
+                />
+              </div>
+              <ImagesPanel
+                active={prefs.libraryTab === "images"}
+                assets={visibleAssets}
+                assetUrls={session.assetUrls}
+                uploadingAsset={session.uploadingAsset}
+                pages={layout.pages}
+                selectedBlock={selectedBlock}
+                onTriggerUpload={() => session.triggerImageUpload()}
+                onInsertImageBlock={(assetId) => handleAddBlockCentered("image", assetId)}
+                onUseInSelectedBlock={(assetId) => {
+                  if (!selectedBlock || selectedBlock.type !== "image") return;
+                  actions.updateBlock(selectedBlock.id, "Trocar imagem", (b) => ({
+                    ...b,
+                    asset_id: assetId,
+                  }));
+                }}
+                onDeleteAsset={(assetId) =>
+                  setHiddenAssetIds((prev) => (prev.includes(assetId) ? prev : [...prev, assetId]))
+                }
+                onClosePanel={prefs.closeLeftPanel}
+              />
             </LeftRail>
             {prefs.leftOpen && (
               <PanelResizer
@@ -264,15 +424,25 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
                 onChangeWidth={prefs.updateLeftWidth}
               />
             )}
-            <Stage stageRef={stageRef} pageConfig={layout.page} blocks={activePage?.blocks || []} zoom={zoom} showGrid={showGrid} selectedBlockId={selectedBlockId} draggingBlockId={dragState?.blockId || null} sources={layout.sources} assets={session.assets} assetUrls={session.assetUrls} availableSources={session.availableSources} localDatasets={localDatasets} reportName={report.name} showSampleData={showSampleData} onClearSelection={() => setSelectedBlockId(null)} onSelectBlock={setSelectedBlockId} onStartDrag={startBlockDrag} onStartResize={startBlockResize} />
-            {prefs.rightOpen && (
+            <Stage stageRef={stageRef} pageConfig={layout.page} blocks={activePage?.blocks || []} zoom={zoom} showGrid={showGrid} selectedBlockId={selectedBlockId} draggingBlockId={dragState?.blockId || null} sources={layout.sources} assets={visibleAssets} assetUrls={session.assetUrls} availableSources={session.availableSources} localDatasets={localDatasets} reportName={report.name} showSampleData={showSampleData} onClearSelection={() => setSelectedBlockId(null)} onSelectBlock={setSelectedBlockId} onStartDrag={startBlockDrag} onStartResize={startBlockResize} />
+            {prefs.rightOpen ? (
               <PanelResizer
                 side="right"
                 width={prefs.rightWidth}
                 onChangeWidth={prefs.updateRightWidth}
               />
+            ) : (
+              <button
+                type="button"
+                className="cv-icon-btn cv-inspector-toggle-edge"
+                aria-label="Abrir inspetor de propriedades"
+                title="Abrir inspetor"
+                onClick={prefs.openRightPanel}
+              >
+                <PanelRightOpen size={16} aria-hidden="true" />
+              </button>
             )}
-            <Inspector rightOpen={prefs.rightOpen} selectedBlock={selectedBlock} activePage={activePage} inspectorTab={inspectorTab} pageConfig={layout.page} sources={layout.sources} assets={session.assets} uploadingAsset={session.uploadingAsset} knownColumns={selectedKnownColumns} resolveKnownColumns={resolveKnownColumns} onSelectBlock={setSelectedBlockId} onChangeTab={setInspectorTab} onReorderLayer={actions.reorderBlockLayer} onDuplicateBlock={actions.duplicateSelectedBlock} onRemoveBlock={actions.removeBlock} onTriggerImageUpload={(blockId) => session.triggerImageUpload(blockId)} onOpenCreateSource={session.openCreateSourceModal} onColumnWidthsValidation={session.handleColumnWidthsValidation} onUpdateBlock={actions.updateBlock} />
+            <Inspector rightOpen={prefs.rightOpen} selectedBlock={selectedBlock} activePage={activePage} inspectorTab={inspectorTab} pageConfig={layout.page} sources={layout.sources} assets={visibleAssets} uploadingAsset={session.uploadingAsset} knownColumns={selectedKnownColumns} resolveKnownColumns={resolveKnownColumns} onSelectBlock={setSelectedBlockId} onChangeTab={setInspectorTab} onReorderLayer={actions.reorderBlockLayer} onDuplicateBlock={actions.duplicateSelectedBlock} onRemoveBlock={actions.removeBlock} onTriggerImageUpload={(blockId) => session.triggerImageUpload(blockId)} onOpenCreateSource={session.openCreateSourceModal} onColumnWidthsValidation={session.handleColumnWidthsValidation} onUpdateBlock={actions.updateBlock} />
           </div>
         )}
         <StatusBar />

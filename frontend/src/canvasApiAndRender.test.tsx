@@ -1,6 +1,7 @@
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ThemeProvider } from "./ThemeContext";
 import ReportCanvas from "./components/ReportCanvas";
 import {
   CanvasSaveError,
@@ -155,11 +156,13 @@ describe("Cliente de API do Canvas com request mockado (load, save, preview, con
 describe("Renderização estática dos módulos extraídos (preservação estrutural e classes CSS)", () => {
   it("renderiza ReportCanvas inicial com classe cv-root no shell e controles principais", () => {
     const html = renderToStaticMarkup(
-      <ReportCanvas
-        unit="ame"
-        report={{ id: 50, name: "Relatório Assistencial", version: 2 }}
-        onClose={() => {}}
-      />,
+      <ThemeProvider>
+        <ReportCanvas
+          unit="ame"
+          report={{ id: 50, name: "Relatório Assistencial", version: 2 }}
+          onClose={() => {}}
+        />
+      </ThemeProvider>,
     );
     expect(html).toContain('class="report-canvas-page cv-root"');
     expect(html).toContain("Relatório Assistencial");
@@ -185,8 +188,9 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
     const block = layout.pages[0].blocks[0];
 
     const workspaceHtml = renderToStaticMarkup(
-      <div>
-        <TopBar
+      <ThemeProvider>
+        <div>
+          <TopBar
           reportName="Relatório Assistencial"
           version={7}
           enabled
@@ -289,8 +293,9 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
           onColumnWidthsValidation={() => {}}
           onUpdateBlock={() => {}}
         />
-      </div>,
-    );
+      </div>
+    </ThemeProvider>,
+  );
 
     expect(workspaceHtml).toContain("Ativo");
     expect(workspaceHtml).toContain("v7");
@@ -298,6 +303,10 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
     expect(workspaceHtml).toContain("85 %");
     expect(workspaceHtml).toContain("Problemas");
     expect(workspaceHtml).toContain("cv-unsaved-dot");
+    expect(workspaceHtml).toContain('role="tablist"');
+    expect(workspaceHtml).toContain("Estrutura");
+    expect(workspaceHtml).toContain("cv-type-row");
+    expect(workspaceHtml).toContain("Número com agregação");
     expect(workspaceHtml).toContain("rc-column-grid");
     expect(workspaceHtml).toContain("rc-block rc-block-kpi is-selected");
     expect(workspaceHtml).toContain("rc-resize-handle-se");
