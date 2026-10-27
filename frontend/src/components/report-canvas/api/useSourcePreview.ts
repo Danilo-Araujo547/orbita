@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { query, request } from "../../../api";
 import type { CanvasSource, ColumnInfo, SourcePreview } from "../model";
 import { isParameterBinding } from "../model";
@@ -22,7 +22,9 @@ export interface UseSourcePreviewOptions {
   autoLoad?: boolean;
 }
 
-// In-memory cache by specification hash
+export const PreviewCacheScope = createContext("");
+
+// In-memory cache by unit/report and specification hash (never persisted).
 const previewCache = new Map<string, SourcePreview>();
 
 export function hashSourceSpec(
@@ -52,8 +54,9 @@ export function getCachedSourcePreview(
   source: CanvasSource | null | undefined,
   parameters: Record<string, unknown> = {},
   limit = 50,
+  scope = "",
 ): SourcePreview | undefined {
-  const key = hashSourceSpec(source, parameters, limit);
+  const key = JSON.stringify([scope, hashSourceSpec(source, parameters, limit)]);
   return previewCache.get(key);
 }
 
@@ -62,8 +65,10 @@ export function setCachedSourcePreview(
   data: SourcePreview,
   parameters: Record<string, unknown> = {},
   limit = 50,
+  scope = "",
 ): void {
-  const key = hashSourceSpec(source, parameters, limit);
+  const key = JSON.stringify([scope, hashSourceSpec(source, parameters, limit)]);
+  if (previewCache.size >= 30) previewCache.delete(previewCache.keys().next().value!);
   previewCache.set(key, data);
 }
 
@@ -160,7 +165,7 @@ export function useSourcePreview(options: UseSourcePreviewOptions = {}) {
   const { reportId, unit, source, parameters = {}, limit = 50, autoLoad = false } = options;
 
   const [state, setState] = useState<SourcePreviewState>(() => {
-    const cached = getCachedSourcePreview(source, parameters, limit);
+    const cached = getCachedSourcePreview(source, parameters, limit, `${unit}:${reportId}`);
     if (cached) {
       return {
         status: "ready",
@@ -211,7 +216,7 @@ export function useSourcePreview(options: UseSourcePreviewOptions = {}) {
 
       // Check cache first
       if (!optionsOverride?.bypassCache) {
-        const cached = getCachedSourcePreview(src, params, lim);
+        const cached = getCachedSourcePreview(src, params, lim, `${unit}:${reportId}`);
         if (cached) {
           setState({
             status: "ready",
@@ -246,7 +251,7 @@ export function useSourcePreview(options: UseSourcePreviewOptions = {}) {
           controller.signal,
         );
 
-        setCachedSourcePreview(src, result, params, lim);
+        setCachedSourcePreview(src, result, params, lim, `${unit}:${reportId}`);
 
         setState({
           status: "ready",

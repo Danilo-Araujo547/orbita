@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 from rest_framework.exceptions import ValidationError
 from operations.models import ReportDefinition
 from operations.report_engine import run_query, sql_contract
@@ -44,7 +45,7 @@ class InlineSource:
         if not isinstance(cols,list) or not 1<=len(cols)<=100 or any(not isinstance(c,str) or not c or len(c)>100 for c in cols) or len(set(cols))!=len(cols) or not isinstance(rows,list) or len(rows)>2000:
             fail("Colunas ou linhas da fonte manual inválidas.")
         for r in rows:
-            if not isinstance(r,list) or len(r)!=len(cols) or any(type(v) not in (str,int,float,bool,type(None)) or (isinstance(v,str) and len(v)>2000) for v in r):
+            if not isinstance(r,list) or len(r)!=len(cols) or any(type(v) not in (str,int,float,bool,type(None)) or (isinstance(v,str) and len(v)>2000) or (type(v) is float and not math.isfinite(v)) for v in r):
                 fail("Linha da fonte manual inválida.")
     def read(self,context,s): return Dataset(s["columns"],s["rows"])
 

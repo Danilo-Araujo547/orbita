@@ -72,9 +72,11 @@ describe("Normalização e sanitização de novas opções do Canvas (round-trip
     const opt = normalized.pages[0].blocks[0].options!;
     expect(opt.x_group).toBe("month");
     expect(opt.y_aggregate).toBe("sum");
-    expect(opt.series_colors).toEqual(["#075b94", "#c2610c", "#0f7f73"]);
+    // Preservar a representação salva também faz parte do round-trip.
+    expect(opt.series_colors).toEqual(["#075B94", "#C2610C", "#0F7F73"]);
 
     const sanitized = sanitizeLayoutForApi(normalized);
+    expect(sanitized).toEqual(raw);
     const roundTrip = normalizeLayout(JSON.parse(JSON.stringify(sanitized)));
     expect(roundTrip).toEqual(sanitized);
   });

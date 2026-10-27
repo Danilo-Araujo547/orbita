@@ -1,5 +1,9 @@
 import type { CanvasLayout, OutputFormat } from "../model";
-import { sanitizeLayoutForApi } from "../model";
+import { normalizeLayout, sanitizeLayoutForApi } from "../model";
+
+function draftStorage(): Storage | null {
+  try { return typeof window === "undefined" ? null : window.localStorage; } catch { return null; }
+}
 
 export const MAX_DRAFT_BYTES = 700 * 1024; // 700 KB limit
 
@@ -38,7 +42,8 @@ export function saveDraftToStorage(
     outputFormat: OutputFormat;
   },
 ): boolean {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = draftStorage();
+  if (!storage) {
     return false;
   }
   try {
@@ -58,7 +63,7 @@ export function saveDraftToStorage(
     if (byteLength > MAX_DRAFT_BYTES) {
       return false;
     }
-    window.localStorage.setItem(key, json);
+    storage.setItem(key, json);
     return true;
   } catch {
     return false;
@@ -70,30 +75,32 @@ export function loadDraftFromStorage(
   reportId: number,
   version: number,
 ): DraftPayload | null {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = draftStorage();
+  if (!storage) {
     return null;
   }
   try {
     const key = getDraftStorageKey(unit, reportId, version);
-    const item = window.localStorage.getItem(key);
-    if (!item) return null;
+    const item = storage.getItem(key);
+    if (!item || new TextEncoder().encode(item).length > MAX_DRAFT_BYTES) return null;
     const parsed = JSON.parse(item) as DraftPayload;
-    if (!parsed || !parsed.layout || !Array.isArray(parsed.layout.pages)) {
+    if (!parsed || !parsed.layout || parsed.layout.schema_version !== 1 || !Array.isArray(parsed.layout.pages) || !parsed.layout.pages.length || typeof parsed.enabled !== "boolean" || !["pdf", "xlsx"].includes(parsed.outputFormat) || !Number.isFinite(parsed.timestamp)) {
       return null;
     }
-    return parsed;
+    return { ...parsed, layout: normalizeLayout(parsed.layout) };
   } catch {
     return null;
   }
 }
 
 export function clearDraftFromStorage(unit: string, reportId: number, version: number): void {
-  if (typeof window === "undefined" || !window.localStorage) {
+  const storage = draftStorage();
+  if (!storage) {
     return;
   }
   try {
     const key = getDraftStorageKey(unit, reportId, version);
-    window.localStorage.removeItem(key);
+    storage.removeItem(key);
   } catch {
     // ignore
   }

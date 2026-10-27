@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import logging
+import math
 import re
 import time
 from contextlib import ExitStack
@@ -141,7 +142,7 @@ def configure(view, request):
             layout = validate_layout(request.data.get("layout"))
             enabled = request.data.get("enabled", False)
             fmt = request.data.get("output_format", "pdf")
-            if type(enabled) is not bool or fmt not in {"pdf", "xlsx"}:
+            if type(enabled) is not bool or fmt not in ("pdf", "xlsx"):
                 fail("Formato ou ativação inválidos.")
             # Drafts may refer to a source not yet available, but never to another unit's assets/sources.
             for spec in layout["sources"]:
@@ -196,14 +197,14 @@ def preview(view, request):
     values = request.data.get("parameters", {})
     validate_values(report, values)
     fmt = request.data.get("output_format", "pdf")
-    if fmt not in {"pdf", "xlsx"}:
+    if fmt not in ("pdf", "xlsx"):
         fail("Formato de prévia inválido.")
     try:
         content, count = export(report, layout, values, report.monthly_goals, fmt)
     except ValidationError:
         raise
     except Exception:
-        logger.exception("Canvas preview failed unexpectedly")
+        logger.warning("Canvas preview failed unexpectedly (details suppressed)")
         fail_at(
             "Não foi possível gerar a prévia. Verifique a fonte, os parâmetros e os blocos.",
             code="preview_failed",
@@ -285,7 +286,14 @@ def serialize_cell(val):
     if isinstance(val, (datetime, date)):
         return val.isoformat()
     if isinstance(val, Decimal):
-        return int(val) if val % 1 == 0 else float(val)
+        if not val.is_finite() or not math.isfinite(float(val)):
+            fail_at("A fonte contém número não finito. Corrija os valores na origem e carregue a prévia novamente.", code="source_nonfinite_value")
+        result = int(val) if val % 1 == 0 else float(val)
+        if isinstance(result, float) and not math.isfinite(result):
+            fail_at("A fonte contém número fora do limite. Corrija os valores na origem.", code="source_nonfinite_value")
+        return result
+    if isinstance(val, float) and not math.isfinite(val):
+        fail_at("A fonte contém número não finito. Corrija os valores na origem e carregue a prévia novamente.", code="source_nonfinite_value")
     if isinstance(val, (int, float, bool, str)):
         return val
     return str(val)
@@ -300,10 +308,12 @@ def source_preview(view, request):
         fail_at("Informe a especificação da fonte para a prévia.", code="source_required")
 
     source_type = source.get("type")
-    if source_type not in SOURCES:
+    if not isinstance(source_type, str) or source_type not in SOURCES:
         fail_at(f'Tipo de fonte desconhecido: "{source_type}".', code="source_type_invalid")
 
-    SOURCES[source_type].validate(source)
+    validation_layout = default_layout()
+    validation_layout["sources"] = [source]
+    validate_layout(validation_layout)
     if source_type == "report":
         from .sources import resolve_report
         resolve_report(report, source)
@@ -334,10 +344,10 @@ def source_preview(view, request):
             dataset = SOURCES[source_type].read(ctx, source)
         except ValidationError:
             raise
-        except Exception as exc:
-            logger.exception("Failed reading canvas source for preview")
+        except Exception:
+            logger.warning("Canvas source preview failed (details suppressed)")
             fail_at(
-                f'Não foi possível consultar a fonte "{source_label(source)}": {exc}',
+                f'Fonte "{source_label(source)}": conexão indisponível. Verifique a conexão e os parâmetros e tente novamente.',
                 source_id=source.get("id"),
                 code="source_connection_failed",
             )

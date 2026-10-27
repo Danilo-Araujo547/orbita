@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useState } from "react";
 import type { DragEvent } from "react";
 import {
   AlertCircle,
@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { fetchSourcePreviewRequest, getCachedSourcePreview, isUnavailableStatus, setCachedSourcePreview } from "../api/useSourcePreview";
+import { PreviewCacheScope, fetchSourcePreviewRequest, getCachedSourcePreview, isUnavailableStatus, setCachedSourcePreview } from "../api/useSourcePreview";
 import type {
   CanvasBlock,
   CanvasLayout,
@@ -64,6 +64,7 @@ export default function DataPanel({
   onSelectBlock,
   onUpdateBlock,
 }: DataPanelProps) {
+  const cacheScope = useContext(PreviewCacheScope);
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, SourcePreviewEntry>>({});
   const [drawerSource, setDrawerSource] = useState<CanvasSource | null>(null);
@@ -74,7 +75,7 @@ export default function DataPanel({
   const handleLoadPreview = useCallback(
     async (src: CanvasSource, bypassCache = false) => {
       if (!bypassCache) {
-        const cached = getCachedSourcePreview(src);
+        const cached = getCachedSourcePreview(src, (src.type === "report" && src.parameters) || {}, 50, cacheScope);
         if (cached) {
           setPreviews((prev) => ({
             ...prev,
@@ -108,7 +109,7 @@ export default function DataPanel({
           50,
         );
 
-        setCachedSourcePreview(src, result);
+        setCachedSourcePreview(src, result, (src.type === "report" && src.parameters) || {}, 50, cacheScope);
 
         setPreviews((prev) => ({
           ...prev,
@@ -135,7 +136,7 @@ export default function DataPanel({
         }));
       }
     },
-    [reportId, unit],
+    [reportId, unit, cacheScope],
   );
 
   const toggleExpand = (src: CanvasSource) => {
@@ -145,7 +146,7 @@ export default function DataPanel({
       setExpandedSourceId(src.id);
       // If no preview loaded, initialize from cached or idle
       if (!previews[src.id]) {
-        const cached = getCachedSourcePreview(src);
+        const cached = getCachedSourcePreview(src, (src.type === "report" && src.parameters) || {}, 50, cacheScope);
         if (cached) {
           setPreviews((prev) => ({
             ...prev,
@@ -170,7 +171,7 @@ export default function DataPanel({
 
   // Get columns for a source (from preview if available, else from source definition)
   const getSourceColumns = (src: CanvasSource): ColumnInfo[] => {
-    const preview = previews[src.id]?.data || getCachedSourcePreview(src);
+    const preview = previews[src.id]?.data || getCachedSourcePreview(src, (src.type === "report" && src.parameters) || {}, 50, cacheScope);
     if (preview?.columns?.length) {
       return preview.columns;
     }
@@ -284,7 +285,7 @@ export default function DataPanel({
           {sources.map((src) => {
             const isExpanded = expandedSourceId === src.id;
             const previewState = previews[src.id];
-            const cached = getCachedSourcePreview(src);
+            const cached = getCachedSourcePreview(src, (src.type === "report" && src.parameters) || {}, 50, cacheScope);
             const previewData = previewState?.data || cached;
             const columns = getSourceColumns(src);
 
@@ -563,7 +564,7 @@ export default function DataPanel({
       {drawerSource && (
         <DataDrawer
           source={drawerSource}
-          preview={previews[drawerSource.id]?.data || getCachedSourcePreview(drawerSource) || null}
+          preview={previews[drawerSource.id]?.data || getCachedSourcePreview(drawerSource, (drawerSource.type === "report" && drawerSource.parameters) || {}, 50, cacheScope) || null}
           loading={previews[drawerSource.id]?.status === "loading"}
           onClose={() => setDrawerSource(null)}
           onRefresh={() => handleLoadPreview(drawerSource, true)}

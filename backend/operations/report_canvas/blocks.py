@@ -46,6 +46,8 @@ def parse_group_date(raw_val, block, col_name):
         if s.endswith("Z"):
             s = s[:-1] + "+00:00"
         try:
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[+-]\d{2}:?\d{2})?)?", s):
+                raise ValueError("ISO date required")
             dt = datetime.fromisoformat(s)
             return dt.date() if isinstance(dt, datetime) else dt
         except (ValueError, TypeError):
@@ -64,15 +66,17 @@ def aggregate_series(agg_mode, raw_values, series_name, block):
     valid = [v for v in nums if v is not None]
     if not valid:
         return None
-    if agg_mode == "sum":
-        return sum(valid)
     if agg_mode == "avg":
-        return sum(valid) / len(valid)
-    if agg_mode == "min":
-        return min(valid)
-    if agg_mode == "max":
-        return max(valid)
-    return sum(valid)
+        result = sum(v / len(valid) for v in valid)
+    elif agg_mode == "min":
+        result = min(valid)
+    elif agg_mode == "max":
+        result = max(valid)
+    else:
+        result = sum(valid)
+    if not math.isfinite(result):
+        fail_at(f'A série "{series_name}" excede o limite numérico. Reduza os valores ou escolha outra agregação.', block_id=block.get("id"), code="series_not_numeric")
+    return result
 
 
 class TextBlock:

@@ -106,6 +106,10 @@ export function parsePastedTable(text: string): {
     return { columns: ["coluna_1"], rows: [] };
   }
 
+  if (rawLines.length - 1 > 2000) {
+    throw new Error("A tabela manual aceita até 2.000 linhas. Reduza a seleção e cole novamente.");
+  }
+
   // Detect delimiter using first line
   const firstLine = rawLines[0];
   const tabCount = (firstLine.match(/\t/g) || []).length;
@@ -123,14 +127,18 @@ export function parsePastedTable(text: string): {
 
   // Parse header
   const rawHeaders = parseDelimitedLine(firstLine, delimiter);
+  if (rawHeaders.length > 100) {
+    throw new Error("A tabela manual aceita até 100 colunas. Reduza a seleção e cole novamente.");
+  }
   const seenHeaders = new Set<string>();
   const columns: string[] = rawHeaders.slice(0, 100).map((h, idx) => {
     let name = h.trim() || `coluna_${idx + 1}`;
-    name = name.slice(0, 60);
+    name = name.slice(0, 100);
     let candidate = name;
     let n = 2;
     while (seenHeaders.has(candidate)) {
-      candidate = `${name}_${n++}`;
+      const suffix = `_${n++}`;
+      candidate = `${name.slice(0, 100 - suffix.length)}${suffix}`;
     }
     seenHeaders.add(candidate);
     return candidate;

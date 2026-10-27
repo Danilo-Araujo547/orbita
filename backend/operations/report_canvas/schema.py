@@ -51,7 +51,7 @@ def source_label(spec):
 
 
 def number(v, low, high):
-    return type(v) in (int, float) and math.isfinite(v) and low <= v <= high
+    return type(v) in (int, float) and low <= v <= high and math.isfinite(v)
 
 
 def color(value):
@@ -70,13 +70,15 @@ def validate_layout(value):
     from .blocks import BLOCKS
     from .sources import SOURCES
     try:
-        size = len(json.dumps(value, allow_nan=False).encode())
+        size = len(json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(",", ":")).encode())
     except (TypeError, ValueError):
         fail("Layout inválido.")
-    if size > 750_000 or not isinstance(value, dict) or value.get("schema_version") != 1:
+    if size > 750_000:
+        fail("Layout excede 750 KB. Reduza textos, linhas manuais ou blocos antes de salvar.")
+    if not isinstance(value, dict) or value.get("schema_version") != 1:
         fail("Layout inválido ou versão não suportada.")
     v = copy.deepcopy(value)
-    if v.get("xlsx_mode", "layout") not in {"layout", "table"}:
+    if v.get("xlsx_mode", "layout") not in ("layout", "table"):
         fail("Modo de planilha inválido.")
     page = v.get("page")
     if not isinstance(page, dict) or not number(page.get("width"),150,3000) or not number(page.get("height"),150,3000) or type(page.get("columns")) is not int or not 1 <= page["columns"] <= 48 or not color(page.get("background")):
@@ -86,7 +88,7 @@ def validate_layout(value):
         fail("Limite de 30 fontes por relatório.")
     ids=set()
     for source in sources:
-        if not isinstance(source,dict) or not identity(source.get("id")) or source["id"] in ids or source.get("type") not in SOURCES:
+        if not isinstance(source,dict) or not identity(source.get("id")) or source["id"] in ids or (not isinstance(source.get("type"), str) or source.get("type") not in SOURCES):
             fail_at("Fonte inválida ou duplicada.", source_id=source.get("id") if isinstance(source,dict) and identity(source.get("id")) else None, code="source_invalid")
         ids.add(source["id"])
         label = source.get("label")
@@ -102,14 +104,14 @@ def validate_layout(value):
             fail("Página inválida ou duplicada.")
         page_ids.add(p["id"])
         for b in p["blocks"]:
-            if not isinstance(b,dict) or not identity(b.get("id")) or b["id"] in block_ids or b.get("type") not in BLOCKS:
+            if not isinstance(b,dict) or not identity(b.get("id")) or b["id"] in block_ids or (not isinstance(b.get("type"), str) or b.get("type") not in BLOCKS):
                 fail("Bloco inválido ou duplicado.")
             block_ids.add(b["id"])
             if len(block_ids)>100:
                 fail("Limite de 100 blocos.")
             if not number(b.get("x"),0,page["width"]) or not number(b.get("y"),0,page["height"]) or not number(b.get("width"),20,page["width"]) or not number(b.get("height"),20,page["height"]) or b["x"]+b["width"]>page["width"]+0.01 or b["y"]+b["height"]>page["height"]+0.01:
                 fail_at(f'Bloco "{block_label(b)}": fora dos limites da página. Reposicione ou redimensione o bloco.', block_id=b["id"], code="block_out_of_bounds")
-            if b.get("source_id") and b["source_id"] not in ids:
+            if b.get("source_id") and (not isinstance(b["source_id"], str) or b["source_id"] not in ids):
                 fail_at(f'Bloco "{block_label(b)}": a fonte "{b["source_id"]}" não existe neste relatório.', block_id=b["id"], source_id=b["source_id"], code="source_not_found")
             for key,limit in [("title",300),("text",20000)]:
                 if not isinstance(b.get(key,""),str) or len(b.get(key,""))>limit:
@@ -117,7 +119,7 @@ def validate_layout(value):
             opt=b.setdefault("options",{})
             if not isinstance(opt,dict) or not color(opt.get("color","#075b94")) or not number(opt.get("font_size",14),6,100):
                 fail_at(f'Bloco "{block_label(b)}": cor ou tamanho de fonte inválidos (fonte de 6 a 100).', block_id=b["id"], code="block_style_invalid")
-            if opt.get("aggregate","sum") not in {"sum","count","first"} or type(opt.get("precision",0)) is not int or not 0 <= opt.get("precision",0) <= 4:
+            if opt.get("aggregate","sum") not in ("sum","count","first") or type(opt.get("precision",0)) is not int or not 0 <= opt.get("precision",0) <= 4:
                 fail_at(f'Bloco "{block_label(b)}": agregação ou precisão inválida (precisão de 0 a 4).', block_id=b["id"], code="block_aggregate_invalid")
             widths=opt.get("column_widths",[])
             if not isinstance(widths,list) or len(widths)>100 or any(not number(x,1,3000) for x in widths):fail_at(f'Bloco "{block_label(b)}": larguras de colunas inválidas.', block_id=b["id"], code="block_widths_invalid")

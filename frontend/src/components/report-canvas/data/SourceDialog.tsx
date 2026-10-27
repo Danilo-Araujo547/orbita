@@ -260,7 +260,7 @@ export default function SourceDialog({
 
   const handleRenameColumn = (colIdx: number, newName: string) => {
     const newCols = [...gridColumns];
-    newCols[colIdx] = newName.slice(0, 60);
+    newCols[colIdx] = newName.slice(0, 100);
     updateGridState(newCols, gridRows);
   };
 
@@ -291,9 +291,11 @@ export default function SourceDialog({
     const text = e.clipboardData.getData("text/plain");
     if (!text || (!text.includes("\t") && !text.includes(";") && !text.includes(","))) return;
     e.preventDefault();
-    const parsed = parsePastedTable(text);
-    if (parsed.columns.length > 0) {
-      updateGridState(parsed.columns, parsed.rows);
+    try {
+      const parsed = parsePastedTable(text);
+      if (parsed.columns.length > 0) updateGridState(parsed.columns, parsed.rows);
+    } catch (error) {
+      onChange({ ...sourceModal, error: (error as Error).message });
     }
   };
 
@@ -305,9 +307,11 @@ export default function SourceDialog({
     reader.onload = (evt) => {
       const text = String(evt.target?.result || "");
       if (text) {
-        const parsed = parsePastedTable(text);
-        if (parsed.columns.length > 0) {
-          updateGridState(parsed.columns, parsed.rows);
+        try {
+          const parsed = parsePastedTable(text);
+          if (parsed.columns.length > 0) updateGridState(parsed.columns, parsed.rows);
+        } catch (error) {
+          onChange({ ...sourceModal, error: (error as Error).message });
         }
       }
     };

@@ -107,6 +107,7 @@ export interface CanvasPageConfig {
 export interface CanvasLayout {
   schema_version: 1;
   xlsx_mode?: XlsxMode;
+  export_format?: OutputFormat;
   page: CanvasPageConfig;
   sources: CanvasSource[];
   pages: CanvasPage[];
@@ -231,7 +232,7 @@ export function round2(val: number): number {
 }
 
 export function validColor(val: unknown, fallback = "#075b94"): string {
-  return typeof val === "string" && HEX_COLOR_RE.test(val) ? val.toLowerCase() : fallback;
+  return typeof val === "string" && HEX_COLOR_RE.test(val) ? val : fallback;
 }
 
 export function isDarkHex(hex: string): boolean {
@@ -273,10 +274,10 @@ export function createDefaultLayout(): CanvasLayout {
 }
 
 export function clampBlockToPage(b: CanvasBlock, pageW: number, pageH: number): CanvasBlock {
-  const width = round2(clamp(Number(b.width) || 200, 20, pageW));
-  const height = round2(clamp(Number(b.height) || 120, 20, pageH));
-  const x = round2(clamp(Number(b.x) || 0, 0, Math.max(0, pageW - width)));
-  const y = round2(clamp(Number(b.y) || 0, 0, Math.max(0, pageH - height)));
+  const width = clamp(Number(b.width) || 200, 20, pageW);
+  const height = clamp(Number(b.height) || 120, 20, pageH);
+  const x = clamp(Number(b.x) || 0, 0, Math.max(0, pageW - width));
+  const y = clamp(Number(b.y) || 0, 0, Math.max(0, pageH - height));
   return { ...b, x, y, width, height };
 }
 
@@ -287,8 +288,8 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
     return createDefaultLayout();
   }
   const rawPage = obj.page && typeof obj.page === "object" ? obj.page : {};
-  const width = round2(clamp(Number(rawPage.width) || 794, 150, 3000));
-  const height = round2(clamp(Number(rawPage.height) || 1123, 150, 3000));
+  const width = clamp(Number(rawPage.width) || 794, 150, 3000);
+  const height = clamp(Number(rawPage.height) || 1123, 150, 3000);
   const columns = Math.round(clamp(Number(rawPage.columns) || 24, 1, 48));
   const background = validColor(rawPage.background, "#ffffff");
 
@@ -305,16 +306,16 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
           id: s.id,
           type: "report",
           report_id: Number(s.report_id),
-          ...(typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {}),
+          ...(typeof s.label === "string" ? { label: s.label.slice(0, 60) } : {}),
           ...(typeof s.dataset === "string" ? {dataset:s.dataset} : {}),
-          parameters: s.parameters && typeof s.parameters === "object" && !Array.isArray(s.parameters) ? s.parameters : {},
+          ...(s.parameters && typeof s.parameters === "object" && !Array.isArray(s.parameters) ? { parameters: s.parameters } : {}),
         });
       } else if (s.type === "inline" && Array.isArray(s.columns) && Array.isArray(s.rows)) {
         seenSourceIds.add(s.id);
         sources.push({
           id: s.id,
           type: "inline",
-          ...(typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {}),
+          ...(typeof s.label === "string" ? { label: s.label.slice(0, 60) } : {}),
           columns: s.columns.map(String),
           rows: s.rows,
         });
@@ -323,7 +324,7 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
         sources.push({
           id: s.id,
           type: "goals",
-          ...(typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {}),
+          ...(typeof s.label === "string" ? { label: s.label.slice(0, 60) } : {}),
         });
       }
     }
@@ -340,7 +341,7 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
     const blocks: CanvasBlock[] = [];
     if (Array.isArray(p.blocks)) {
       for (const b of p.blocks) {
-        if (!b || typeof b !== "object" || !(b.type in BLOCK_LABELS)) continue;
+        if (!b || typeof b !== "object" || (typeof b.type !== "string" || !Object.hasOwn(BLOCK_LABELS, b.type))) continue;
         if (blockIds.size >= 100) break;
         const bid = IDENT_RE.test(String(b.id || "")) && !blockIds.has(b.id) ? String(b.id) : makeId("b", blockIds);
         blockIds.add(bid);
@@ -348,25 +349,25 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
         const validSeriesColors = Array.isArray(rawOpt.series_colors)
           ? rawOpt.series_colors
               .filter((x: unknown): x is string => typeof x === "string" && HEX_COLOR_RE.test(x.trim()))
-              .map((x: string) => x.trim().toLowerCase())
+              .map((x: string) => x.trim())
               .slice(0, 6)
           : [];
         const opt: BlockOptions = {
           ...(Array.isArray(rawOpt.column_widths) ? {column_widths: rawOpt.column_widths.filter((v:unknown) => typeof v === "number" && Number.isFinite(v) && v >= 1 && v <= 3000).slice(0,100)} : {}),
-          color: validColor(rawOpt.color, "#075b94"),
-          font_size: clamp(Number(rawOpt.font_size) || 14, 6, 100),
+          ...(rawOpt.color !== undefined ? { color: validColor(rawOpt.color) } : {}),
+          ...(rawOpt.font_size !== undefined ? { font_size: clamp(Number(rawOpt.font_size) || 14, 6, 100) } : {}),
           ...(rawOpt.aggregate === "sum" || rawOpt.aggregate === "count" || rawOpt.aggregate === "first"
             ? { aggregate: rawOpt.aggregate }
             : {}),
           ...(typeof rawOpt.precision === "number"
             ? { precision: Math.round(clamp(rawOpt.precision, 0, 4)) }
             : {}),
-          ...(typeof rawOpt.x_field === "string" && rawOpt.x_field ? { x_field: rawOpt.x_field.slice(0, 100) } : {}),
-          ...(typeof rawOpt.value_field === "string" && rawOpt.value_field
+          ...(typeof rawOpt.x_field === "string" ? { x_field: rawOpt.x_field.slice(0, 100) } : {}),
+          ...(typeof rawOpt.value_field === "string"
             ? { value_field: rawOpt.value_field.slice(0, 100) }
             : {}),
           ...(Array.isArray(rawOpt.y_fields)
-            ? { y_fields: rawOpt.y_fields.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 100)) }
+            ? { y_fields: rawOpt.y_fields.filter((x: unknown) => typeof x === "string" && x.length > 0).map((x: string) => x.slice(0, 100)) }
             : {}),
           ...(typeof rawOpt.x_group === "string" && X_GROUP_VALUES.includes(rawOpt.x_group as XGroupGranularity)
             ? { x_group: rawOpt.x_group as XGroupGranularity }
@@ -374,9 +375,9 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
           ...(typeof rawOpt.y_aggregate === "string" && Y_AGGREGATE_VALUES.includes(rawOpt.y_aggregate as ChartAggregateMode)
             ? { y_aggregate: rawOpt.y_aggregate as ChartAggregateMode }
             : {}),
-          ...(validSeriesColors.length > 0 ? { series_colors: validSeriesColors } : {}),
+          ...(Array.isArray(rawOpt.series_colors) ? { series_colors: validSeriesColors } : {}),
           ...(Array.isArray(rawOpt.columns)
-            ? { columns: rawOpt.columns.filter((x: unknown) => typeof x === "string" && x.trim()).map((x: string) => x.trim().slice(0, 100)) }
+            ? { columns: rawOpt.columns.filter((x: unknown) => typeof x === "string" && x.length > 0).map((x: string) => x.slice(0, 100)) }
             : {}),
         };
         const normalized: CanvasBlock = clampBlockToPage(
@@ -388,10 +389,10 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
             width: Number(b.width) || DEFAULT_SIZES[b.type as BlockType].w,
             height: Number(b.height) || DEFAULT_SIZES[b.type as BlockType].h,
             ...(typeof b.source_id === "string" && b.source_id ? { source_id: b.source_id } : {}),
-            ...(typeof b.title === "string" && b.title ? { title: b.title.slice(0, 300) } : {}),
-            ...(typeof b.text === "string" && b.text ? { text: b.text.slice(0, 20000) } : {}),
+            ...(typeof b.title === "string" ? { title: b.title.slice(0, 300) } : {}),
+            ...(typeof b.text === "string" ? { text: b.text.slice(0, 20000) } : {}),
             ...(b.type === "image" && typeof b.asset_id === "string" && b.asset_id ? { asset_id: b.asset_id } : {}),
-            options: opt,
+            ...(b.options !== undefined ? { options: opt } : {}),
           },
           width,
           height,
@@ -412,6 +413,7 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
   return {
     schema_version: 1,
     ...(xlsxMode ? { xlsx_mode: xlsxMode } : {}),
+    ...(("export_format" in obj) && (obj.export_format === "pdf" || obj.export_format === "xlsx") ? { export_format: obj.export_format as OutputFormat } : {}),
     page: { width, height, columns, background },
     sources,
     pages,
@@ -419,14 +421,14 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
 }
 
 export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
-  const pageW = round2(clamp(layout.page.width, 150, 3000));
-  const pageH = round2(clamp(layout.page.height, 150, 3000));
+  const pageW = clamp(layout.page.width, 150, 3000);
+  const pageH = clamp(layout.page.height, 150, 3000);
   const columns = Math.round(clamp(layout.page.columns, 1, 48));
   const background = validColor(layout.page.background, "#ffffff");
   const validSourceIds = new Set(layout.sources.map((s) => s.id));
 
   const cleanSources: CanvasSource[] = layout.sources.map((s) => {
-    const labelProp = typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {};
+    const labelProp = typeof s.label === "string" ? { label: s.label.slice(0, 60) } : {};
     if (s.type === "report") {
       return {
         id: s.id,
@@ -434,7 +436,7 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
         report_id: Math.round(Number(s.report_id)),
         ...labelProp,
         ...(s.dataset ? {dataset:s.dataset} : {}),
-        parameters: s.parameters || {},
+        ...(s.parameters !== undefined ? { parameters: s.parameters } : {}),
       };
     }
     if (s.type === "inline") {
@@ -451,13 +453,13 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
 
   const cleanPages: CanvasPage[] = layout.pages.map((p, idx) => ({
     id: p.id,
-    name: p.name.trim().slice(0, 100) || `Página ${idx + 1}`,
+    name: p.name.trim() ? p.name.slice(0, 100) : `Página ${idx + 1}`,
     blocks: p.blocks.map((rawBlock) => {
       const b = clampBlockToPage(rawBlock, pageW, pageH);
       const rawOpt = b.options || {};
       const cleanOpt: BlockOptions = {
-        color: validColor(rawOpt.color, "#075b94"),
-        font_size: round2(clamp(Number(rawOpt.font_size) || 14, 6, 100)),
+        ...(rawOpt.color !== undefined ? { color: validColor(rawOpt.color) } : {}),
+        ...(rawOpt.font_size !== undefined ? { font_size: clamp(Number(rawOpt.font_size) || 14, 6, 100) } : {}),
       };
       if (Array.isArray(rawOpt.column_widths)) cleanOpt.column_widths=rawOpt.column_widths.filter(v=>Number.isFinite(v) && v>=1 && v<=3000).slice(0,100);
       if (rawOpt.aggregate === "sum" || rawOpt.aggregate === "count" || rawOpt.aggregate === "first") {
@@ -466,15 +468,15 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
       if (typeof rawOpt.precision === "number" && Number.isFinite(rawOpt.precision)) {
         cleanOpt.precision = Math.round(clamp(rawOpt.precision, 0, 4));
       }
-      if (rawOpt.x_field && rawOpt.x_field.trim()) {
-        cleanOpt.x_field = rawOpt.x_field.trim().slice(0, 100);
+      if (typeof rawOpt.x_field === "string") {
+        cleanOpt.x_field = rawOpt.x_field.slice(0, 100);
       }
-      if (rawOpt.value_field && rawOpt.value_field.trim()) {
-        cleanOpt.value_field = rawOpt.value_field.trim().slice(0, 100);
+      if (typeof rawOpt.value_field === "string") {
+        cleanOpt.value_field = rawOpt.value_field.slice(0, 100);
       }
       if (Array.isArray(rawOpt.y_fields)) {
-        const ys = rawOpt.y_fields.map((v) => v.trim().slice(0, 100)).filter(Boolean);
-        if (ys.length > 0) cleanOpt.y_fields = ys.slice(0, 6);
+        const ys = rawOpt.y_fields.map((v) => v.slice(0, 100)).filter(Boolean);
+        cleanOpt.y_fields = ys.slice(0, 100);
       }
       if (rawOpt.x_group && X_GROUP_VALUES.includes(rawOpt.x_group)) {
         cleanOpt.x_group = rawOpt.x_group;
@@ -485,13 +487,13 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
       if (Array.isArray(rawOpt.series_colors)) {
         const sc = rawOpt.series_colors
           .filter((v): v is string => typeof v === "string" && HEX_COLOR_RE.test(v.trim()))
-          .map((v) => v.trim().toLowerCase())
+          .map((v) => v.trim())
           .slice(0, 6);
-        if (sc.length > 0) cleanOpt.series_colors = sc;
+        cleanOpt.series_colors = sc;
       }
       if (Array.isArray(rawOpt.columns)) {
-        const cols = rawOpt.columns.map((v) => v.trim().slice(0, 100)).filter(Boolean);
-        if (cols.length > 0) cleanOpt.columns = cols.slice(0, 100);
+        const cols = rawOpt.columns.map((v) => v.slice(0, 100)).filter(Boolean);
+        cleanOpt.columns = cols.slice(0, 100);
       }
 
       const out: CanvasBlock = {
@@ -501,10 +503,10 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
         y: b.y,
         width: b.width,
         height: b.height,
-        options: cleanOpt,
+        ...(b.options !== undefined ? { options: cleanOpt } : {}),
       };
-      if (b.title !== undefined && b.title !== "") out.title = b.title.slice(0, 300);
-      if (b.text !== undefined && b.text !== "") out.text = b.text.slice(0, 20000);
+      if (b.title !== undefined) out.title = b.title.slice(0, 300);
+      if (b.text !== undefined) out.text = b.text.slice(0, 20000);
       if (b.type !== "image" && b.source_id && validSourceIds.has(b.source_id)) {
         out.source_id = b.source_id;
       }
@@ -521,6 +523,7 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
   return {
     schema_version: 1,
     ...(xlsxMode ? { xlsx_mode: xlsxMode } : {}),
+    ...(layout.export_format ? { export_format: layout.export_format } : {}),
     page: { width: pageW, height: pageH, columns, background },
     sources: cleanSources,
     pages: cleanPages,

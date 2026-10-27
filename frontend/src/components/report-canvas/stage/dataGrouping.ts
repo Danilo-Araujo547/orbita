@@ -57,28 +57,20 @@ export function parseGroupDate(
       /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/,
     );
     if (isoMatch) {
-      const year = parseInt(isoMatch[1], 10);
-      const month = parseInt(isoMatch[2], 10);
-      const day = parseInt(isoMatch[3], 10);
-      return {
-        year,
-        month,
-        day,
-        dateObj: new Date(year, month - 1, day),
-      };
-    }
-    // Match DD/MM/YYYY
-    const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (brMatch) {
-      const day = parseInt(brMatch[1], 10);
-      const month = parseInt(brMatch[2], 10);
-      const year = parseInt(brMatch[3], 10);
-      return {
-        year,
-        month,
-        day,
-        dateObj: new Date(year, month - 1, day),
-      };
+      const year = Number(isoMatch[1]);
+      const month = Number(isoMatch[2]);
+      const day = Number(isoMatch[3]);
+      // UTC calendar math avoids DST/browser timezone differences. Do not shift
+      // the written ISO day when the input carries a time/offset (same as PDF).
+      const dateObj = new Date(0);
+      dateObj.setUTCFullYear(year, month - 1, day);
+      dateObj.setUTCHours(0, 0, 0, 0);
+      const offset = s.match(/[+-](\d{2}):?(\d{2})$/);
+      const validTime = !isoMatch[4] || (Number(isoMatch[4]) < 24 && Number(isoMatch[5]) < 60 && Number(isoMatch[6]) < 60);
+      const validOffset = !offset || (Number(offset[1]) < 24 && Number(offset[2]) < 60);
+      if (year >= 1 && dateObj.getUTCFullYear() === year && dateObj.getUTCMonth() + 1 === month && dateObj.getUTCDate() === day && validTime && validOffset) {
+        return {year, month, day, dateObj};
+      }
     }
   }
 
@@ -132,19 +124,15 @@ export function aggregateSeries(
   const valid = nums.filter((n): n is number => n !== null);
   if (valid.length === 0) return null;
 
-  if (aggMode === "sum") {
-    return valid.reduce((a, b) => a + b, 0);
+  const result = aggMode === "avg"
+    ? valid.reduce((a, b) => a + b / valid.length, 0)
+    : aggMode === "min" ? Math.min(...valid)
+    : aggMode === "max" ? Math.max(...valid)
+    : valid.reduce((a, b) => a + b, 0);
+  if (!Number.isFinite(result)) {
+    throw new GroupingError(`A série "${seriesName || "Valor"}" excede o limite numérico. Reduza os valores ou escolha outra agregação.`, "series_not_numeric");
   }
-  if (aggMode === "avg") {
-    return valid.reduce((a, b) => a + b, 0) / valid.length;
-  }
-  if (aggMode === "min") {
-    return Math.min(...valid);
-  }
-  if (aggMode === "max") {
-    return Math.max(...valid);
-  }
-  return valid.reduce((a, b) => a + b, 0);
+  return result;
 }
 
 export function groupByDate(params: {
@@ -198,11 +186,11 @@ export function groupByDate(params: {
       label = `${dayStr}/${monthStr}/${year}`;
     } else if (groupMode === "week") {
       // Monday of the week
-      const dayOfWeek = (dateObj.getDay() + 6) % 7;
+      const dayOfWeek = (dateObj.getUTCDay() + 6) % 7;
       const monday = new Date(dateObj.getTime() - dayOfWeek * 86400000);
-      const mDayStr = String(monday.getDate()).padStart(2, "0");
-      const mMonthStr = String(monday.getMonth() + 1).padStart(2, "0");
-      groupKey = `${monday.getFullYear()}-${mMonthStr}-${mDayStr}`;
+      const mDayStr = String(monday.getUTCDate()).padStart(2, "0");
+      const mMonthStr = String(monday.getUTCMonth() + 1).padStart(2, "0");
+      groupKey = `${monday.getUTCFullYear()}-${mMonthStr}-${mDayStr}`;
       sortKey = monday.getTime();
       label = `sem. ${mDayStr}/${mMonthStr}`;
     } else if (groupMode === "month") {

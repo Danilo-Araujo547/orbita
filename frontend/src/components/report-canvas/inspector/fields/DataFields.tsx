@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -12,7 +12,7 @@ import {
   Table2,
   Target,
 } from "lucide-react";
-import { getCachedSourcePreview } from "../../api/useSourcePreview";
+import { PreviewCacheScope, getCachedSourcePreview } from "../../api/useSourcePreview";
 import ColumnBadge from "../../data/ColumnBadge";
 import DataDrawer from "../../data/DataDrawer";
 import { formatCellValue } from "../../data/columnTypes";
@@ -79,6 +79,7 @@ export default function DataFields({
   onOpenCreateSource,
   onUpdateBlock,
 }: DataFieldsProps) {
+  const cacheScope = useContext(PreviewCacheScope);
   const autoId = useId();
   const listId = `${autoId}-source-list`;
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -125,9 +126,10 @@ export default function DataFields({
     const cached = getCachedSourcePreview(
       pendingSource,
       (pendingSource.type === "report" && pendingSource.parameters) || {},
+      50, cacheScope,
     );
     return resolveSourceColumnInfos(pendingSource, cached, availableSources, monthlyGoals);
-  }, [availableSources, monthlyGoals, pendingSource]);
+  }, [availableSources, monthlyGoals, pendingSource, cacheScope]);
 
   const pendingRemapSummary = useMemo(() => {
     if (!pendingSource) return null;
@@ -223,6 +225,7 @@ export default function DataFields({
     const cached = getCachedSourcePreview(
       nextSource,
       (nextSource.type === "report" && nextSource.parameters) || {},
+      50, cacheScope,
     );
     const nextCols = resolveSourceColumnInfos(nextSource, cached, availableSources, monthlyGoals);
     onUpdateBlock(block.id, "Vincular fonte de dados", (b) => {

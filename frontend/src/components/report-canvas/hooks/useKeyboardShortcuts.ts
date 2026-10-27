@@ -42,7 +42,6 @@ function isInteractiveElement(target: EventTarget | null): boolean {
 
 export function useKeyboardShortcuts({
   selectedBlockId,
-  blocks = [],
   modalOpen,
   onClearSelection,
   onSelectBlock,
@@ -66,6 +65,8 @@ export function useKeyboardShortcuts({
       const target = e.target as HTMLElement | null;
       const isInput = isInteractiveElement(target);
 
+      if (modalOpen) return;
+
       // Only Ctrl+S is allowed inside inputs when focus is in the editor
       if (isInput) {
         if (isCmdOrCtrl && (e.key === "s" || e.key === "S")) {
@@ -74,8 +75,6 @@ export function useKeyboardShortcuts({
         }
         return;
       }
-
-      if (modalOpen) return;
 
       // Save: Ctrl+S
       if (isCmdOrCtrl && !e.shiftKey && (e.key === "s" || e.key === "S")) {
@@ -170,28 +169,8 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // Tab / Shift+Tab: cycle blocks in reading order (top-to-bottom, left-to-right)
-      if (e.key === "Tab") {
-        if (blocks.length > 0) {
-          e.preventDefault();
-          const sorted = [...blocks].sort((a, b) => {
-            if (Math.abs(a.y - b.y) > 10) return a.y - b.y;
-            return a.x - b.x;
-          });
-          const currIdx = sorted.findIndex((b) => b.id === selectedBlockId);
-          let nextIdx: number;
-          if (e.shiftKey) {
-            nextIdx = currIdx <= 0 ? sorted.length - 1 : currIdx - 1;
-          } else {
-            nextIdx = currIdx < 0 || currIdx >= sorted.length - 1 ? 0 : currIdx + 1;
-          }
-          const nextBlock = sorted[nextIdx];
-          if (nextBlock) {
-            onSelectBlock?.(nextBlock.id);
-          }
-        }
-        return;
-      }
+      // Tab follows native document focus order; BlockFrame.onFocus selects
+      // blocks without trapping focus or stealing Tab from toolbar buttons.
 
       // Delete / Backspace: delete selected block (without confirmation modal)
       if (selectedBlockId && (e.key === "Delete" || e.key === "Backspace")) {
@@ -218,7 +197,6 @@ export function useKeyboardShortcuts({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     selectedBlockId,
-    blocks,
     modalOpen,
     onClearSelection,
     onSelectBlock,

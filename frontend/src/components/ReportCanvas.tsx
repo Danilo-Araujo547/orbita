@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { AlertTriangle, PanelRightOpen } from "lucide-react";
+import { PreviewCacheScope, clearSourcePreviewCache } from "./report-canvas/api/useSourcePreview";
 import DataPanel from "./report-canvas/data/DataPanel";
 import SourceDialog from "./report-canvas/data/SourceDialog";
 import PreviewDialog from "./report-canvas/dialogs/PreviewDialog";
@@ -58,7 +59,12 @@ import "./report-canvas/data.css";
 import "./report-canvas/stage.css";
 import "./report-canvas/dialogs.css";
 
-export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportCanvasProps) {
+export default function ReportCanvas(props: ReportCanvasProps) {
+  useEffect(() => () => clearSourcePreviewCache(), []);
+  return <PreviewCacheScope.Provider value={`${props.unit}:${props.report.id}`}><ReportCanvasEditor {...props} /></PreviewCacheScope.Provider>;
+}
+
+function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProps) {
   const store = useCanvasStore();
   const { layout } = store;
 
