@@ -581,3 +581,69 @@
   display: flex;
   align-items: center;
 }
+
+/* ==========================================================================
+   KPI BLOCK PREVIEW
+   ========================================================================== */
+
+.cv-block-kpi .rc-block-inner,
+.rc-block-kpi .rc-block-inner {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+}
+
+.cv-kpi-body,
+.rc-kpi-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 0;
+}
+
+.cv-kpi-value,
+.rc-kpi-value {
+  font-family: var(--cv-font-head);
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-kpi-meta,
+.rc-kpi-meta {
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-xs);
+  line-height: 14px;
+  color: var(--cv-text-3);
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.cv-kpi-source {
+  font-family: var(--cv-font-mono);
+  font-weight: var(--cv-fw-medium);
+  color: var(--cv-text-2);
+}
+
+.cv-kpi-sep {
+  color: var(--cv-text-disabled);
+}
+
+.cv-kpi-aggregation {
+  color: var(--cv-text-3);
+}
+
+.cv-kpi-sub {
+  font-size: 10px;
+  color: var(--cv-text-disabled);
+}
