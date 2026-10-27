@@ -602,15 +602,15 @@
 .cv-root .cv-rail-tab-label {
   display: block;
   width: 100%;
-  max-width: 54px;
+  max-width: 60px;
   padding: 0 1px;
   font-family: var(--cv-font-ui);
-  font-size: var(--cv-fs-xs);
+  font-size: 10.5px;
   font-weight: var(--cv-fw-medium);
-  letter-spacing: -0.02em;
-  line-height: 13px;
+  letter-spacing: -0.01em;
+  line-height: 12px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
 }
 

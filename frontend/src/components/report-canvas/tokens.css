@@ -8,7 +8,7 @@
   --cv-sp-0:2px; --cv-sp-1:4px; --cv-sp-2:8px; --cv-sp-3:12px; --cv-sp-4:16px; --cv-sp-5:24px; --cv-sp-6:32px;
   --cv-r-sm:4px; --cv-r-md:6px; --cv-r-lg:8px;                          /* nunca > 8px (exceto círculos/chips) */
   --cv-h-control:28px; --cv-h-control-lg:32px; --cv-h-topbar:48px; --cv-h-statusbar:28px;
-  --cv-w-rail:56px; --cv-w-panel:288px; --cv-w-inspector:320px;         /* painéis redimensionáveis: 240–400 */
+  --cv-w-rail:64px; --cv-w-panel:288px; --cv-w-inspector:320px;         /* painéis redimensionáveis: 240–400 */
   --cv-dur-fast:100ms; --cv-dur:160ms; --cv-ease:cubic-bezier(.2,0,0,1);
   --cv-z-stage:0; --cv-z-overlay:10; --cv-z-panel:20; --cv-z-topbar:30; --cv-z-popover:40; --cv-z-modal:50; --cv-z-toast:60;
 
