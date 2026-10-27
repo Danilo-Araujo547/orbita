@@ -37,6 +37,7 @@ import {
 } from "./report-canvas/stage/geometry";
 import { usePointerDrag } from "./report-canvas/stage/usePointerDrag";
 import { useCanvasStore } from "./report-canvas/state/canvasStore";
+import { computeLimits } from "./report-canvas/state/limits";
 import {
   selectActivePage,
   selectKnownColumns,
@@ -178,6 +179,11 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
     onUndo: store.undo,
     onRedo: store.redo,
   });
+
+  const limits = useMemo(
+    () => computeLimits(layout, visibleAssets.length),
+    [layout, visibleAssets.length],
+  );
 
   const problems = useMemo(
     () =>
@@ -336,7 +342,13 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
           onSaveAndClose={handleSaveAndClose}
           onClose={onClose}
         />
-        <Banner banner={session.banner} disabled={session.loading || session.busy} onReload={() => void session.loadCanvas(true)} onDismiss={() => session.setBanner(null)} />
+        <Banner
+          banner={session.banner}
+          disabled={session.loading || session.busy}
+          currentVersion={displayVersion}
+          onReload={() => void session.loadCanvas(true)}
+          onDismiss={() => session.setBanner(null)}
+        />
         {session.loading ? (
           <WorkspaceSkeleton />
         ) : (
@@ -434,7 +446,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
             ) : (
               <button
                 type="button"
-                className="cv-icon-btn cv-inspector-toggle-edge"
+                className="cv-btn-icon cv-inspector-toggle-edge"
                 aria-label="Abrir inspetor de propriedades"
                 title="Abrir inspetor"
                 onClick={prefs.openRightPanel}
@@ -445,7 +457,13 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
             <Inspector rightOpen={prefs.rightOpen} selectedBlock={selectedBlock} activePage={activePage} inspectorTab={inspectorTab} pageConfig={layout.page} sources={layout.sources} assets={visibleAssets} uploadingAsset={session.uploadingAsset} knownColumns={selectedKnownColumns} resolveKnownColumns={resolveKnownColumns} onSelectBlock={setSelectedBlockId} onChangeTab={setInspectorTab} onReorderLayer={actions.reorderBlockLayer} onDuplicateBlock={actions.duplicateSelectedBlock} onRemoveBlock={actions.removeBlock} onTriggerImageUpload={(blockId) => session.triggerImageUpload(blockId)} onOpenCreateSource={session.openCreateSourceModal} onColumnWidthsValidation={session.handleColumnWidthsValidation} onUpdateBlock={actions.updateBlock} />
           </div>
         )}
-        <StatusBar />
+        <StatusBar
+          dirty={dirty}
+          saving={session.busy}
+          version={displayVersion}
+          selectedBlock={selectedBlock}
+          limits={limits}
+        />
       </EditorShell>
       <SourceDialog
         sourceModal={session.sourceModal}
