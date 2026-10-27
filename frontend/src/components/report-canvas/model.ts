@@ -34,23 +34,46 @@ export interface CanvasPage {
   blocks: CanvasBlock[];
 }
 
+export type ColumnDataType = "number" | "date" | "datetime" | "boolean" | "text" | "unknown";
+
+export interface ColumnInfo {
+  name: string;
+  type: ColumnDataType;
+  looks_like?: "date" | "number";
+  nullable?: boolean;
+  null_count?: number;
+  sample?: string[];
+}
+
+export interface SourcePreview {
+  columns: ColumnInfo[];
+  rows: Array<Array<string | number | boolean | null>>;
+  total_rows: number;
+  truncated: boolean;
+  elapsed_ms?: number;
+  loaded_at?: string;
+}
+
 export type CanvasSource =
   | {
       id: string;
       type: "report";
       report_id: number;
+      label?: string;
       dataset?: string;
       parameters?: Record<string, string | number | boolean | null | { parameter: string }>;
     }
   | {
       id: string;
       type: "inline";
+      label?: string;
       columns: string[];
       rows: Array<Array<string | number | boolean | null>>;
     }
   | {
       id: string;
       type: "goals";
+      label?: string;
     };
 
 export interface CanvasPageConfig {
@@ -244,6 +267,7 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
           id: s.id,
           type: "report",
           report_id: Number(s.report_id),
+          ...(typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {}),
           ...(typeof s.dataset === "string" ? {dataset:s.dataset} : {}),
           parameters: s.parameters && typeof s.parameters === "object" && !Array.isArray(s.parameters) ? s.parameters : {},
         });
@@ -252,12 +276,17 @@ export function normalizeLayout(raw: unknown): CanvasLayout {
         sources.push({
           id: s.id,
           type: "inline",
+          ...(typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {}),
           columns: s.columns.map(String),
           rows: s.rows,
         });
       } else if (s.type === "goals") {
         seenSourceIds.add(s.id);
-        sources.push({ id: s.id, type: "goals" });
+        sources.push({
+          id: s.id,
+          type: "goals",
+          ...(typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {}),
+        });
       }
     }
   }
@@ -342,11 +371,13 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
   const validSourceIds = new Set(layout.sources.map((s) => s.id));
 
   const cleanSources: CanvasSource[] = layout.sources.map((s) => {
+    const labelProp = typeof s.label === "string" && s.label.trim() ? { label: s.label.trim().slice(0, 60) } : {};
     if (s.type === "report") {
       return {
         id: s.id,
         type: "report",
         report_id: Math.round(Number(s.report_id)),
+        ...labelProp,
         ...(s.dataset ? {dataset:s.dataset} : {}),
         parameters: s.parameters || {},
       };
@@ -355,11 +386,12 @@ export function sanitizeLayoutForApi(layout: CanvasLayout): CanvasLayout {
       return {
         id: s.id,
         type: "inline",
+        ...labelProp,
         columns: s.columns,
         rows: s.rows,
       };
     }
-    return { id: s.id, type: "goals" };
+    return { id: s.id, type: "goals", ...labelProp };
   });
 
   const cleanPages: CanvasPage[] = layout.pages.map((p, idx) => ({
@@ -455,6 +487,7 @@ export type SourceDialogState = {
   mode: "create" | "edit";
   originalId?: string;
   id: string;
+  label?: string;
   type: "report" | "inline" | "goals";
   reportId: string;
   dataset?: string;
@@ -462,6 +495,8 @@ export type SourceDialogState = {
   columnsJson: string;
   rowsJson: string;
   error: string;
+  testPreview?: SourcePreview | null;
+  testError?: string | null;
 };
 
 export type DragSession =
