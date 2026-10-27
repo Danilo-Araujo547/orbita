@@ -52,7 +52,7 @@ export default function CanvasShell({
   return (
     <main
       ref={shellRef}
-      className="report-canvas-page"
+      className="report-canvas-page cv-root"
       aria-label="Editor de relatório"
     >
       <header className="rc-page-header">

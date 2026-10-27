@@ -41,6 +41,7 @@ import {testParameters, displayParameter, collectTestParameters} from "./report-
 import InlineDialog from "./InlineDialog";
 import BlockPreview from "./report-canvas/BlockPreview";
 import { query, request } from "../api";
+import "./report-canvas/tokens.css";
 import "./report-canvas.css";
 import "./canvas-studio.css";
 
@@ -2421,7 +2422,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
         <InlineDialog
           title={sourceModal.mode === "create" ? "Adicionar fonte de dados" : "Editar fonte de dados"}
           subtitle="Fontes compartilháveis entre blocos do Canvas"
-          className="rc-subdialog"
+          className="rc-subdialog cv-root"
           onClose={() => setSourceModal(null)}
           footer={
             <>
@@ -2562,7 +2563,7 @@ export default function ReportCanvas({ unit, report, onClose, onSaved }: ReportC
         <InlineDialog
           title="Testar relatório"
           subtitle=""
-          className={`rc-subdialog rc-test-dialog ${previewModal.resultUrl ? "has-preview" : ""}`}
+          className={`rc-subdialog rc-test-dialog cv-root ${previewModal.resultUrl ? "has-preview" : ""}`}
           busy={previewModal.busy}
           onClose={closePreviewDialog}
           footer={

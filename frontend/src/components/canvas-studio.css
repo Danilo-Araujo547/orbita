@@ -4,26 +4,26 @@
    ========================================================================== */
 
 .report-canvas-page {
-  --rc-bg: #ffffff;
-  --rc-rail-bg: #f8fafc;
-  --rc-toolbar-bg: #ffffff;
-  --rc-sidebar-bg: #ffffff;
+  --rc-bg: var(--cv-surface, #ffffff);
+  --rc-rail-bg: var(--cv-surface-2, #f8fafc);
+  --rc-toolbar-bg: var(--cv-surface, #ffffff);
+  --rc-sidebar-bg: var(--cv-surface, #ffffff);
   --rc-subtle-bg: #f3f6fa;
   --rc-symbol-bg: #f4f7fa;
   --rc-control-hover: #edf3f8;
   --rc-control-active: #e2eef7;
   --rc-stage-bg: #edf1f6;
   --rc-stage-dot: rgba(15, 36, 56, 0.11);
-  --rc-border: #e2e8f0;
-  --rc-border-strong: #cbd5e1;
+  --rc-border: var(--cv-line, #e2e8f0);
+  --rc-border-strong: var(--cv-line-strong, #cbd5e1);
   --rc-accent: #075b94;
   --rc-accent-hover: #064b7b;
   --rc-cyan: #14b4cb;
   --rc-primary-bg: #075b94;
   --rc-primary-hover: #064b7b;
-  --rc-accent-soft: rgba(7, 91, 148, 0.08);
+  --rc-accent-soft: var(--cv-accent-soft, rgba(7, 91, 148, 0.08));
   --rc-accent-border: rgba(7, 91, 148, 0.34);
-  --rc-accent-text: #075b94;
+  --rc-accent-text: var(--cv-accent, #075b94);
   --rc-focus: #14b4cb;
   --rc-select-line: #0a74b8;
   --rc-popover-shadow: 0 8px 24px rgba(15, 36, 56, 0.12);
@@ -33,26 +33,26 @@
 }
 
 [data-theme="dark"] .report-canvas-page {
-  --rc-bg: #15181d;
-  --rc-rail-bg: #111419;
-  --rc-toolbar-bg: #15181d;
-  --rc-sidebar-bg: #15181d;
-  --rc-subtle-bg: #1c2128;
+  --rc-bg: var(--cv-surface, #15181d);
+  --rc-rail-bg: var(--cv-surface-2, #111419);
+  --rc-toolbar-bg: var(--cv-surface, #15181d);
+  --rc-sidebar-bg: var(--cv-surface, #15181d);
+  --rc-subtle-bg: var(--cv-surface-3, #1c2128);
   --rc-symbol-bg: #1e242c;
   --rc-control-hover: #212832;
   --rc-control-active: #25313e;
-  --rc-stage-bg: #0e1116;
+  --rc-stage-bg: var(--cv-bg-app, #0e1116);
   --rc-stage-dot: rgba(148, 163, 184, 0.12);
-  --rc-border: #252c35;
-  --rc-border-strong: #353f4d;
+  --rc-border: var(--cv-line, #252c35);
+  --rc-border-strong: var(--cv-line-strong, #353f4d);
   --rc-accent: #14b4cb;
   --rc-accent-hover: #26c4db;
   --rc-cyan: #14b4cb;
   --rc-primary-bg: #0a6eb0;
   --rc-primary-hover: #0d7ec9;
-  --rc-accent-soft: rgba(20, 180, 203, 0.14);
+  --rc-accent-soft: var(--cv-accent-soft, rgba(20, 180, 203, 0.14));
   --rc-accent-border: rgba(20, 180, 203, 0.44);
-  --rc-accent-text: #62dfee;
+  --rc-accent-text: var(--cv-accent, #62dfee);
   --rc-focus: #14b4cb;
   --rc-select-line: #14b4cb;
   --rc-popover-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
