@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Image as ImageIcon, PanelLeftClose, Trash2, Upload } from "lucide-react";
 import InlineDialog from "../../InlineDialog";
 import type { CanvasAssetMeta, CanvasBlock, CanvasPage } from "../model";
+import { classifyLimitRatio } from "../state/limits";
 
 export interface ImagesPanelProps {
   active: boolean;
@@ -46,8 +47,7 @@ export default function ImagesPanel({
     return counts;
   }, [pages]);
 
-  const ratio = assets.length / MAX_IMAGES;
-  const severity = ratio >= 1 ? "danger" : ratio >= 0.8 ? "warning" : "ok";
+  const severity = classifyLimitRatio(assets.length / MAX_IMAGES);
   const canUseOnSelected = selectedBlock?.type === "image" && Boolean(onUseInSelectedBlock);
 
   return (
