@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import ReportCanvasPage from "./components/ReportCanvasPage";
 import BlockLibrary from "./components/report-canvas/library/BlockLibrary";
 import ImagesPanel from "./components/report-canvas/library/ImagesPanel";
 import PagesPanel from "./components/report-canvas/library/PagesPanel";
@@ -326,5 +327,18 @@ describe("Shell do editor — TopBar, LeftRail, painéis, StatusBar e Banner", (
     expect(conflictHtml).toContain("Recarregar (perde alterações)");
     expect(conflictHtml).toContain("Manter minhas alterações");
     expect(conflictHtml).toContain("Copiar detalhes");
+  });
+
+  it("renderiza ReportCanvasPage com esqueleto da casca em carregamento e mensagem + ações em erro", () => {
+    const loadingHtml = renderToStaticMarkup(<ReportCanvasPage id={50} unit="ame" admin={true} />);
+    expect(loadingHtml).toContain("cv-skel-workspace");
+    expect(loadingHtml).toContain("cv-skel-paper");
+    expect(loadingHtml).toContain("Carregando relatório…");
+
+    const errorHtml = renderToStaticMarkup(<ReportCanvasPage id={50} unit="ame" admin={false} />);
+    expect(errorHtml).toContain('role="alert"');
+    expect(errorHtml).toContain("Acesso administrativo necessário");
+    expect(errorHtml).toContain("Tentar novamente");
+    expect(errorHtml).toContain("Voltar");
   });
 });
