@@ -75,6 +75,7 @@ export default function DataFields({
   previewLoading = false,
   previewError = null,
   previewUnavailable = false,
+  knownColumns = [],
   onLoadPreview,
   onOpenCreateSource,
   onUpdateBlock,
@@ -101,9 +102,12 @@ export default function DataFields({
     [block.source_id, sources],
   );
 
-  const columnInfos = useMemo(
-    () => resolveSourceColumnInfos(currentSource, preview, availableSources, monthlyGoals),
-    [availableSources, currentSource, monthlyGoals, preview],
+  const columnInfos = useMemo<ColumnInfo[]>(
+    () => {
+      const resolved = resolveSourceColumnInfos(currentSource, preview, availableSources, monthlyGoals);
+      return resolved.length ? resolved : knownColumns.map((name) => ({ name, type: "unknown" as const }));
+    },
+    [availableSources, currentSource, monthlyGoals, preview, knownColumns],
   );
 
   const rowsMeta = useMemo(
@@ -567,7 +571,8 @@ export default function DataFields({
           </div>
         )}
 
-        {/* Linhagem em uma linha */}
+        {currentSourceMeta && <p className="cv-source-breadcrumb">{currentSourceMeta.title} · {currentSourceMeta.subtitle}</p>}
+        {/* Linhagem completa */}
         {currentSource && lineageText && (
           <div className="cv-field">
             <span className="cv-label">Linhagem</span>

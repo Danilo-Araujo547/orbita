@@ -17,7 +17,7 @@ describe("Editor sample data",()=>{
   const block:CanvasBlock={id:"b",type:"table",x:0,y:0,width:200,height:200,options:{columns:["NM_PACIENTE","DATA","TOTAL"]}};
   const data=sampleDataset(block,source);
   expect(data.rows[0][0]).toBe("Exemplo 1");
-  expect(data.rows[0][1]).toBe("Exemplo 1");
+  expect(data.rows[0][1]).toBe("2026-01-01");
   expect(typeof data.rows[0][2]).toBe("number");
   expect((data as any).isPlaceholder).toBe(true);
   expect(sampleDataset({...block,type:"kpi",options:{value_field:"MEDIA"}},source).columns).toContain("MEDIA");

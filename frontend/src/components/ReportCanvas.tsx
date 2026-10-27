@@ -6,6 +6,7 @@ import DataPanel from "./report-canvas/data/DataPanel";
 import SourceDialog from "./report-canvas/data/SourceDialog";
 import PreviewDialog from "./report-canvas/dialogs/PreviewDialog";
 import { useCanvasSession } from "./report-canvas/hooks/useCanvasSession";
+import { useStagePreviews } from "./report-canvas/hooks/useStagePreviews";
 import { useFitZoom } from "./report-canvas/hooks/useFitZoom";
 import { useKeyboardShortcuts } from "./report-canvas/hooks/useKeyboardShortcuts";
 import { useLayoutActions } from "./report-canvas/hooks/useLayoutActions";
@@ -236,10 +237,15 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
     () => resolveKnownColumns(selectedBlock?.source_id),
     [resolveKnownColumns, selectedBlock?.source_id],
   );
-  const localDatasets = useMemo(
-    () => selectLocalDatasets(layout.sources, session.monthlyGoals),
-    [layout.sources, session.monthlyGoals],
-  );
+  const stagePreviews = useStagePreviews(report.id, unit, layout.sources, !showSampleData);
+  const sourcePreviews = useMemo(() => Object.fromEntries(Object.entries(stagePreviews.states).map(([id, state]) => [id, state.data])), [stagePreviews.states]);
+  const localDatasets = useMemo(() => {
+    const datasets = selectLocalDatasets(layout.sources, session.monthlyGoals);
+    for (const [id, preview] of Object.entries(sourcePreviews)) {
+      if (preview) datasets.set(id, {columns: preview.columns.map(c => c.name), rows: preview.rows});
+    }
+    return datasets;
+  }, [layout.sources, session.monthlyGoals, sourcePreviews]);
 
   const handleReorderBlock = useCallback(
     (blockId: string, dir: -1 | 1) => {
@@ -567,6 +573,8 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
               draggingBlockId={dragState?.blockId || null}
               tempGeometries={activeDrag ? { [activeDrag.blockId]: activeDrag } : undefined}
               activeGuides={activeDrag?.guides}
+              previewStates={stagePreviews.states}
+              onLoadSourcePreview={(id) => void stagePreviews.load(id, true)}
               blockProblems={problems.byBlockId}
               onOpenProblem={() => setProblemsPanelOpen(true)}
               sources={layout.sources}
@@ -599,7 +607,7 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
                 <PanelRightOpen size={16} aria-hidden="true" />
               </button>
             )}
-            <Inspector rightOpen={prefs.rightOpen} selectedBlock={selectedBlock} activePage={activePage} inspectorTab={inspectorTab} pageConfig={layout.page} sources={layout.sources} assets={visibleAssets} uploadingAsset={session.uploadingAsset} knownColumns={selectedKnownColumns} resolveKnownColumns={resolveKnownColumns} onSelectBlock={setSelectedBlockId} onChangeTab={setInspectorTab} onReorderLayer={actions.reorderBlockLayer} onDuplicateBlock={actions.duplicateSelectedBlock} onRemoveBlock={actions.removeBlock} onTriggerImageUpload={(blockId) => session.triggerImageUpload(blockId)} onOpenCreateSource={session.openCreateSourceModal} onColumnWidthsValidation={session.handleColumnWidthsValidation} onUpdateBlock={actions.updateBlock} />
+            <Inspector rightOpen={prefs.rightOpen} selectedBlock={selectedBlock} activePage={activePage} inspectorTab={inspectorTab} pageConfig={layout.page} sources={layout.sources} availableSources={session.availableSources} sourcePreviews={sourcePreviews} previewState={selectedBlock?.source_id ? stagePreviews.states[selectedBlock.source_id] : undefined} onLoadSourcePreview={(id) => void stagePreviews.load(id, true)} monthlyGoals={session.monthlyGoals} layout={layout} assetUrls={session.assetUrls} reportId={report.id} unit={unit} reportName={report.name} parameterSchema={report.parameter_schema} assets={visibleAssets} uploadingAsset={session.uploadingAsset} knownColumns={selectedKnownColumns} resolveKnownColumns={resolveKnownColumns} onSelectBlock={setSelectedBlockId} onChangeTab={setInspectorTab} onReorderLayer={actions.reorderBlockLayer} onDuplicateBlock={actions.duplicateSelectedBlock} onRemoveBlock={actions.removeBlock} onTriggerImageUpload={(blockId) => session.triggerImageUpload(blockId)} onOpenCreateSource={session.openCreateSourceModal} onColumnWidthsValidation={session.handleColumnWidthsValidation} onUpdateBlock={actions.updateBlock} />
           </div>
         )}
         <ProblemsPanel

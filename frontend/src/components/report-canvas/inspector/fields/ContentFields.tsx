@@ -35,6 +35,7 @@ export interface ContentFieldsProps {
   block: CanvasBlock;
   hidden: boolean;
   layout?: CanvasLayout;
+  sourceOrigin?: string;
   sources: CanvasSource[];
   columnInfos: readonly ColumnInfo[];
   rows: ReadonlyArray<ReadonlyArray<string | number | boolean | null>>;
@@ -90,6 +91,7 @@ export default function ContentFields({
   block,
   hidden,
   layout,
+  sourceOrigin,
   sources,
   columnInfos,
   rows,
@@ -1047,6 +1049,9 @@ export default function ContentFields({
                         <span className="cv-table-col-name" title={item.name}>
                           {item.name}
                         </span>
+                        <small className="cv-column-origin" title={`${sourceOrigin || block.source_id || "Sem fonte"} › ${item.name}`}>
+                          {sourceOrigin || block.source_id || "Sem fonte"} › {item.name}
+                        </small>
                         {isMissing && <span className="cv-col-missing-tag">Ausente</span>}
                         {item.checked && selectedTableCols.length > 1 && (
                           <div className="cv-well-actions">

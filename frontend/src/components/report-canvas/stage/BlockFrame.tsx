@@ -1,3 +1,4 @@
+import type { SourcePreviewState } from "../api/useSourcePreview";
 import { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import BlockPreview from "../blocks/BlockPreview";
@@ -29,6 +30,7 @@ export interface BlockFrameProps {
   tempGeometry?: { x: number; y: number; width: number; height: number; tooltip?: string };
   problem?: CanvasProblemItem;
   onOpenProblem?: (problem: CanvasProblemItem) => void;
+  previewState?: SourcePreviewState;
   onLoadSourcePreview?: (sourceId: string) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
   onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
@@ -64,6 +66,7 @@ function BlockFrameComponent({
   problem,
   onOpenProblem,
   onLoadSourcePreview,
+  previewState,
   onStartDrag,
   onStartResize,
   onFocusBlock,
@@ -108,7 +111,7 @@ function BlockFrameComponent({
       } else {
         const local = localDatasets.get(src.id);
         const rowsCount = local?.rows?.length || 0;
-        if (!showSampleData && rowsCount > 0) {
+        if (!showSampleData && local) {
           originState = "preview";
           originLabel = `Prévia · ${rowsCount} linhas`;
         } else {
@@ -139,7 +142,7 @@ function BlockFrameComponent({
       } else {
         const local = localDatasets.get(src.id);
         const rowsCount = local?.rows?.length || 0;
-        if (!showSampleData && rowsCount > 0) {
+        if (!showSampleData && local) {
           originState = "preview";
           originLabel = `Prévia · ${rowsCount} linhas`;
         } else {
@@ -151,6 +154,12 @@ function BlockFrameComponent({
         }
       }
     }
+  }
+
+  if (!showSampleData && blockSourceId && sources.find(s => s.id === blockSourceId)?.type === "report" && !localDatasets.has(blockSourceId)) {
+    originState = "preview";
+    originLabel = previewState?.status === "loading" ? "Prévia · carregando…" : "Prévia · indisponível";
+    canLoadPreview = false;
   }
 
   const blockDisplayName = block.title || BLOCK_LABELS[block.type];
@@ -230,6 +239,12 @@ function BlockFrameComponent({
         </span>
       )}
 
+      {!showSampleData && previewState && previewState.status !== "ready" ? (
+        <div className="cv-block-inner"><div className="cv-block-problem-inline" role="status">
+          <p>{previewState.status === "loading" ? "Carregando prévia…" : previewState.error}</p>
+          {previewState.status !== "loading" && blockSourceId && <button type="button" className="cv-btn-compact" onClick={() => onLoadSourcePreview?.(blockSourceId!)}>Tentar de novo</button>}
+        </div></div>
+      ) : <>
       {/* Block Preview Content or Inline Problem Message */}
       {problem && problem.severity === "error" && hasMissingSource ? (
         <div className="cv-block-inner">
@@ -255,6 +270,7 @@ function BlockFrameComponent({
         />
       )}
 
+      </>}
       {/* 8 Resize Handles */}
       {isSelected && (
         <>
@@ -276,6 +292,7 @@ function BlockFrameComponent({
 
 export default memo(BlockFrameComponent, (prev, next) => {
   return (
+    prev.previewState === next.previewState &&
     prev.isSelected === next.isSelected &&
     prev.isDragging === next.isDragging &&
     prev.background === next.background &&

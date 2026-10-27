@@ -22,7 +22,7 @@ export default function KpiPreview({
 }: KpiPreviewProps) {
   const opt = block.options || {};
 
-  if (source.type === "report" && !showSampleData) {
+  if (source.type === "report" && !showSampleData && !dataset.columns.length) {
     const sourceLabel = catalog
       ? `${catalog.name} (${catalog.code})`
       : `Relatório #${source.report_id}`;

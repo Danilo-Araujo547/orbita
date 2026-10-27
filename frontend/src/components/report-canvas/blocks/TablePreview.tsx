@@ -1,4 +1,7 @@
 import type { CanvasBlock, CanvasSource, CatalogSqlSource } from "../model";
+import ColumnBadge from "../data/ColumnBadge";
+import { inferColumnType } from "../data/columnTypes";
+import { exampleColumnType } from "../placeholderData";
 import { sourceColumns } from "../sampleData";
 
 export interface TablePreviewProps {
@@ -24,7 +27,7 @@ export default function TablePreview({
 }: TablePreviewProps) {
   const opt = block.options || {};
 
-  if (source.type === "report" && !showSampleData) {
+  if (source.type === "report" && !showSampleData && !dataset.columns.length) {
     const sourceLabel = catalog
       ? `${catalog.name} (${catalog.code})`
       : `Relatório #${source.report_id}`;
@@ -39,7 +42,7 @@ export default function TablePreview({
               <tr>
                 {headers.map((c) => (
                   <th key={c} style={{ borderBottomColor: primaryColor }}>
-                    {c}
+                    <span>{c}</span>{" "}<ColumnBadge type={showSampleData ? exampleColumnType(c) : inferColumnType(dataset.rows.map(r => r[dataset.columns.indexOf(c)]))} />
                   </th>
                 ))}
               </tr>
@@ -92,7 +95,7 @@ export default function TablePreview({
               <tr>
                 {chosenCols.map((c) => (
                   <th key={c} style={{ borderBottomColor: primaryColor }}>
-                    {c}
+                    <span>{c}</span>{" "}<ColumnBadge type={showSampleData ? exampleColumnType(c) : inferColumnType(dataset.rows.map(r => r[dataset.columns.indexOf(c)]))} />
                   </th>
                 ))}
               </tr>

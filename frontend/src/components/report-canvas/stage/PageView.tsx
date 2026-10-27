@@ -1,3 +1,4 @@
+import type { SourcePreviewState } from "../api/useSourcePreview";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type {
   CanvasAssetMeta,
@@ -35,6 +36,7 @@ export interface PageViewProps {
   activeGuides?: SnapGuide[];
   blockProblems?: Record<string, CanvasProblemItem>;
   onOpenProblem?: (problem: CanvasProblemItem) => void;
+  previewStates?: Record<string, SourcePreviewState>;
   onLoadSourcePreview?: (sourceId: string) => void;
   onClearSelection: () => void;
   onSelectBlock: (blockId: string) => void;
@@ -64,6 +66,7 @@ export default function PageView({
   blockProblems,
   onOpenProblem,
   onLoadSourcePreview,
+  previewStates,
   onClearSelection,
   onSelectBlock,
   onStartDrag,
@@ -152,6 +155,7 @@ export default function PageView({
             tempGeometry={tempGeometries ? tempGeometries[block.id] : undefined}
             problem={blockProblems ? blockProblems[block.id] : undefined}
             onOpenProblem={onOpenProblem}
+            previewState={block.source_id ? previewStates?.[block.source_id] : undefined}
             onLoadSourcePreview={onLoadSourcePreview}
             onStartDrag={onStartDrag}
             onStartResize={onStartResize}

@@ -1243,3 +1243,7 @@
   font-size: var(--cv-fs-xs);
   color: var(--cv-text);
 }
+
+.cv-root .cv-lineage-text { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.cv-root .cv-source-breadcrumb, .cv-root .cv-column-origin { color: var(--cv-text-2); white-space: normal; overflow-wrap: anywhere; font-size: var(--cv-fs-xs); }
+.cv-root .cv-table-col-item { flex-wrap: wrap; }

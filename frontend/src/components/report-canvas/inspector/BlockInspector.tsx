@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
+import type { SourcePreviewState } from "../api/useSourcePreview";
 import { useSourcePreview } from "../api/useSourcePreview";
 import { COMPONENT_ICONS, COMPONENT_NAMES } from "../library/BlockLibrary";
 import type {
@@ -27,7 +28,7 @@ import AppearanceFields from "./fields/AppearanceFields";
 import ContentFields from "./fields/ContentFields";
 import DataFields from "./fields/DataFields";
 import GeometryFields from "./fields/GeometryFields";
-import { resolveSourceColumnInfos, resolveSourceRows } from "./inspectorOps";
+import { getSourceDisplayMeta, resolveSourceColumnInfos, resolveSourceRows } from "./inspectorOps";
 
 export type InspectorTab = "content" | "appearance" | "data";
 
@@ -51,6 +52,8 @@ export interface BlockInspectorProps {
   parameterSchema?: Record<string, unknown>;
   sourcePreviews?: Record<string, SourcePreview | null | undefined>;
   forcePreviewUnavailable?: boolean;
+  previewState?: SourcePreviewState;
+  onLoadSourcePreview?: (sourceId: string) => void;
   onChangeTab: (tab: InspectorTab) => void;
   onReorderLayer: (dir: -1 | 1) => void;
   onDuplicateBlock: () => void;
@@ -93,6 +96,8 @@ export default function BlockInspector({
   parameterSchema,
   sourcePreviews,
   forcePreviewUnavailable = false,
+  previewState,
+  onLoadSourcePreview,
   onChangeTab,
   onReorderLayer,
   onDuplicateBlock,
@@ -145,13 +150,13 @@ export default function BlockInspector({
     unit,
     source: currentSource,
     parameters: (currentSource?.type === "report" && currentSource.parameters) || {},
-    autoLoad: Boolean(reportId && unit && currentSource?.type === "report"),
+    autoLoad: !onLoadSourcePreview && Boolean(reportId && unit && currentSource?.type === "report"),
   });
 
   const externalPreview =
     currentSource && sourcePreviews ? sourcePreviews[currentSource.id] ?? null : null;
   const activePreview = externalPreview || previewHook.data;
-  const isPreviewUnavailable = forcePreviewUnavailable || previewHook.isUnavailable;
+  const isPreviewUnavailable = forcePreviewUnavailable || (onLoadSourcePreview ? previewState?.status === "unavailable" : previewHook.isUnavailable);
 
   // Merge columnInfos: if neither preview nor catalog had columns, fall back to knownColumns prop
   const columnInfos = useMemo(() => {
@@ -509,6 +514,7 @@ export default function BlockInspector({
           hidden={effectiveTab !== "content"}
           layout={effectiveLayout}
           sources={sources}
+          sourceOrigin={currentSource ? getSourceDisplayMeta(currentSource, availableSources).subtitle : "Sem fonte"}
           columnInfos={columnInfos}
           rows={rowsMeta.rows}
           totalRows={rowsMeta.totalRows}
@@ -544,12 +550,13 @@ export default function BlockInspector({
           sources={sources}
           availableSources={availableSources}
           monthlyGoals={monthlyGoals}
+          knownColumns={columnInfos.map((c) => c.name)}
           preview={activePreview}
-          previewLoading={previewHook.isLoading}
-          previewError={previewHook.error}
+          previewLoading={onLoadSourcePreview ? previewState?.status === "loading" : previewHook.isLoading}
+          previewError={onLoadSourcePreview ? previewState?.error : previewHook.error}
           previewUnavailable={isPreviewUnavailable}
           onLoadPreview={
-            reportId && unit
+            onLoadSourcePreview && currentSource ? () => onLoadSourcePreview(currentSource.id) : reportId && unit
               ? (bypassCache) => {
                   if (currentSource) {
                     void previewHook.loadPreview(currentSource, undefined, { bypassCache });

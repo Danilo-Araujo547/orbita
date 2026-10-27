@@ -195,7 +195,7 @@ export function getUsedColumnsForBlock(
     return opt.value_field?.trim() ? [opt.value_field.trim()] : [];
   }
   if (block.type === "table") {
-    if (Array.isArray(opt.columns)) {
+    if (opt.columns?.length) {
       return opt.columns;
     }
     return availableColumns.map((c) => c.name);
