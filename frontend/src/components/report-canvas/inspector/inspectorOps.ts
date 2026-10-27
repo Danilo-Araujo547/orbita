@@ -470,7 +470,9 @@ export function interpolateTextPreview(
             : ctx.previews
               ? (ctx.previews as Record<string, SourcePreview | null | undefined>)[srcId]
               : null;
-        const cols = preview?.columns.map((c) => c.name) || (src.type === "inline" ? src.columns : []);
+        const cols =
+          preview?.columns.map((c: ColumnInfo) => c.name) ||
+          (src.type === "inline" ? src.columns : []);
         const rows = preview?.rows || (src.type === "inline" ? src.rows : []);
         const colIdx = cols.indexOf(colName);
         if (colIdx >= 0 && rows.length > 0 && rows[0][colIdx] !== undefined && rows[0][colIdx] !== null) {
