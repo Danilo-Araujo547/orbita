@@ -15,7 +15,7 @@ import PagesPanel from "./components/report-canvas/library/PagesPanel";
 import DataPanel from "./components/report-canvas/data/DataPanel";
 import ImagesPanel from "./components/report-canvas/library/ImagesPanel";
 import LeftRail from "./components/report-canvas/shell/LeftRail";
-import TopBar, { CanvasHeaderControls } from "./components/report-canvas/shell/TopBar";
+import TopBar from "./components/report-canvas/shell/TopBar";
 import Stage from "./components/report-canvas/stage/Stage";
 import { createDefaultLayout, sanitizeLayoutForApi } from "./components/report-canvas/model";
 
@@ -163,13 +163,14 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
     );
     expect(html).toContain('class="report-canvas-page cv-root"');
     expect(html).toContain("Relatório Assistencial");
-    expect(html).toContain("Usar Canvas");
-    expect(html).toContain("Dados de exemplo");
-    expect(html).toContain('class="rc-toolbar"');
+    expect(html).toContain("Relatórios");
+    expect(html).toContain("Rascunho");
+    expect(html).toContain("v2");
+    expect(html).toContain('role="toolbar"');
     expect(html).toContain("Carregando estrutura do Canvas…");
   });
 
-  it("renderiza TopBar, LeftRail, Stage e Inspector com os mesmos atributos e classes do baseline", () => {
+  it("renderiza TopBar, LeftRail, Stage e Inspector com os atributos e classes esperados", () => {
     const layout = createDefaultLayout();
     layout.pages[0].blocks.push({
       id: "b1",
@@ -185,39 +186,30 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
 
     const workspaceHtml = renderToStaticMarkup(
       <div>
-        <CanvasHeaderControls
+        <TopBar
+          reportName="Relatório Assistencial"
+          version={7}
           enabled
           outputFormat="pdf"
           dirty
           loading={false}
           busy={false}
-          showSampleData
-          onChangeEnabled={() => {}}
-          onChangeOutputFormat={() => {}}
-          onChangeShowSampleData={() => {}}
-          onOpenPreview={() => {}}
-          onSave={() => {}}
-        />
-        <TopBar
-          pages={layout.pages}
-          activePageId="p1"
-          pageConfig={layout.page}
-          loading={false}
-          busy={false}
-          showGrid
+          canUndo
+          canRedo={false}
+          undoLabel="Mover bloco"
+          redoLabel={null}
           zoom={0.85}
-          rightOpen
-          leftWidth={224}
-          rightWidth={280}
-          onSelectPage={() => {}}
-          onUpdatePageConfig={() => {}}
-          onToggleGrid={() => {}}
           onChangeZoom={() => {}}
           onFitToWidth={() => {}}
-          onReload={() => {}}
-          onToggleRightPanel={() => {}}
-          onChangeLeftWidth={() => {}}
-          onChangeRightWidth={() => {}}
+          problemCount={2}
+          problemSeverity="error"
+          dataMode="sample"
+          onChangeDataMode={() => {}}
+          onChangeEnabled={() => {}}
+          onChangeOutputFormat={() => {}}
+          onOpenPreview={() => {}}
+          onSave={() => {}}
+          onClose={() => {}}
         />
         <LeftRail
           leftOpen
@@ -300,8 +292,12 @@ describe("Renderização estática dos módulos extraídos (preservação estrut
       </div>,
     );
 
-    expect(workspaceHtml).toContain("Canvas ativo · Alterações não salvas");
-    expect(workspaceHtml).toContain("rc-component-tile");
+    expect(workspaceHtml).toContain("Ativo");
+    expect(workspaceHtml).toContain("v7");
+    expect(workspaceHtml).toContain("Desfazer: Mover bloco (Ctrl+Z)");
+    expect(workspaceHtml).toContain("85 %");
+    expect(workspaceHtml).toContain("Problemas");
+    expect(workspaceHtml).toContain("cv-unsaved-dot");
     expect(workspaceHtml).toContain("rc-column-grid");
     expect(workspaceHtml).toContain("rc-block rc-block-kpi is-selected");
     expect(workspaceHtml).toContain("rc-resize-handle-se");

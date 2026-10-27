@@ -1,0 +1,894 @@
+/* ==========================================================================
+   REPORT CANVAS — SHELL (TOPBAR, RAIL, STATUSBAR, BANNER & POPOVERS)
+   Strictly uses --cv-* design tokens; no gradients, glassmorphism or slop
+   ========================================================================== */
+
+.cv-root .cv-mono {
+  font-family: var(--cv-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Base compact buttons inside .cv-root */
+.cv-root .cv-btn,
+.cv-root .cv-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cv-sp-1);
+  height: var(--cv-h-control);
+  min-height: var(--cv-h-control);
+  padding: 0 var(--cv-sp-2);
+  border: 1px solid var(--cv-line-strong);
+  border-radius: var(--cv-r-sm);
+  background: transparent;
+  color: var(--cv-text);
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-medium);
+  line-height: var(--cv-lh-tight);
+  white-space: nowrap;
+  box-shadow: none;
+  transform: none;
+  transition:
+    background-color var(--cv-dur-fast) var(--cv-ease),
+    border-color var(--cv-dur-fast) var(--cv-ease),
+    color var(--cv-dur-fast) var(--cv-ease);
+}
+
+.cv-root .cv-btn-icon {
+  width: var(--cv-h-control);
+  min-width: var(--cv-h-control);
+  padding: 0;
+}
+
+.cv-root .cv-btn:hover:not(:disabled),
+.cv-root .cv-btn-icon:hover:not(:disabled),
+.cv-root .cv-btn.is-open {
+  background: var(--cv-surface-3);
+  border-color: var(--cv-line-strong);
+  color: var(--cv-text);
+  transform: none;
+}
+
+.cv-root .cv-btn:disabled,
+.cv-root .cv-btn-icon:disabled {
+  color: var(--cv-text-disabled);
+  border-color: var(--cv-line);
+  background: transparent;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.cv-root .cv-btn-primary {
+  height: var(--cv-h-control-lg);
+  min-height: var(--cv-h-control-lg);
+  padding: 0 var(--cv-sp-3);
+  border-color: var(--cv-accent);
+  background: var(--cv-accent);
+  color: var(--cv-on-accent);
+  font-size: var(--cv-fs-md);
+  font-weight: var(--cv-fw-semibold);
+}
+
+.cv-root .cv-btn-primary:hover:not(:disabled) {
+  background: var(--cv-accent-hover);
+  border-color: var(--cv-accent-hover);
+  color: var(--cv-on-accent);
+}
+
+.cv-root .cv-btn-primary:active:not(:disabled) {
+  background: var(--cv-accent-active);
+  border-color: var(--cv-accent-active);
+}
+
+.cv-root .cv-btn-primary:disabled {
+  background: var(--cv-surface-3);
+  border-color: var(--cv-line);
+  color: var(--cv-text-disabled);
+}
+
+.cv-root .cv-btn-danger {
+  border-color: var(--cv-danger-line);
+  background: var(--cv-danger-bg);
+  color: var(--cv-danger);
+  font-weight: var(--cv-fw-semibold);
+}
+
+.cv-root .cv-btn-danger:hover:not(:disabled) {
+  border-color: var(--cv-danger);
+  background: var(--cv-danger-bg);
+  color: var(--cv-danger);
+}
+
+/* Segmented control */
+.cv-root .cv-segmented {
+  display: inline-flex;
+  align-items: center;
+  height: var(--cv-h-control);
+  padding: 2px;
+  border: 1px solid var(--cv-line-strong);
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-surface-2);
+  gap: 2px;
+}
+
+.cv-root .cv-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-width: 24px;
+  padding: 0 var(--cv-sp-2);
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--cv-text-2);
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-medium);
+  white-space: nowrap;
+  transition:
+    background-color var(--cv-dur-fast) var(--cv-ease),
+    color var(--cv-dur-fast) var(--cv-ease);
+}
+
+.cv-root .cv-seg-btn:hover:not(:disabled) {
+  color: var(--cv-text);
+  background: var(--cv-surface-3);
+}
+
+.cv-root .cv-seg-btn.is-active,
+.cv-root .cv-seg-btn[aria-pressed="true"] {
+  background: var(--cv-surface);
+  color: var(--cv-text);
+  font-weight: var(--cv-fw-semibold);
+  box-shadow: 0 0 0 1px var(--cv-line-strong);
+}
+
+/* ==========================================================================
+   1. TOPBAR (48px, 1px bottom border, --cv-surface)
+   ========================================================================== */
+
+.cv-root .cv-topbar {
+  position: relative;
+  z-index: var(--cv-z-topbar);
+  flex: 0 0 var(--cv-h-topbar);
+  height: var(--cv-h-topbar);
+  min-height: var(--cv-h-topbar);
+  background: var(--cv-surface);
+  border-bottom: 1px solid var(--cv-line);
+  padding: 0 var(--cv-sp-3);
+  min-width: 0;
+}
+
+.cv-root .cv-topbar-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cv-sp-3);
+  height: 100%;
+  min-width: 0;
+}
+
+.cv-root .cv-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-sp-2);
+  min-width: 0;
+}
+
+.cv-root .cv-back-btn {
+  flex: 0 0 auto;
+  gap: 5px;
+  color: var(--cv-text-2);
+}
+
+.cv-root .cv-topbar-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-sp-2);
+  min-width: 0;
+  padding-left: var(--cv-sp-1);
+}
+
+.cv-root .cv-report-title {
+  font-family: var(--cv-font-head);
+  font-size: var(--cv-fs-lg);
+  font-weight: var(--cv-fw-semibold);
+  line-height: var(--cv-lh-base);
+  color: var(--cv-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.cv-root .cv-status-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: var(--cv-fs-xs);
+  font-weight: var(--cv-fw-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cv-root .cv-status-chip.is-draft {
+  background: var(--cv-surface-3);
+  border: 1px solid var(--cv-line-strong);
+  color: var(--cv-text-2);
+}
+
+.cv-root .cv-status-chip.is-active {
+  background: var(--cv-success-bg);
+  border: 1px solid var(--cv-success-line);
+  color: var(--cv-success);
+}
+
+.cv-root .cv-version-tag {
+  flex: 0 0 auto;
+  font-family: var(--cv-font-mono);
+  font-size: var(--cv-fs-xs);
+  font-weight: var(--cv-fw-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--cv-text-3);
+  white-space: nowrap;
+}
+
+.cv-root .cv-topbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cv-sp-2);
+  flex: 0 0 auto;
+}
+
+.cv-root .cv-topbar-cluster {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cv-sp-1);
+}
+
+.cv-root .cv-topbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--cv-line);
+  flex: 0 0 1px;
+}
+
+.cv-root .cv-zoom-trigger {
+  min-width: 52px;
+  padding: 0 6px;
+  font-size: var(--cv-fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-root .cv-topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--cv-sp-2);
+  min-width: 0;
+}
+
+.cv-root .cv-data-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.cv-root .cv-data-mode-prefix {
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-medium);
+  color: var(--cv-text-3);
+  white-space: nowrap;
+}
+
+.cv-root .cv-problems-btn {
+  gap: 5px;
+  font-weight: var(--cv-fw-medium);
+}
+
+.cv-root .cv-problems-btn.is-error {
+  border-color: var(--cv-danger-line);
+  background: var(--cv-danger-bg);
+  color: var(--cv-danger);
+}
+
+.cv-root .cv-problems-btn.is-warning {
+  border-color: var(--cv-warning-line);
+  background: var(--cv-warning-bg);
+  color: var(--cv-warning);
+}
+
+.cv-root .cv-problems-btn:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.cv-root .cv-problems-badge {
+  font-family: var(--cv-font-mono);
+  font-size: var(--cv-fs-xs);
+  font-weight: var(--cv-fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-root .cv-theme-toggle {
+  position: relative;
+  width: var(--cv-h-control);
+  height: var(--cv-h-control);
+  min-width: var(--cv-h-control);
+  min-height: var(--cv-h-control);
+  padding: 0;
+  border: 1px solid var(--cv-line-strong);
+  border-radius: var(--cv-r-sm);
+  background: transparent;
+  color: var(--cv-text-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-shadow: none;
+}
+
+.cv-root .cv-theme-toggle:hover:not(:disabled) {
+  background: var(--cv-surface-3);
+  color: var(--cv-text);
+}
+
+.cv-root .cv-theme-toggle svg {
+  width: 15px;
+  height: 15px;
+}
+
+.cv-root .cv-save-btn {
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.cv-root .cv-unsaved-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 6px;
+}
+
+@media (max-width: 1180px) {
+  .cv-root .cv-topbar {
+    padding: 0 var(--cv-sp-2);
+  }
+  .cv-root .cv-topbar-toolbar {
+    gap: var(--cv-sp-2);
+  }
+  .cv-root .cv-data-mode-prefix,
+  .cv-root .cv-problems-label {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   2. POPOVERS & MENUS
+   ========================================================================== */
+
+.cv-root .cv-popover-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cv-root .cv-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--cv-z-popover);
+  min-width: 184px;
+  padding: var(--cv-sp-1);
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-line-strong);
+  border-radius: var(--cv-r-md);
+  box-shadow: var(--cv-shadow-pop);
+  color: var(--cv-text);
+}
+
+.cv-root .cv-zoom-menu {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  min-width: 164px;
+}
+
+.cv-root .cv-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-sp-2);
+  width: 100%;
+  height: var(--cv-h-control);
+  padding: 0 var(--cv-sp-2);
+  border: 0;
+  border-radius: var(--cv-r-sm);
+  background: transparent;
+  color: var(--cv-text);
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-regular);
+  text-align: left;
+}
+
+.cv-root .cv-menu-item > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cv-sp-2);
+}
+
+.cv-root .cv-menu-item:hover:not(:disabled) {
+  background: var(--cv-surface-3);
+}
+
+.cv-root .cv-menu-item.is-active {
+  color: var(--cv-accent);
+  font-weight: var(--cv-fw-semibold);
+}
+
+.cv-root .cv-menu-sep {
+  height: 1px;
+  margin: var(--cv-sp-1) 0;
+  background: var(--cv-line);
+}
+
+.cv-root .cv-publish-popover {
+  width: 268px;
+  padding: var(--cv-sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-3);
+}
+
+.cv-root .cv-publish-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cv-sp-2);
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-medium);
+  line-height: var(--cv-lh-tight);
+  color: var(--cv-text);
+  cursor: pointer;
+}
+
+.cv-root .cv-publish-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  margin: 1px 0 0;
+  padding: 0;
+  border-radius: 3px;
+  accent-color: var(--cv-accent);
+  flex: 0 0 15px;
+}
+
+.cv-root .cv-publish-format {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-sp-2);
+}
+
+.cv-root .cv-field-label {
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-medium);
+  color: var(--cv-text-2);
+}
+
+.cv-root .cv-problems-popover {
+  width: min(360px, calc(100vw - 24px));
+  padding: var(--cv-sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-1);
+}
+
+.cv-root .cv-popover-head {
+  padding: 2px var(--cv-sp-1) var(--cv-sp-1);
+  border-bottom: 1px solid var(--cv-line);
+  font-family: var(--cv-font-head);
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-semibold);
+  color: var(--cv-text);
+}
+
+.cv-root .cv-problems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.cv-root .cv-problem-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cv-sp-2);
+  width: 100%;
+  padding: 6px var(--cv-sp-2);
+  border: 0;
+  border-radius: var(--cv-r-sm);
+  background: transparent;
+  font-size: var(--cv-fs-sm);
+  line-height: var(--cv-lh-tight);
+  text-align: left;
+  color: var(--cv-text);
+}
+
+.cv-root .cv-problem-row:hover {
+  background: var(--cv-surface-3);
+}
+
+.cv-root .cv-problem-row svg {
+  flex: 0 0 14px;
+  margin-top: 1px;
+}
+
+.cv-root .cv-problem-row.is-error svg {
+  color: var(--cv-danger);
+}
+
+.cv-root .cv-problem-row.is-warning svg {
+  color: var(--cv-warning);
+}
+
+/* ==========================================================================
+   3. LEFT RAIL (56px vertical tablist, icon + 11px label below)
+   ========================================================================== */
+
+.cv-root .cv-rail {
+  grid-column: 1;
+  grid-row: 1;
+  width: var(--cv-w-rail);
+  min-width: var(--cv-w-rail);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--cv-sp-0);
+  padding: var(--cv-sp-2) 0;
+  background: var(--cv-surface-2);
+  border-right: 1px solid var(--cv-line);
+  z-index: var(--cv-z-panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.cv-root .cv-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.cv-root .cv-rail-tab {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--cv-text-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+  transition:
+    background-color var(--cv-dur-fast) var(--cv-ease),
+    color var(--cv-dur-fast) var(--cv-ease);
+}
+
+.cv-root .cv-rail-tab:hover:not(:disabled) {
+  background: var(--cv-surface-3);
+  color: var(--cv-text);
+}
+
+.cv-root .cv-rail-tab[aria-selected="true"] {
+  background: var(--cv-accent-soft);
+  color: var(--cv-accent);
+  box-shadow: inset 2px 0 0 var(--cv-accent);
+}
+
+.cv-root .cv-rail-tab-label {
+  display: block;
+  max-width: 52px;
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-xs);
+  font-weight: var(--cv-fw-medium);
+  line-height: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-root .cv-rail-tab[aria-selected="true"] .cv-rail-tab-label {
+  font-weight: var(--cv-fw-semibold);
+}
+
+/* ==========================================================================
+   4. BANNER (ok / error / conflict)
+   ========================================================================== */
+
+.cv-root .cv-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-sp-3);
+  min-height: 36px;
+  padding: 6px var(--cv-sp-3);
+  border-bottom: 1px solid var(--cv-line);
+  font-size: var(--cv-fs-sm);
+  line-height: var(--cv-lh-tight);
+  z-index: var(--cv-z-toast);
+}
+
+.cv-root .cv-banner-ok {
+  background: var(--cv-success-bg);
+  border-bottom-color: var(--cv-success-line);
+  color: var(--cv-success);
+}
+
+.cv-root .cv-banner-error {
+  background: var(--cv-danger-bg);
+  border-bottom-color: var(--cv-danger-line);
+  color: var(--cv-danger);
+}
+
+.cv-root .cv-banner-conflict {
+  background: var(--cv-warning-bg);
+  border-bottom-color: var(--cv-warning-line);
+  color: var(--cv-warning);
+}
+
+.cv-root .cv-banner-main {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-sp-2);
+  min-width: 0;
+}
+
+.cv-root .cv-banner-main svg {
+  flex: 0 0 15px;
+}
+
+.cv-root .cv-banner-text {
+  color: var(--cv-text);
+  min-width: 0;
+}
+
+.cv-root .cv-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-sp-1);
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+   5. STATUSBAR (28px, 1px top border) & LIMITS POPOVER
+   ========================================================================== */
+
+.cv-root .cv-statusbar {
+  position: relative;
+  z-index: var(--cv-z-topbar);
+  flex: 0 0 var(--cv-h-statusbar);
+  height: var(--cv-h-statusbar);
+  min-height: var(--cv-h-statusbar);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cv-sp-3);
+  padding: 0 var(--cv-sp-3);
+  background: var(--cv-surface);
+  border-top: 1px solid var(--cv-line);
+  font-size: var(--cv-fs-xs);
+  color: var(--cv-text-2);
+}
+
+.cv-root .cv-statusbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.cv-root .cv-save-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cv-text-2);
+}
+
+.cv-root .cv-save-indicator.is-dirty {
+  color: var(--cv-warning);
+  font-weight: var(--cv-fw-medium);
+}
+
+.cv-root .cv-save-indicator.is-saving {
+  color: var(--cv-accent);
+}
+
+.cv-root .cv-statusbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cv-font-mono);
+  font-size: var(--cv-fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--cv-text-2);
+  white-space: nowrap;
+}
+
+.cv-root .cv-statusbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--cv-sp-2);
+}
+
+.cv-root .cv-limits-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--cv-r-sm);
+  background: transparent;
+  color: var(--cv-text-2);
+  font-size: var(--cv-fs-xs);
+  font-weight: var(--cv-fw-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.cv-root .cv-limits-trigger:hover,
+.cv-root .cv-limits-trigger[aria-expanded="true"] {
+  background: var(--cv-surface-3);
+  border-color: var(--cv-line-strong);
+  color: var(--cv-text);
+}
+
+.cv-root .cv-limits-trigger.is-warning {
+  color: var(--cv-warning);
+}
+
+.cv-root .cv-limits-trigger.is-danger {
+  color: var(--cv-danger);
+  font-weight: var(--cv-fw-semibold);
+}
+
+.cv-root .cv-limits-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cv-root .cv-limits-popover {
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: 0;
+  width: 256px;
+  padding: var(--cv-sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-2);
+}
+
+.cv-root .cv-limit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cv-root .cv-limit-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cv-sp-2);
+  font-size: var(--cv-fs-sm);
+}
+
+.cv-root .cv-limit-label {
+  color: var(--cv-text-2);
+}
+
+.cv-root .cv-limit-value {
+  font-family: var(--cv-font-mono);
+  font-size: var(--cv-fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--cv-text);
+}
+
+.cv-root .cv-limit-row.is-warning .cv-limit-value {
+  color: var(--cv-warning);
+  font-weight: var(--cv-fw-semibold);
+}
+
+.cv-root .cv-limit-row.is-danger .cv-limit-value {
+  color: var(--cv-danger);
+  font-weight: var(--cv-fw-semibold);
+}
+
+.cv-root .cv-limit-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--cv-surface-3);
+  overflow: hidden;
+}
+
+.cv-root .cv-limit-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--cv-accent);
+}
+
+.cv-root .cv-limit-row.is-warning .cv-limit-fill {
+  background: var(--cv-warning);
+}
+
+.cv-root .cv-limit-row.is-danger .cv-limit-fill {
+  background: var(--cv-danger);
+}
+
+/* ==========================================================================
+   6. SHELL INLINE DIALOGS (Portaled with .cv-root.cv-dialog)
+   ========================================================================== */
+
+.modal.inline-dialog.cv-dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  border-radius: var(--cv-r-lg);
+  border: 1px solid var(--cv-line-strong);
+  background: var(--cv-surface);
+  color: var(--cv-text);
+  box-shadow: var(--cv-shadow-modal);
+}
+
+.modal.inline-dialog.cv-dialog .inline-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--cv-sp-2);
+}
+
+.cv-dialog .cv-dialog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-3);
+  min-width: 0;
+}
+
+.cv-dialog .cv-dialog-text {
+  font-size: var(--cv-fs-md);
+  line-height: var(--cv-lh-base);
+  color: var(--cv-text-2);
+  margin: 0;
+}
+
+.cv-dialog .cv-dialog-alert {
+  margin: 0;
+  padding: var(--cv-sp-2) var(--cv-sp-3);
+  border: 1px solid var(--cv-danger-line);
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-danger-bg);
+  color: var(--cv-danger);
+  font-size: var(--cv-fs-sm);
+}
+
+.cv-dialog fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
