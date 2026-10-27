@@ -1,0 +1,832 @@
+{
+  "legacy123-266": {
+    "legacy_id": 266,
+    "name": "RELATORIO DE CONSULTAS - CM PRO POVO",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '91-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '91-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-276": {
+    "legacy_id": 276,
+    "name": "RELATORIO DE CONSULTAS - CM JARDIM MARIN",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '92-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '92-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-277": {
+    "legacy_id": 277,
+    "name": "RELATORIO DE CONSULTAS - CM SAO JOAO",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '99-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '99-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-278": {
+    "legacy_id": 278,
+    "name": "RELATORIO DE CONSULTAS - CM PALMEIRAS",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '83-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '83-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-279": {
+    "legacy_id": 279,
+    "name": "RELATORIO DE CONSULTAS - CM COLINAS",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '112-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '112-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-280": {
+    "legacy_id": 280,
+    "name": "RELATORIO DE CONSULTAS - CM VILA AMERICA",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '85-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '85-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-281": {
+    "legacy_id": 281,
+    "name": "RELATORIO DE CONSULTAS - CM CECAP",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '114-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '114-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-282": {
+    "legacy_id": 282,
+    "name": "RELATORIO DE CONSULTAS - CM CAROBEIRAS",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '503-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '503-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-283": {
+    "legacy_id": 283,
+    "name": "RELATORIO DE CONSULTAS - CM SAO COSME",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '86-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '86-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-284": {
+    "legacy_id": 284,
+    "name": "RELATORIO DE CONSULTAS - CM SIMONSEN",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '84-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '84-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-285": {
+    "legacy_id": 285,
+    "name": "RELATORIO DE CONSULTAS - CM PARQUE DAS NACOES",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '94-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '94-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-286": {
+    "legacy_id": 286,
+    "name": "RELATORIO DE CONSULTAS - CM VILA PAES",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '98-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '98-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-287": {
+    "legacy_id": 287,
+    "name": "RELATORIO DE CONSULTAS - CM NINA",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '423-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '423-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-321": {
+    "legacy_id": 321,
+    "name": "RELATORIO DE CONSULTAS - DENGARIO",
+    "family": "consultas",
+    "sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '2483-1' and vr.dt_atendimento >= :WPA_DATA_INICIAL AND vr.dt_atendimento < :WPA_DATA_FINAL + 1 GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo,  count(distinct vr.cd_agendamento) AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr \nwhere vr.unsa_cod = '2483-1' and vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, CBO ORDER BY UNIDADE_SOLICITANTE, 3 DESC ",
+    "columns": [
+      "UNIDADE_SOLICITANTE",
+      "CBO",
+      "QUANTIDADE"
+    ]
+  },
+  "legacy123-290": {
+    "legacy_id": 290,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS - CAROBEIRAS",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA CAROBEIRAS - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA CAROBEIRAS - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-294": {
+    "legacy_id": 294,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  PRO POVO",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA PRO POVO - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA PRO POVO - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-296": {
+    "legacy_id": 296,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS - JARDIM MARIN",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA JARDIM MARIN - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA JARDIM MARIN - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-297": {
+    "legacy_id": 297,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  SAO JOAO",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA SAO JOAO - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA SAO JOAO - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-298": {
+    "legacy_id": 298,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  PALMEIRAS",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA PALMEIRAS - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA PALMEIRAS - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-299": {
+    "legacy_id": 299,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  COLINAS",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA COLINAS - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA COLINAS - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-300": {
+    "legacy_id": 300,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  VILA AMERICA",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA VILA AMERICA - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA VILA AMERICA - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-301": {
+    "legacy_id": 301,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  CECAP",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA CECAP II - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA CECAP II - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-302": {
+    "legacy_id": 302,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  SAO COSME",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA SAO COSME - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA SAO COSME - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-303": {
+    "legacy_id": 303,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  SIMONSEN",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA SIMONSEN - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA SIMONSEN - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-304": {
+    "legacy_id": 304,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  PARQUE DAS NACOES",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA PARQUE DAS NACOES - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA PARQUE DAS NACOES - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-305": {
+    "legacy_id": 305,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS -  VILA PAES",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA VILA PAES - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA VILA PAES - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-306": {
+    "legacy_id": 306,
+    "name": "RELATORIO SAIDA DE MEDICAMENTOS - NINA",
+    "family": "medicamentos",
+    "sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = :WPA_DATA_INICIAL and vr3.Mes = :WPA_DATA_FINAL\r\nand estoque = 'FARMACIA ESF V - FARMACIA'\r\norder by 1, 2",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "minimum": 1900,
+        "maximum": 9999,
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 12,
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12)."
+      }
+    },
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\r\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\r\nand estoque = 'FARMACIA ESF V - FARMACIA'\r\norder by 1, 2",
+    "columns": [
+      "ESTOQUE",
+      "PRODUTO",
+      "QTDE",
+      "VALOR_UNIT",
+      "VALOR_TOTAL"
+    ]
+  },
+  "legacy123-292": {
+    "legacy_id": 292,
+    "name": "RELATORIO GESTANTES - CM  CAROBEIRAS",
+    "family": "gestantes",
+    "sql": "select unidade_referencia as UNIDADE_REF, \r\nnm_gestante AS NOME_GESTANTE, \r\ndt_dum AS DATA_ULT_MENSTRUACAO, \r\ndt_dpp AS DATA_PARTO, \r\nds_tipo_gravidez AS TP_GRAVIDEZ, \r\nds_status_tb_gestante AS STATUS,\r\nds_status_tb_sisprenatal AS STATUS_PRENATAL,\r\nCASE ds_risco_gravidez\r\n WHEN 1 THEN 'RISCO HABITUAL'\r\n WHEN 2 THEN 'RISCO INTERMEDIÁRIO'\r\n WHEN 3 THEN 'ALTO RISCO'\r\n ELSE NULL\r\nEND AS RISCO  \r\nfrom sigsaudej.vdic_mega_relatorios_004 vr4\r\nwhere CODIGO_UNIDADE_REFERENCIA = '503-1'\r\norder by 1, 2",
+    "schema": {},
+    "original_sql": "select unidade_referencia as UNIDADE_REF, \r\nnm_gestante AS NOME_GESTANTE, \r\ndt_dum AS DATA_ULT_MENSTRUACAO, \r\ndt_dpp AS DATA_PARTO, \r\nds_tipo_gravidez AS TP_GRAVIDEZ, \r\nds_status_tb_gestante AS STATUS,\r\nds_status_tb_sisprenatal AS STATUS_PRENATAL,\r\nCASE ds_risco_gravidez\r\n WHEN 1 THEN 'RISCO HABITUAL'\r\n WHEN 2 THEN 'RISCO INTERMEDIÁRIO'\r\n WHEN 3 THEN 'ALTO RISCO'\r\n ELSE NULL\r\nEND AS RISCO  \r\nfrom sigsaudej.vdic_mega_relatorios_004 vr4\r\nwhere CODIGO_UNIDADE_REFERENCIA = '503-1'\r\norder by 1, 2",
+    "columns": [
+      "UNIDADE_REF",
+      "NOME_GESTANTE",
+      "DATA_ULT_MENSTRUACAO",
+      "DATA_PARTO",
+      "TP_GRAVIDEZ",
+      "STATUS",
+      "STATUS_PRENATAL",
+      "RISCO"
+    ]
+  },
+  "legacy123-293": {
+    "legacy_id": 293,
+    "name": "RELATORIO GESTANTES - CM  PRO POVO",
+    "family": "gestantes",
+    "sql": "select unidade_referencia as UNIDADE_REF, \r\nnm_gestante AS NOME_GESTANTE, \r\ndt_dum AS DATA_ULT_MENSTRUACAO, \r\ndt_dpp AS DATA_PARTO, \r\nds_tipo_gravidez AS TP_GRAVIDEZ, \r\nds_status_tb_gestante AS STATUS,\r\nds_status_tb_sisprenatal AS STATUS_PRENATAL,\r\nCASE ds_risco_gravidez\r\n WHEN 1 THEN 'RISCO HABITUAL'\r\n WHEN 2 THEN 'RISCO INTERMEDIÁRIO'\r\n WHEN 3 THEN 'ALTO RISCO'\r\n ELSE NULL\r\nEND AS RISCO  \r\nfrom sigsaudej.vdic_mega_relatorios_004 vr4\r\nwhere CODIGO_UNIDADE_REFERENCIA = '91-1'\r\norder by 1, 2",
+    "schema": {},
+    "original_sql": "select unidade_referencia as UNIDADE_REF, \r\nnm_gestante AS NOME_GESTANTE, \r\ndt_dum AS DATA_ULT_MENSTRUACAO, \r\ndt_dpp AS DATA_PARTO, \r\nds_tipo_gravidez AS TP_GRAVIDEZ, \r\nds_status_tb_gestante AS STATUS,\r\nds_status_tb_sisprenatal AS STATUS_PRENATAL,\r\nCASE ds_risco_gravidez\r\n WHEN 1 THEN 'RISCO HABITUAL'\r\n WHEN 2 THEN 'RISCO INTERMEDIÁRIO'\r\n WHEN 3 THEN 'ALTO RISCO'\r\n ELSE NULL\r\nEND AS RISCO  \r\nfrom sigsaudej.vdic_mega_relatorios_004 vr4\r\nwhere CODIGO_UNIDADE_REFERENCIA = '91-1'\r\norder by 1, 2",
+    "columns": [
+      "UNIDADE_REF",
+      "NOME_GESTANTE",
+      "DATA_ULT_MENSTRUACAO",
+      "DATA_PARTO",
+      "TP_GRAVIDEZ",
+      "STATUS",
+      "STATUS_PRENATAL",
+      "RISCO"
+    ]
+  }
+}

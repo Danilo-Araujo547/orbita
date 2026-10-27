@@ -15,15 +15,24 @@ def run_report(job_id):
 
 @shared_task(name="operations.tick")
 def tick():
+    from operations.reporting import tick_reports
+
+    tick_reports()
     from operations.connectors import run_flow
     from operations.models import FlowRule, FlowRun
 
     FlowRun.objects.filter(
         state="running", started_at__lt=timezone.now() - timezone.timedelta(minutes=10)
-    ).update(state="failed", error_code="interrupted_import", completed_at=timezone.now())
-    for rule in FlowRule.objects.filter(enabled=True).select_related("unit", "source", "template"):
+    ).update(
+        state="failed", error_code="interrupted_import", completed_at=timezone.now()
+    )
+    for rule in FlowRule.objects.filter(enabled=True).select_related(
+        "unit", "source", "template"
+    ):
         run_flow(rule)
-    for schedule_id in ReportSchedule.objects.filter(enabled=True).values_list("id", flat=True):
+    for schedule_id in ReportSchedule.objects.filter(enabled=True).values_list(
+        "id", flat=True
+    ):
         with transaction.atomic():
             schedule = (
                 ReportSchedule.objects.select_for_update()
@@ -57,6 +66,15 @@ def tick():
             from django.conf import settings
 
             if settings.ASYNC_TASKS:
-                transaction.on_commit(lambda job_id=str(job.pk): run_report.delay(job_id))
+                transaction.on_commit(
+                    lambda job_id=str(job.pk): run_report.delay(job_id)
+                )
             else:
                 generate(job.pk)
+
+
+# Register catalog execution tasks on worker startup.
+from operations.report_whatsapp import deliver_report  # noqa: F401
+from operations.reporting import execute_report  # noqa: F401
+
+from operations.bed_snapshots import collect_snapshot, tick_snapshots  # noqa: F401

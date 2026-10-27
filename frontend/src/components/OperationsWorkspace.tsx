@@ -1,5 +1,12 @@
+import Select from "./Select";
+import ReportWorkspace from "./ReportWorkspace";
+import OracleAbsenceForm from "./OracleAbsenceForm";
+import CrossImportList from "./CrossImportList";
+import InlineDialog from "./InlineDialog";
+import LegacyLabel from "./LegacyLabel";
+import { CrossImportForm, CrossLayoutEditor } from "./CrossImportConfiguration";
 import FormAction, { FormActionContext } from "./FormAction";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
   ArrowLeft,
@@ -8,7 +15,6 @@ import {
   ClipboardList,
   Clock3,
   Database,
-  Download,
   FileSpreadsheet,
   MessageCircle,
   ShieldCheck,
@@ -60,6 +66,19 @@ type Interaction = {
   occurred_at: string;
 };
 type Row = {
+  body?: string;
+  fields?: string[];
+  standard_mapping?: Record<string, string>;
+  default_template?: number | null;
+  parameter_fields?: string[];
+  filename?: string;
+  template_name?: string;
+  template?: number;
+  campaign_id?: number | null;
+  import_batch?: string | null;
+  scheduled_for?: string | null;
+  evidence?: string;
+  layout_format?: string;
   sends_enabled?: boolean;
   id: string | number;
   name?: string;
@@ -259,13 +278,10 @@ export default function OperationsWorkspace({
           />
         )}
         {page === "reports" && (
-          <Reports
+          <ReportWorkspace
             unit={unit}
+            admin={role === "admin" && operate}
             operate={operate}
-            revision={revision}
-            act={act}
-            busy={busy}
-            onError={setError}
           />
         )}
         {page === "operationsAdmin" && (
@@ -536,7 +552,7 @@ function CaseDetail({
                       }[contact.status] || contact.status}
                 </span>
                 {operate && (
-                  <select
+                  <Select
                     aria-label={`Revisar contato ${contact.phone}`}
                     value=""
                     disabled={busy}
@@ -558,7 +574,7 @@ function CaseDetail({
                     <option value="verified">Verificado</option>
                     <option value="invalid">Inválido</option>
                     <option value="wrong_person">Destinatário incorreto</option>
-                  </select>
+                  </Select>
                 )}
               </div>
             ))}
@@ -641,7 +657,7 @@ function CaseDetail({
                   <UserRound size={17} /> Registrar atendimento
                 </h3>
                 <Field label="Ação">
-                  <select
+                  <Select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
                   >
@@ -653,11 +669,11 @@ function CaseDetail({
                         {v}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 {["call", "classify"].includes(mode) && (
                   <Field label="Número utilizado">
-                    <select
+                    <Select
                       value={phone}
                       required={contacts.length > 1}
                       onChange={(e) => setPhone(e.target.value)}
@@ -668,12 +684,12 @@ function CaseDetail({
                           {contact.phone}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                 )}
                 {mode === "classify" && (
                   <Field label="Resultado">
-                    <select
+                    <Select
                       required
                       value={outcome}
                       onChange={(e) => setOutcome(e.target.value)}
@@ -689,19 +705,19 @@ function CaseDetail({
                           {outcomes[v]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                 )}
                 {mode === "call" && (
                   <>
                     <Field label="Resultado da ligação">
-                      <select
+                      <Select
                         value={callResult}
                         onChange={(e) => setCallResult(e.target.value)}
                       >
                         <option value="not_answered">Não atendida</option>
                         <option value="answered">Atendida</option>
-                      </select>
+                      </Select>
                     </Field>
                     {callResult === "answered" && (
                       <Field label="Pessoa com quem falou">
@@ -752,14 +768,14 @@ function CaseDetail({
                 {operate && (
                   <>
                     <Field label="Solicitação">
-                      <select
+                      <Select
                         value={movementKind}
                         onChange={(e) => setMovementKind(e.target.value)}
                       >
                         <option value="reschedule">Reagendamento</option>
                         <option value="transfer">Transferência</option>
                         <option value="cancel">Cancelamento</option>
-                      </select>
+                      </Select>
                     </Field>
                     <button
                       className="button"
@@ -863,11 +879,9 @@ function Campaigns({
   onError,
 }: Common & { operate: boolean; admin: boolean }) {
   const campaigns = useRows<Row>("campaigns", unit, revision, onError),
-    batches = useRows<Row>("sheet-imports", unit, revision, onError),
     layouts = useRows<Row>("layouts", unit, revision, onError),
     templates = useRows<Row>("templates", unit, revision, onError);
-  const [layout, setLayout] = useState(""),
-    [purpose, setPurpose] = useState("waitlist"),
+  const [purpose, setPurpose] = useState("waitlist"),
     [name, setName] = useState(""),
     [template, setTemplate] = useState(""),
     [sendAt, setSendAt] = useState(""),
@@ -878,80 +892,24 @@ function Campaigns({
     revision,
     onError,
   );
-  const [preview, setPreview] = useState<Record<string, string>[]>([]);
-  const [previewBatch, setPreviewBatch] = useState<string | number>("");
-  const [previewPage, setPreviewPage] = useState(1);
-  const [previewCount, setPreviewCount] = useState(0);
-  async function loadPreview(id: string | number, page = 1) {
-    try {
-      const result = await request<Paginated<Record<string, string>>>(
-        query(`sheet-imports/${id}/rows`, { unit, page: String(page) }),
-      );
-      setPreview(result.results);
-      setPreviewBatch(id);
-      setPreviewPage(page);
-      setPreviewCount(result.count);
-    } catch (e) {
-      onError((e as Error).message);
-    }
-  }
-  async function upload(file?: File) {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      onError("Arquivo excede 5 MB.");
-      return;
-    }
-    const buffer = new Uint8Array(await file.arrayBuffer());
-    let binary = "";
-    for (const b of buffer) binary += String.fromCharCode(b);
-    await act("sheet-imports", {
-      layout: Number(layout),
-      filename: file.name,
-      content_base64: btoa(binary),
-    });
-  }
   return (
     <div className="op-stack">
       {operate && (
         <div className="op-two">
-          <FormAction title="Importar planilha" label="Adicionar importação">
-            <article className="op-card op-form">
-              <h3>
-                <FileSpreadsheet size={18} /> Importar planilha
-              </h3>
-              <Field label="Layout validado">
-                <select
-                  value={layout}
-                  onChange={(e) => setLayout(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {layouts
-                    .filter((l) => l.verified)
-                    .map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.name} · versão {l.version}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-              <Field label="Planilha CSV, XLSX ou HTML .xls">
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  disabled={!layout || busy}
-                  onChange={(e) =>
-                    void upload(e.target.files?.[0]).catch(() => {})
-                  }
-                />
-              </Field>
-              {!layouts.some((l) => l.verified) && (
-                <p className="op-muted">
-                  Cadastre e valide o layout desta unidade em Administração.
-                </p>
-              )}
-            </article>
-          </FormAction>
-          <FormAction title="Nova importação CROSS" label="Adicionar importação CROSS">
+          <CrossImportForm
+            unit={unit}
+            layouts={layouts}
+            templates={templates}
+            act={act}
+            busy={busy}
+          />
+          <OracleAbsenceForm
+            layouts={layouts}
+            templates={templates}
+            busy={busy}
+            act={act}
+          />
+          <FormAction title="Comunicação avulsa" label="Comunicação avulsa">
             <form
               className="op-card op-form"
               onSubmit={(e) => {
@@ -979,7 +937,7 @@ function Campaigns({
                 />
               </Field>
               <Field label="Finalidade">
-                <select
+                <Select
                   value={purpose}
                   onChange={(e) => {
                     setPurpose(e.target.value);
@@ -989,10 +947,10 @@ function Campaigns({
                   <option value="waitlist">Permanência na fila CDR</option>
                   <option value="summons">Convocação CDR</option>
                   <option value="postoperative">Pós-cirúrgico</option>
-                </select>
+                </Select>
               </Field>
               <Field label="Template">
-                <select
+                <Select
                   value={template}
                   onChange={(e) => setTemplate(e.target.value)}
                 >
@@ -1004,7 +962,7 @@ function Campaigns({
                         {t.name}
                       </option>
                     ))}
-                </select>
+                </Select>
               </Field>
               <Field label="Data prevista">
                 <input
@@ -1043,307 +1001,134 @@ function Campaigns({
           </FormAction>
         </div>
       )}
-      <article className="op-card">
-        <h3>Importações</h3>
-        {batches.map((b) => (
-          <div className="op-list-row" key={b.id}>
-            <div>
-              <strong>
-                {b.row_count} linhas · {status[b.state || ""]}
-              </strong>
-              <small>
-                {b.duplicates} duplicidades · {b.errors?.length || 0} erros
-              </small>
-              {b.errors?.slice(0, 5).map((e) => (
-                <small key={`${e.line}:${e.code}`}>
-                  Linha {e.line}: {e.code}
-                </small>
-              ))}
-            </div>
-            <button className="button" onClick={() => void loadPreview(b.id)}>
-              Ver prévia
-            </button>
-            {operate && b.state === "preview" && !b.errors?.length && (
-              <>
-                <select
-                  aria-label="Finalidade da importação"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                >
-                  <option value="waitlist">Permanência na fila</option>
-                  <option value="summons">Convocação</option>
-                </select>
-                <button
-                  className="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void act(`sheet-imports/${b.id}/confirm`, {
-                      purpose,
-                    }).catch(() => {})
-                  }
-                >
-                  Confirmar importação
-                </button>
-              </>
-            )}
-          </div>
-        ))}
-        {!batches.length && (
-          <p className="op-muted">Nenhuma importação de planilha.</p>
-        )}
-        {preview.length > 0 && (
-          <div className="op-table">
-            <div className="op-list-row">
-              <span>
-                {previewCount} registros · Página {previewPage}
-              </span>
-              <button
-                className="button"
-                disabled={previewPage <= 1}
-                onClick={() => void loadPreview(previewBatch, previewPage - 1)}
-              >
-                Anterior
-              </button>
-              <button
-                className="button"
-                disabled={previewPage * 50 >= previewCount}
-                onClick={() => void loadPreview(previewBatch, previewPage + 1)}
-              >
-                Próxima
-              </button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Paciente</th>
-                  <th>Contato</th>
-                  <th>Referência</th>
-                  <th>Data</th>
-                  <th>Motivo de origem</th>
-                  <th>Observação de origem</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.map((r, i) => (
-                  <tr key={i}>
-                    <td>{r.patient}</td>
-                    <td>
-                      {Array.isArray(r.phone_numbers)
-                        ? r.phone_numbers.join(", ")
-                        : r.phone}
-                    </td>
-                    <td>{r.external_id}</td>
-                    <td>{dateTime(r.occurred_at)}</td>
-                    <td>{r.source_reason || "—"}</td>
-                    <td>{r.source_observation || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </article>
+      <CrossImportList
+        unit={unit}
+        revision={revision}
+        operate={operate}
+        busy={busy}
+        act={act}
+        onError={onError}
+      />
       <article className="op-card">
         <h3>Importa CROSS</h3>
-        {campaigns.map((c) => (
-          <div className="op-list-row" key={c.id}>
-            <div>
-              <strong>{c.name}</strong>
-              <small>
-                {purposes[c.purpose || ""]} · {c.cases?.length || 0} registros ·{" "}
-                {status[c.state || ""]}
-              </small>
-              <small>Envio {c.sends_enabled ? "ativado" : "desativado"}</small>
-            </div>
-            {admin && (
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() =>
-                  void act(`campaigns/${c.id}/sending`, {
-                    version: c.version,
-                    enabled: !c.sends_enabled,
-                  }).catch(() => {})
-                }
-              >
-                {c.sends_enabled ? "Desativar envio" : "Ativar envio"}
-              </button>
-            )}
-            {admin &&
-              c.sends_enabled &&
-              ["draft", "preview"].includes(c.state || "") && (
-                <FormAction title="Enviar importação CROSS" label="Enviar agora">
+        {campaigns
+          .filter((c) => !c.import_batch)
+          .map((c) => (
+            <div className="op-list-row" key={c.id}>
+              <div>
+                <strong>{c.name}</strong>
+                <small>
+                  {purposes[c.purpose || ""]} · {c.cases?.length || 0} registros
+                  · {status[c.state || ""]}
+                </small>
+                <small>
+                  Envio {c.sends_enabled ? "ativado" : "desativado"}
+                </small>
+              </div>
+              {operate && c.state === "draft" && (
+                <FormAction
+                  title="Programar comunicação"
+                  label="Programar"
+                  busy={busy}
+                >
                   <form
                     className="op-form"
                     onSubmit={(e) => {
                       e.preventDefault();
-                      void act(`campaigns/${c.id}/release`, {
+                      const values = new FormData(e.currentTarget);
+                      void act(`campaigns/${c.id}/schedule`, {
                         version: c.version,
+                        name: String(values.get("name") || ""),
+                        scheduled_for: new Date(
+                          String(values.get("scheduled_for")),
+                        ).toISOString(),
                       }).catch(() => {});
                     }}
                   >
-                    <p>
-                      {c.name} · {c.cases?.length || 0} registros
-                    </p>
-                    <p>
-                      Envio real aos contatos da importação CROSS, com intervalo de 5
-                      segundos.
-                    </p>
+                    <label className="op-field">
+                      Nome
+                      <input
+                        name="name"
+                        required
+                        maxLength={150}
+                        defaultValue={c.name}
+                      />
+                    </label>
+                    <label className="op-field">
+                      Data e hora
+                      <input
+                        name="scheduled_for"
+                        required
+                        type="datetime-local"
+                      />
+                    </label>
                     <button className="button primary" disabled={busy}>
-                      Liberar envio
+                      Salvar programação
                     </button>
                   </form>
                 </FormAction>
               )}
-            {operate && c.state === "draft" && (
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() =>
-                  void act(`campaigns/${c.id}/preview`, {
-                    version: c.version,
-                  }).catch(() => {})
-                }
-              >
-                Preparar prévia
-              </button>
-            )}
-          </div>
-        ))}
+              {admin && (
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void act(`campaigns/${c.id}/sending`, {
+                      version: c.version,
+                      enabled: !c.sends_enabled,
+                    }).catch(() => {})
+                  }
+                >
+                  {c.sends_enabled ? "Desativar envio" : "Ativar envio"}
+                </button>
+              )}
+              {admin &&
+                c.sends_enabled &&
+                ["draft", "preview"].includes(c.state || "") && (
+                  <FormAction
+                    title="Enviar importação CROSS"
+                    label="Enviar agora"
+                  >
+                    <form
+                      className="op-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void act(`campaigns/${c.id}/release`, {
+                          version: c.version,
+                        }).catch(() => {});
+                      }}
+                    >
+                      <p>
+                        {c.name} · {c.cases?.length || 0} registros
+                      </p>
+                      <p>
+                        Envio real aos contatos da importação CROSS, com
+                        intervalo de 5 segundos.
+                      </p>
+                      <button className="button primary" disabled={busy}>
+                        Liberar envio
+                      </button>
+                    </form>
+                  </FormAction>
+                )}
+              {operate && c.state === "draft" && (
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void act(`campaigns/${c.id}/preview`, {
+                      version: c.version,
+                    }).catch(() => {})
+                  }
+                >
+                  Preparar prévia
+                </button>
+              )}
+            </div>
+          ))}
         {!campaigns.length && (
           <p className="op-muted">Nenhuma importação CROSS cadastrada.</p>
         )}
-      </article>
-    </div>
-  );
-}
-
-function Reports({
-  unit,
-  operate,
-  revision,
-  act,
-  busy,
-  onError,
-}: Common & { operate: boolean }) {
-  const reports = useRows<Row>("reports", unit, revision, onError),
-    jobs = useRows<Row>("report-requests", unit, revision, onError);
-  const [report, setReport] = useState(""),
-    [start, setStart] = useState(""),
-    [end, setEnd] = useState(""),
-    [format, setFormat] = useState("csv");
-  return (
-    <div className="op-stack">
-      {operate && (
-        <FormAction title="Solicitar relatório" label="Solicitar relatório">
-          <form
-            className="op-card op-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void act("report-requests", {
-                report: Number(report),
-                format,
-                parameters: {
-                  ...(start ? { start } : {}),
-                  ...(end ? { end } : {}),
-                },
-              }).catch(() => {});
-            }}
-          >
-            <h3>Solicitar relatório</h3>
-            <div className="op-toolbar">
-              <Field label="Relatório">
-                <select
-                  required
-                  value={report}
-                  onChange={(e) => setReport(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {reports
-                    .filter((r) => r.enabled)
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                </select>
-              </Field>
-              <Field label="De">
-                <input
-                  type="date"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
-              </Field>
-              <Field label="Até">
-                <input
-                  type="date"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
-              </Field>
-              <Field label="Formato">
-                <select
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value)}
-                >
-                  <option value="csv">Planilha CSV</option>
-                  <option value="pdf">PDF</option>
-                  <option value="text">Texto</option>
-                </select>
-              </Field>
-              <button className="button primary" disabled={busy}>
-                Gerar relatório
-              </button>
-            </div>
-          </form>
-        </FormAction>
-      )}
-      <article className="op-card">
-        <h3>Solicitações</h3>
-        {jobs.map((j) => (
-          <div className="op-list-row" key={j.id}>
-            <div>
-              <strong>{j.report_name}</strong>
-              <small>
-                {j.created_at && dateTime(j.created_at)} ·{" "}
-                {status[j.state || ""] || j.state} ·{" "}
-                {status[j.delivery_state || ""] || j.delivery_state}
-              </small>
-              {j.error_code && <small>{j.error_code}</small>}
-            </div>
-            {j.state === "ready" && (
-              <a
-                className="button"
-                href={query(`report-requests/${j.id}/download`, { unit })}
-              >
-                <Download size={15} />
-                Baixar {j.format?.toUpperCase()}
-              </a>
-            )}
-          </div>
-        ))}
-        {!jobs.length && (
-          <p className="op-muted">Nenhum relatório solicitado.</p>
-        )}
-      </article>
-      <article className="op-card">
-        <h3>Catálogo da unidade</h3>
-        {reports.map((r) => (
-          <div className="op-list-row" key={r.id}>
-            <div>
-              <strong>{r.name}</strong>
-              <small>
-                {r.enabled
-                  ? "Disponível"
-                  : r.unavailable_reason || "Ainda não homologado"}
-              </small>
-            </div>
-            <span className="op-pill">
-              {r.enabled ? "Ativo" : "Indisponível"}
-            </span>
-          </div>
-        ))}
       </article>
     </div>
   );
@@ -1363,84 +1148,201 @@ function Administration({
     layouts = useRows<Row>("layouts", unit, revision, onError),
     reportDefinitions = useRows<Row>("reports", unit, revision, onError),
     policies = useRows<Row>("policies", unit, revision, onError);
+  const distinctLayouts = useMemo(() => {
+    const map = new Map<string, Row>();
+    for (const l of layouts) {
+      const key = l.name || String(l.id);
+      const existing = map.get(key);
+      if (
+        !existing ||
+        (Number(l.version) || 0) > (Number(existing.version) || 0)
+      ) {
+        map.set(key, l);
+      }
+    }
+    return Array.from(map.values());
+  }, [layouts]);
   const [code, setCode] = useState(""),
     [name, setName] = useState(""),
     [text, setText] = useState("");
-  const [layoutName, setLayoutName] = useState(""),
-    [mapping, setMapping] = useState({
-      external_id: "",
-      patient: "",
-      phone: "",
-      occurred_at: "",
-    }),
-    [evidence, setEvidence] = useState(""),
-    [verified, setVerified] = useState(false);
+  const [removingLayout, setRemovingLayout] = useState<Row | null>(null);
+  const [layoutDeleteError, setLayoutDeleteError] = useState("");
+  const layoutTemplates = useRows<Row>("templates", unit, revision, onError);
   const labels: Record<string, string> = {
     external_id: "Coluna do identificador",
     patient: "Coluna do paciente",
     phone: "Coluna do telefone",
     occurred_at: "Coluna da data (AAAA-MM-DD)",
   };
-  const [internalCategory, setCategory] = useState(admin ? "sources" : "preparations");
+  const [internalCategory, setCategory] = useState(
+    admin ? "sources" : "preparations",
+  );
   const category = activeCategory || internalCategory;
   type CategoryTab = [string, string, typeof Database];
   const categories: CategoryTab[] = [
     ...([
-          ["sources", "Origens e regras", Database],
-          ["units", "Unidades", Building2],
-          ["team", "Equipe da unidade", UserRound],
-          ["access", "Acesso a relatórios", ShieldCheck],
-          ["schedules", "Relatórios agendados", Clock3],
-        ] as CategoryTab[]),
+      ["sources", "Origens e regras", Database],
+      ["units", "Unidades", Building2],
+      ["team", "Equipe da unidade", UserRound],
+      ["access", "Acesso a relatórios", ShieldCheck],
+      ["schedules", "Relatórios agendados", Clock3],
+    ] as CategoryTab[]),
     ["preparations", "Preparos", ClipboardList],
-    ["layouts", "Layouts CROSS", FileSpreadsheet],
+    ["layouts", "Importa CROSS · modelos e templates", FileSpreadsheet],
     ["reportDefinitions", "Catálogo de relatórios", ClipboardList],
     ["policies", "Prazos de resposta", Clock3],
   ];
   return (
     <div className="admin-workspace">
-      {!activeCategory && <nav
-        className="admin-category-nav"
-        aria-label="Cadastros administrativos"
-      >
-        {categories.map(([id, label, Icon]) => (
-          <button
-            type="button"
-            key={id}
-            className={category === id ? "active" : ""}
-            onClick={() => setCategory(id)}
-            aria-current={category === id ? "page" : undefined}
-          >
-            <Icon size={15} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>}
+      {!activeCategory && (
+        <nav
+          className="admin-category-nav"
+          aria-label="Cadastros administrativos"
+        >
+          {categories.map(([id, label, Icon]) => (
+            <button
+              type="button"
+              key={id}
+              className={category === id ? "active" : ""}
+              onClick={() => setCategory(id)}
+              aria-current={category === id ? "page" : undefined}
+            >
+              <Icon size={15} />
+              <LegacyLabel legacy={id === "sources"}>{label}</LegacyLabel>
+            </button>
+          ))}
+        </nav>
+      )}
       <div className="admin-category-content" key={category}>
-        {category === "reportDefinitions" && <Panel title="Catálogo de relatórios"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Relatório</th><th>Palavra-chave</th><th>Situação</th><th>Ações</th></tr></thead><tbody>{reportDefinitions.map(record=><tr key={record.id}><td>{record.name}</td><td>{String((record as Record<string,unknown>).keyword||"")}</td><td>{record.enabled?"Ativo":"Desativado"}</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`reports/${record.id}/configure`} act={act} busy={busy} fields={[
-          {key:"name",label:"Nome",required:true},{key:"keyword",label:"Palavra-chave",required:true},
-          {key:"enabled",label:"Ativo",type:"checkbox"},{key:"unavailable_reason",label:"Motivo de indisponibilidade",type:"textarea"},
-        ]}/>}</td></tr>)}</tbody></table></div></Panel>}
-        {category === "policies" && <Panel title="Prazos de resposta"><div className="table-scroll"><table className="directory-table"><thead><tr><th>Finalidade</th><th>Prazo</th><th>Ações</th></tr></thead><tbody>{policies.map(record=><tr key={record.id}><td>{purposes[record.purpose||""]}</td><td>{String((record as Record<string,unknown>).response_hours)} horas</td><td>{admin&&<ConfigurationEditor record={{...record}} path={`policies/${record.id}/configure`} act={act} busy={busy} fields={[
-          {key:"response_hours",label:"Prazo em horas",type:"number"},{key:"enabled",label:"Ativo",type:"checkbox"},{key:"evidence",label:"Referência da validação",type:"textarea"},
-        ]}/>}</td></tr>)}</tbody></table></div></Panel>}
+        {category === "reportDefinitions" && (
+          <Panel title={activeCategory ? "" : "Catálogo de relatórios"}>
+            <div className="table-scroll">
+              <table className="directory-table">
+                <thead>
+                  <tr>
+                    <th>Relatório</th>
+                    <th>Palavra-chave</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportDefinitions.map((record) => (
+                    <tr key={record.id}>
+                      <td>{record.name}</td>
+                      <td>
+                        {String(
+                          (record as Record<string, unknown>).keyword || "",
+                        )}
+                      </td>
+                      <td>{record.enabled ? "Ativo" : "Desativado"}</td>
+                      <td>
+                        {admin && (
+                          <ConfigurationEditor
+                            record={{ ...record }}
+                            path={`reports/${record.id}/configure`}
+                            act={act}
+                            busy={busy}
+                            fields={[
+                              { key: "name", label: "Nome", required: true },
+                              {
+                                key: "keyword",
+                                label: "Palavra-chave",
+                                required: true,
+                              },
+                              {
+                                key: "enabled",
+                                label: "Ativo",
+                                type: "checkbox",
+                              },
+                              {
+                                key: "unavailable_reason",
+                                label: "Motivo de indisponibilidade",
+                                type: "textarea",
+                              },
+                            ]}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        )}
+        {category === "policies" && (
+          <Panel title={activeCategory ? "" : "Prazos de resposta"}>
+            <div className="table-scroll">
+              <table className="directory-table">
+                <thead>
+                  <tr>
+                    <th>Finalidade</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {policies.map((record) => (
+                    <tr key={record.id}>
+                      <td>{purposes[record.purpose || ""]}</td>
+                      <td>
+                        {String(
+                          (record as Record<string, unknown>).response_hours,
+                        )}{" "}
+                        horas
+                      </td>
+                      <td>
+                        {admin && (
+                          <ConfigurationEditor
+                            record={{ ...record }}
+                            path={`policies/${record.id}/configure`}
+                            act={act}
+                            busy={busy}
+                            fields={[
+                              {
+                                key: "response_hours",
+                                label: "Prazo em horas",
+                                type: "number",
+                              },
+                              {
+                                key: "enabled",
+                                label: "Ativo",
+                                type: "checkbox",
+                              },
+                              {
+                                key: "evidence",
+                                label: "Referência da validação",
+                                type: "textarea",
+                              },
+                            ]}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+        )}
         {["sources", "units", "team", "access", "schedules"].includes(
-            category,
-          ) && (
-            <OperationsAdministration
-              unit={unit}
-              revision={revision}
-              act={act}
-              busy={busy}
-              onError={onError}
-              activeTab={category}
-              editable={admin}
-              userAccess={userAccess}
-            />
-          )}
+          category,
+        ) && (
+          <OperationsAdministration
+            unit={unit}
+            revision={revision}
+            act={act}
+            busy={busy}
+            onError={onError}
+            activeTab={category}
+            editable={admin}
+            userAccess={userAccess}
+          />
+        )}
         {category === "preparations" && (
           <Panel
-            title="Preparos de procedimentos"
+            title={activeCategory ? "" : "Preparos de procedimentos"}
             action={
               admin ? (
                 <FormAction
@@ -1540,12 +1442,37 @@ function Administration({
                             <p className="op-prewrap">{p.text}</p>
                           </details>
                         </td>
-                        <td>{admin && <ConfigurationEditor record={{...p}} path="preparations" title="Nova versão do preparo" label="Editar" act={act} busy={busy} fields={[
-                          {key:"procedure_code",label:"Código do procedimento",required:true},
-                          {key:"name",label:"Nome",required:true},
-                          {key:"text",label:"Orientações",type:"textarea",required:true},
-                          {key:"active",label:"Ativo",type:"checkbox"},
-                        ]}/>}</td>
+                        <td>
+                          {admin && (
+                            <ConfigurationEditor
+                              record={{ ...p }}
+                              path="preparations"
+                              title="Nova versão do preparo"
+                              label="Editar"
+                              act={act}
+                              busy={busy}
+                              fields={[
+                                {
+                                  key: "procedure_code",
+                                  label: "Código do procedimento",
+                                  required: true,
+                                },
+                                { key: "name", label: "Nome", required: true },
+                                {
+                                  key: "text",
+                                  label: "Orientações",
+                                  type: "textarea",
+                                  required: true,
+                                },
+                                {
+                                  key: "active",
+                                  label: "Ativo",
+                                  type: "checkbox",
+                                },
+                              ]}
+                            />
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1558,93 +1485,49 @@ function Administration({
         )}
         {category === "layouts" && (
           <Panel
-            title="Layouts de importação CROSS"
+            title={activeCategory ? "" : "Importa CROSS · modelos e templates"}
             action={
               admin ? (
-                <FormAction
-                  title="Layout de importação CROSS"
-                  label="Adicionar layout CROSS"
-                >
-                  <form
-                    className="op-form"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void act("layouts", {
-                        name: layoutName,
-                        mapping,
-                        evidence,
-                        verified,
-                      }).catch(() => {});
-                    }}
-                  >
-                    <h3>Layout de importação CROSS</h3>
-                    <Field label="Nome do layout">
-                      <input
-                        required
-                        value={layoutName}
-                        onChange={(e) => setLayoutName(e.target.value)}
-                        placeholder="Ex: Layout CROSS Ambulatorial"
-                      />
-                    </Field>
-                    {Object.entries(mapping).map(([k, v]) => (
-                      <Field key={k} label={labels[k]}>
-                        <input
-                          required
-                          value={v}
-                          onChange={(e) =>
-                            setMapping({ ...mapping, [k]: e.target.value })
-                          }
-                          placeholder="Nome da coluna no CSV"
-                        />
-                      </Field>
-                    ))}
-                    <Field label="Referência da validação">
-                      <textarea
-                        value={evidence}
-                        onChange={(e) => setEvidence(e.target.value)}
-                        maxLength={4000}
-                        rows={3}
-                        placeholder="Referência da validação com a unidade..."
-                      />
-                    </Field>
-                    <label className="op-check">
-                      <input
-                        type="checkbox"
-                        checked={verified}
-                        onChange={(e) => setVerified(e.target.checked)}
-                      />
-                      Layout conferido com a unidade
-                    </label>
-                    <button className="button primary" disabled={busy}>
-                      Cadastrar layout
-                    </button>
-                  </form>
-                </FormAction>
+                <CrossLayoutEditor
+                  unit={unit}
+                  templates={layoutTemplates}
+                  act={act}
+                  busy={busy}
+                />
               ) : null
             }
           >
-            {layouts.length ? (
+            {distinctLayouts.length ? (
               <div className="table-scroll">
                 <table className="directory-table">
                   <thead>
                     <tr>
                       <th>Nome do layout</th>
+                      <th>Template</th>
                       <th>Mapeamento de colunas</th>
                       <th>Validação</th>
                       <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {layouts.map((l) => (
+                    {distinctLayouts.map((l) => (
                       <tr key={l.id}>
                         <td>
                           <strong>{l.name}</strong>
                         </td>
                         <td>
+                          {layoutTemplates.find(
+                            (t) => t.id === l.default_template,
+                          )?.name || "Não definido"}
+                        </td>
+                        <td>
                           <div className="mapping-chips">
-                            {l.mapping &&
+                            {(l.standard_mapping || l.mapping) &&
                               Object.entries(
-                                l.mapping as Record<string, string>,
+                                (l.standard_mapping &&
+                                Object.keys(l.standard_mapping).length
+                                  ? l.standard_mapping
+                                  : l.mapping) as Record<string, string>,
                               ).map(([k, v]) => (
                                 <span key={k} className="mapping-chip">
                                   <small>{labels[k] || k}:</small> {v}
@@ -1659,13 +1542,36 @@ function Administration({
                             {l.verified ? "Validado" : "Pendente de validação"}
                           </span>
                         </td>
-                        <td>{admin && <ConfigurationEditor record={{...l}} path="layouts" act={act} busy={busy} title="Nova versão do layout" label="Editar" fields={[
-                          {key:"name",label:"Nome",required:true},
-                          {key:"format",label:"Formato",type:"select",options:[{value:"table",label:"CSV / XLSX"},{value:"absence_html",label:"Ausentes HTML (.xls)"}]},
-                          {key:"mapping",label:"Colunas",type:"mapping"},
-                          {key:"evidence",label:"Referência da validação",type:"textarea"},
-                          {key:"verified",label:"Validado",type:"checkbox"},
-                        ]}/>}</td>
+                        <td>
+                          {admin && (
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "8px",
+                                alignItems: "center",
+                              }}
+                            >
+                              <CrossLayoutEditor
+                                unit={unit}
+                                templates={layoutTemplates}
+                                record={l}
+                                act={act}
+                                busy={busy}
+                              />
+                              <button
+                                type="button"
+                                className="button danger"
+                                disabled={busy}
+                                onClick={() => {
+                                  setLayoutDeleteError("");
+                                  setRemovingLayout(l);
+                                }}
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1675,6 +1581,58 @@ function Administration({
               <Empty text="Nenhum layout CROSS cadastrado." />
             )}
           </Panel>
+        )}
+        {removingLayout && (
+          <InlineDialog
+            title={`Remover modelo ${removingLayout.name}?`}
+            subtitle={`Versão ${removingLayout.version}`}
+            busy={busy}
+            onClose={() => {
+              setRemovingLayout(null);
+              setLayoutDeleteError("");
+            }}
+            footer={
+              <footer className="form-action-footer">
+                <button
+                  type="button"
+                  className="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setRemovingLayout(null);
+                    setLayoutDeleteError("");
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="button danger"
+                  disabled={busy}
+                  onClick={() => {
+                    setLayoutDeleteError("");
+                    void act(`layouts/${removingLayout.id}/remove`, {
+                      all_versions: true,
+                    })
+                      .then(() => setRemovingLayout(null))
+                      .catch((err: Error) => setLayoutDeleteError(err.message));
+                  }}
+                >
+                  Remover modelo
+                </button>
+              </footer>
+            }
+          >
+            <p>
+              O modelo <strong>{removingLayout.name}</strong> será excluído
+              desta unidade. Modelos já utilizados em lotes de importação
+              existentes são protegidos para preservar o histórico.
+            </p>
+            {layoutDeleteError && (
+              <p className="inline-error" role="alert">
+                {layoutDeleteError}
+              </p>
+            )}
+          </InlineDialog>
         )}
       </div>
     </div>

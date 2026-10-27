@@ -9,18 +9,26 @@ class Patient(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["unit", "source", "external_id"], name="patient_source_identity")
+            models.UniqueConstraint(
+                fields=["unit", "source", "external_id"], name="patient_source_identity"
+            )
         ]
 
 
 class PatientPhone(models.Model):
-    patient = models.ForeignKey(Patient, related_name="contacts", on_delete=models.PROTECT)
+    patient = models.ForeignKey(
+        Patient, related_name="contacts", on_delete=models.PROTECT
+    )
     phone = models.CharField(max_length=40)
     status = models.CharField(max_length=30, default="unverified")
     opted_out = models.BooleanField(default=False)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["patient", "phone"], name="patient_phone_identity")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["patient", "phone"], name="patient_phone_identity"
+            )
+        ]
 
 
 class Appointment(models.Model):
@@ -28,6 +36,7 @@ class Appointment(models.Model):
         CONSULTATION = "consultation", "Consulta"
         EXAM = "exam", "Exame"
         LAB = "lab", "Laboratório"
+        POSTPROCEDURE = "postprocedure", "Busca ativa - pós procedimento"
 
     unit = models.ForeignKey("core.Unit", on_delete=models.PROTECT)
     source = models.CharField(max_length=30, default="oracle")
@@ -35,16 +44,21 @@ class Appointment(models.Model):
     kind = models.CharField(max_length=20, choices=Kind.choices)
     patient = models.CharField(max_length=200)
     patient_record = models.ForeignKey(
-        Patient, null=True, blank=True, related_name="appointments", on_delete=models.PROTECT
+        Patient,
+        null=True,
+        blank=True,
+        related_name="appointments",
+        on_delete=models.PROTECT,
     )
     patient_external_id = models.CharField(max_length=100, blank=True)
+    source_values = models.JSONField(default=dict)
     phone_numbers = models.JSONField(default=list)
     professional = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=150, blank=True)
     phone = models.CharField(max_length=40, blank=True)
     procedure = models.CharField(max_length=200)
     procedure_code = models.CharField(max_length=100, blank=True)
-    appointment_type = models.CharField(max_length=100, blank=True)
+    appointment_type = models.TextField(blank=True)
     scheduled_at = models.DateTimeField()
     arrival_time = models.CharField(max_length=200)
     status = models.CharField(max_length=20, default="scheduled")
@@ -57,7 +71,8 @@ class Appointment(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["unit", "source", "kind", "external_id"], name="appointment_identity"
+                fields=["unit", "source", "kind", "external_id"],
+                name="appointment_identity",
             )
         ]
         indexes = [models.Index(fields=["unit", "scheduled_at"])]
@@ -77,7 +92,11 @@ class Rule(models.Model):
     response_condition = models.CharField(
         max_length=20,
         default="any",
-        choices=[("any", "Qualquer resposta"), ("unanswered", "Sem resposta"), ("confirmed", "Confirmados")],
+        choices=[
+            ("any", "Qualquer resposta"),
+            ("unanswered", "Sem resposta"),
+            ("confirmed", "Confirmados"),
+        ],
     )
     validity_hours = models.PositiveIntegerField(default=24)
     evidence = models.TextField(blank=True)
@@ -86,7 +105,9 @@ class Rule(models.Model):
     legacy_scheduler_id = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["unit", "code"], name="rule_identity")]
+        constraints = [
+            models.UniqueConstraint(fields=["unit", "code"], name="rule_identity")
+        ]
 
 
 class ImportRun(models.Model):
@@ -101,4 +122,79 @@ class ImportRun(models.Model):
     completed_at = models.DateTimeField(null=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["rule", "run_date"], name="import_daily_identity")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rule", "run_date"], name="import_daily_identity"
+            )
+        ]
+
+
+def all_send_weekdays():
+    return list(range(7))
+
+
+class OracleAgenda(models.Model):
+    send_weekdays = models.JSONField(default=all_send_weekdays)
+    blocked_day_policy = models.JSONField(default=dict)
+    name = models.CharField(max_length=120, default="Agenda Oracle")
+    kind = models.CharField(
+        max_length=30,
+        choices=[
+            ("consultation", "Consulta"),
+            ("exam", "Exame"),
+            ("lab", "Laboratório"),
+            ("postprocedure", "Busca ativa - pós procedimento"),
+        ],
+        default="consultation",
+    )
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    unit = models.ForeignKey(
+        "core.Unit", on_delete=models.PROTECT, related_name="oracle_agendas"
+    )
+    view_name = models.CharField(max_length=200)
+    columns = models.JSONField(default=list)
+    column_mapping = models.JSONField(default=dict)
+    template_id = models.CharField(max_length=40)
+    template_snapshot = models.JSONField(default=dict)
+    parameter_mapping = models.JSONField(default=dict)
+    days_after = models.PositiveIntegerField(default=10)
+    date_format = models.CharField(
+        max_length=20,
+        default="native",
+        choices=[
+            ("native", "DATE / TIMESTAMP"),
+            ("br_date", "dd/mm/aaaa"),
+            ("iso_date", "aaaa-mm-dd"),
+        ],
+    )
+    horizon_days = models.PositiveIntegerField(default=10)
+    days_before = models.PositiveIntegerField(default=5)
+    send_time = models.TimeField(default="09:00")
+    enabled = models.BooleanField(default=False)
+    version = models.PositiveIntegerField(default=1)
+    rule = models.OneToOneField(
+        Rule, on_delete=models.PROTECT, related_name="oracle_agenda"
+    )
+    last_state = models.CharField(max_length=30, default="pending")
+    last_error = models.CharField(max_length=80, blank=True)
+    last_started_at = models.DateTimeField(null=True)
+    last_completed_at = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class OracleAgendaDay(models.Model):
+    agenda = models.ForeignKey(
+        OracleAgenda, on_delete=models.PROTECT, related_name="days"
+    )
+    version = models.PositiveIntegerField()
+    date = models.DateField()
+    row_count = models.PositiveIntegerField(default=0)
+    appointment_count = models.PositiveIntegerField(default=0)
+    completed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["agenda", "version", "date"], name="oracle_agenda_day_identity"
+            )
+        ]

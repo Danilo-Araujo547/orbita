@@ -13,12 +13,26 @@ def dispatch_due():
     now = timezone.now()
     ids = list(
         Message.objects.filter(state="queued", unit__paused=False)
-        .filter(**({"snapshot__manual_group_real": True} if settings.SEND_MODE == "meta_test" else {}))
+        .filter(
+            **(
+                {"snapshot__manual_group_real": True}
+                if settings.SEND_MODE == "meta_test"
+                else {}
+            )
+        )
         .filter(
             Q(scheduled_for__lte=now)
-            | Q(group__schedule_overridden=True, group__scheduled_for__lte=now, attempt_count=0)
+            | Q(
+                group__schedule_overridden=True,
+                group__scheduled_for__lte=now,
+                attempt_count=0,
+            )
         )
-        .filter(Q(group__isnull=True) | Q(group__next_send_at__isnull=True) | Q(group__next_send_at__lte=now))
+        .filter(
+            Q(group__isnull=True)
+            | Q(group__next_send_at__isnull=True)
+            | Q(group__next_send_at__lte=now)
+        )
         .order_by("scheduled_for", "created_at", "id")
         .values_list("id", flat=True)[:100]
     )
@@ -37,7 +51,9 @@ def dispatch_manual_due():
     now = timezone.now()
     from operations.models import Campaign
 
-    active_campaigns = list(Campaign.objects.filter(sends_enabled=True).values_list("pk", flat=True))
+    active_campaigns = list(
+        Campaign.objects.filter(sends_enabled=True).values_list("pk", flat=True)
+    )
     ids = list(
         Message.objects.filter(
             state="queued",
@@ -50,6 +66,11 @@ def dispatch_manual_due():
                 Q(snapshot__manual_group_real=True, unit__paused=False)
                 | Q(
                     snapshot__manual_campaign_real=True,
+                    snapshot__campaign__in=active_campaigns,
+                    unit__paused=False,
+                )
+                | Q(
+                    snapshot__has_key="cross_batch",
                     snapshot__campaign__in=active_campaigns,
                     unit__paused=False,
                 )

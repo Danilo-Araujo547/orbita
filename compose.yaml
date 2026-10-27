@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: ${DATABASE_NAME:-orbita}
       POSTGRES_USER: ${DATABASE_USER:-orbita}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Configure DATABASE_PASSWORD no .env}
+    ports: ["0.0.0.0:5432:5432"]
     volumes: ["postgres_data:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -26,6 +27,7 @@ services:
   api:
     build: ./backend
     env_file: .env
+    volumes: ["./data/report_sources:/app/report_sources:ro", "./files:/app/files:ro"]
     environment: &backend_environment
       DATABASE_HOST: db
       REDIS_URL: redis://redis:6379/0
@@ -42,6 +44,7 @@ services:
   worker:
     build: ./backend
     env_file: .env
+    volumes: ["./data/report_sources:/app/report_sources:ro", "./files:/app/files:ro"]
     environment: *backend_environment
     command: ["celery", "-A", "config", "worker", "--loglevel=warning", "--concurrency=2"]
     depends_on:
@@ -50,11 +53,23 @@ services:
   scheduler:
     build: ./backend
     env_file: .env
+    volumes: ["./data/report_sources:/app/report_sources:ro", "./files:/app/files:ro"]
     environment: *backend_environment
     command: ["celery", "-A", "config", "beat", "--loglevel=warning", "--schedule=/tmp/celerybeat-schedule"]
     depends_on:
       api: {condition: service_healthy}
     restart: unless-stopped
+  baileys:
+    build: ./baileys
+    environment:
+      REPORT_BAILEYS_TOKEN: ${REPORT_BAILEYS_TOKEN:?Configure REPORT_BAILEYS_TOKEN}
+      REPORT_BAILEYS_AUTH_KEY: ${REPORT_BAILEYS_AUTH_KEY:?Configure REPORT_BAILEYS_AUTH_KEY}
+      REPORT_BAILEYS_ALLOW_SENDS: ${REPORT_BAILEYS_ALLOW_SENDS:-0}
+      REPORT_BAILEYS_CALLBACK: http://api:8000/api/v1/report-whatsapp/inbound/
+    volumes: ["baileys_sessions:/data"]
+    restart: unless-stopped
+    stop_grace_period: 15s
+    mem_limit: 512m
   panel:
     build: ./frontend
     ports: ["${PANEL_PORT:-8080}:80"]
@@ -65,11 +80,24 @@ services:
     profiles: ["test"]
     build: ./backend
     env_file: .env
-    environment: *backend_environment
-    command: ["pytest", "-q", "tests"]
+    environment:
+      <<: *backend_environment
+      DATABASE_NAME: orbita_suite
+      SEND_MODE: simulated
+      META_REAL_ENABLED: "0"
+      REPORT_BAILEYS_ALLOW_SENDS: "0"
+      META_INBOX_SSH_HOST: ""
+      REDIS_URL: ""
+      CELERY_TASK_ALWAYS_EAGER: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./backend:/app:ro
+      - ./files:/report_files:ro
+    command: ["pytest", "-q", "-p", "no:cacheprovider", "tests"]
     depends_on:
-      api: {condition: service_healthy}
+      db: {condition: service_healthy}
 volumes:
+  baileys_sessions:
   postgres_data:
     external: true
     name: orbita_postgres_data

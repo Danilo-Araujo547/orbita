@@ -4,6 +4,7 @@ export type PageName =
   | "campaigns"
   | "reports"
   | "operationsAdmin"
+  | "costs"
   | "overview"
   | "appointments"
   | "messages"
@@ -27,6 +28,7 @@ export interface Unit {
   instance_name?: string;
   origin_unit?: string;
   connection_state?: string;
+  logo?: string;
 }
 export interface Session {
   username: string;
@@ -208,8 +210,25 @@ export interface Indicators {
   states: Record<string, number>;
   responses: Record<string, number>;
   by_kind: { kind: string; total: number }[];
-  trend: { day: string; messages: number; delivered: number }[];
+  trend: {
+    day: string;
+    messages: number;
+    delivered: number;
+    answered?: number;
+  }[];
   paused: boolean;
+  messages_to_send?: number;
+  messages_total?: number;
+  messages_answered?: number;
+  messages_unanswered?: number;
+  messages_sent?: number;
+  messages_invalid?: number;
+  appointments_total?: number;
+  appointments_declined?: number;
+  appointments_answered?: number;
+  appointments_unanswered?: number;
+  appointments_sent?: number;
+  appointments_invalid?: number;
 }
 export interface Paginated<T> {
   count: number;
@@ -225,3 +244,143 @@ export type Modal =
   | { type: "template"; value: Template }
   | { type: "test" }
   | null;
+
+export interface ReportConnection {
+  id: number;
+  unit: number;
+  name: string;
+  engine: "oracle" | "sqlite" | "firebird" | "mysql" | "postgres";
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  options: { identifier_type?: "service" | "sid"; charset?: string };
+  enabled: boolean;
+  validated: boolean;
+  has_password: boolean;
+  checked_at: string | null;
+  validation_error: string;
+  timeout_seconds: number;
+  max_rows: number;
+  version: number;
+}
+export interface ReportParameter {
+  type: "date" | "integer" | "number" | "string";
+  required?: boolean;
+  default?: string | number | null;
+}
+export interface ReportParameterEvidence {
+  name: string;
+  type: string;
+  mask: string;
+  order: string | null;
+  value: unknown;
+  required: boolean | null;
+  origin: string;
+  usage: string;
+  status: "confirmed" | "legacy" | "pending";
+  configured: boolean;
+  report_code: string;
+  report_name: string;
+}
+export interface CatalogReport {
+  id: number;
+  unit: number;
+  code: string;
+  name: string;
+  source:
+    | "local"
+    | "sql"
+    | "composite"
+    | "legacy_pending"
+    | "external_file"
+    | "application_pending";
+  connection: number | null;
+  connection_name: string;
+  review_queue?: boolean;
+  parameter_audit?: { items: ReportParameterEvidence[]; component_issues: string[] } | null;
+  query_sql?: string;
+  parameter_schema: Record<string, ReportParameter>;
+  components?: { code: string; parameters?: Record<string, unknown> }[];
+  keywords: string[];
+  output_format: "pdf" | "csv" | "text";
+  enabled: boolean;
+  reviewed: boolean;
+  manual_enabled: boolean;
+  pending_items: string[];
+  dependencies?: string[];
+  version: number;
+}
+export interface ReportRecipient {
+  id: number;
+  name: string;
+  unit: number;
+  address: string;
+  kind: "phone" | "group";
+  user: number | null;
+  active: boolean;
+  manual_enabled: boolean;
+  verified_at: string | null;
+  version: number;
+  pending_items: string[];
+}
+export interface ReportGrant {
+  id: number;
+  unit: number;
+  report: number;
+  recipient: number;
+  report_name: string;
+  recipient_name: string;
+  active: boolean;
+  manual: boolean;
+  automatic: boolean;
+  parameters: Record<string, unknown>;
+  version: number;
+}
+export interface ReportAutomation {
+  id: number;
+  unit: number;
+  report: number;
+  recipient: number;
+  report_name: string;
+  recipient_name: string;
+  enabled: boolean;
+  send_time: string;
+  weekdays: number[];
+  parameters: Record<string, unknown>;
+  pending_items: string[];
+  version: number;
+}
+export interface ReportExecution {
+  id: string;
+  report: number;
+  recipient: number | null;
+  report_name: string;
+  recipient_name: string;
+  origin: "panel" | "automatic" | "whatsapp";
+  state: "pending" | "running" | "ready" | "failed" | "blocked";
+  format: "pdf" | "csv" | "text";
+  row_count: number;
+  delivery_state: string;
+  error_code: string;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ReportTechnicalDescription {
+  summary: string;
+  origin: string;
+  assembly: string;
+  components: {code: string; name: string}[];
+  components_note?: string;
+  routines: string[];
+  snapshots: string;
+  pending: string[];
+}
+
+export interface ReportDescriptionInput { description?: string; }
+
+export interface ReportApplicationConnection {
+ id:number;name:string;mode:"local"|"remote";local_unit:number|null;remote_instance:string|null;
+ source_name:string;enabled:boolean;version:number;state:string;
+}

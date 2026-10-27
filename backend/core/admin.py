@@ -1,8 +1,8 @@
 from django.apps import apps
 from django.contrib import admin
 
-admin.site.site_header = "Órbita · Administração"
-admin.site.site_title = "Órbita Admin"
+admin.site.site_header = "SCV Messenger · Administração"
+admin.site.site_title = "SCV Messenger Admin"
 admin.site.index_title = "Administração do sistema"
 
 

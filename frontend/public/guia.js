@@ -1,4 +1,13 @@
 const guides = {
+  costs: {
+    title: "Custos Meta", path: "/custos-meta",
+    sections: [
+      ["Período", "A consulta considera o número da conta Meta configurada na unidade. Selecione até 93 dias dentro dos últimos 12 meses. As datas usam o fuso horário da unidade."],
+      ["Valores", "Os valores aproximados vêm da API pricing_analytics da Meta, na moeda da WABA. Não representam uma fatura consolidada nem incluem cobranças adicionais de terceiros. Mensagens gratuitas permanecem no volume com custo zero. Falta de acesso não aparece como custo zero."],
+      ["Atualização e acesso", "Atualizar consulta novamente a Meta. Consultas comuns têm cache de cinco minutos por unidade e configuração. Administradores têm acesso inicial; outros usuários precisam de permissão na seção Custos Meta. Esta tela apenas lê dados e nunca envia mensagens."],
+      ["Exportação", "Exportar gera um CSV das linhas da consulta atual, com dia, categoria, tipo de cobrança, volume, custo e moeda."],
+    ],
+  },
   overview: {
     title: "Visão geral",
     path: "/visao-geral",
@@ -123,6 +132,8 @@ const guides = {
     title: "Importa CROSS",
     path: "/importa-cross",
     sections: [
+      ["Selecionar todos", "No modal Registros da importação, Selecionar todos inclui os resultados filtrados de todas as páginas. É possível desmarcar pacientes específicos. Mudar a busca ou o filtro limpa a seleção. O checkbox no cabeçalho seleciona apenas a página atual. Selecionar não ativa registros nem libera envios; Ativar ou Desativar selecionados executa a ação."],
+      ["Planilha padronizada", "Em Importar planilha, selecione modelo e template, confira os parâmetros e mapeie as colunas para os 12 campos padrão. Gere a prévia, confira os registros e baixe o CSV padronizado. Confirmar cria uma comunicação em rascunho; Programar define data e hora antes da prévia das mensagens. Campos obrigatórios sem valor bloqueiam a confirmação."],
       [
         "Importar planilha",
         "Adicionar importação abre layout e arquivo CSV/XLSX. O layout precisa estar validado para a unidade. Revise erros, totais e duplicidades antes de confirmar.",
@@ -142,25 +153,19 @@ const guides = {
     ],
   },
   reports: {
-    title: "Relatórios",
-    path: "/relatorios",
+    title: "Relatórios", path: "/relatorios",
     sections: [
-      [
-        "Catálogo",
-        "O catálogo lista definições e disponibilidade por unidade. Relatórios sem fonte validada ou definição recuperável permanecem indisponíveis.",
-      ],
-      [
-        "Solicitar",
-        "Adicionar solicitação abre os parâmetros. Geração e entrega têm estados separados. Consulte o resultado e o arquivo quando disponíveis.",
-      ],
-      [
-        "Entrega",
-        "Solicitação, geração e entrega verificam permissões. WhatsApp exige destinatário autorizado e canal homologado; gerar um arquivo não comprova envio ou leitura.",
-      ],
-      [
-        "Fontes",
-        "O painel não executa SQL arbitrário. Definições revisadas usam fontes permitidas e limites de duração, linhas e tamanho.",
-      ],
+      ["WhatsApp por QR Code", "A aba WhatsApp · QR Code permite conectar ou desconectar a conta da unidade, consultar estado e atividade. Envios, solicitações por mensagem e programações começam desativados. O transporte Baileys é separado dos lembretes pela Meta."],
+      ["Mensagens e perguntas", "Edite o relatório para configurar a mensagem ao selecionar, a pergunta e a ordem de cada parâmetro. Datas são informadas em DD/MM/AAAA. Não anterior a valida períodos personalizados. O menu mostra somente os relatórios ativos, revisados e autorizados ao número verificado. MENU reinicia e CANCELAR encerra a seleção. PULAR ignora parâmetros opcionais."],
+      ["Cadastros", "Relatórios reúne consultas SQL, composições e definições pendentes do legado. Adicionar e Editar abrem o formulário em modal. A etiqueta laranja mostra os itens que impedem a ativação."],
+      ["Conexões", "Oracle, SQLite, Firebird, MySQL e PostgreSQL são cadastrados por unidade. A senha exige confirmação da senha do administrador e ? salva criptografada. Testar usa consulta de leitura. Depois de testar, edite para ativar. SQLite usa arquivos da pasta data/report_sources, montada como somente leitura em /app/report_sources."],
+      ["Consultas e parâmetros", "Cadastre SELECT com parâmetros :nome. O esquema JSON usa, por exemplo, {data_inicial:{type:date,required:true}}, com chaves e textos entre aspas no formulário JSON. Tipos: date, integer, number e string. Marque Definição revisada somente após validar a origem e as fórmulas. Testar consulta salva não envia mensagens."],
+      ["Composições", "Componentes são uma lista JSON de objetos com code e parameters opcionais. Use o código do relatório filho. Todas as partes precisam estar revisadas e ativas; ciclos são bloqueados."],
+      ["Destinatários e permissões", "Telefones e grupos são registros distintos de usuários. Verifique o destinatário, ative-o e cadastre a permissão por relatório, escolhendo Manual e/ou Automático. O vínculo com usuário permite aplicar a permissão aos pedidos no painel. Grupos @g.us podem usar o transporte Baileys, com permissão específica para o grupo; permissões pessoais não são convertidas em acesso de grupo."],
+      ["Programações", "Cada programação vincula relatório, destinatário, parâmetros, dias e horário no fuso da unidade. O agendador cria no máximo uma execução por programação/dia. Ativar exige relatório pronto e permissão automática válida. A geração fica registrada separadamente da entrega."],
+      ["Solicitação manual", "Gerar cria uma execução no painel; o download revalida as permissões. O comando explícito RELATORIO seguido da palavra-chave e um objeto JSON opcional usa somente destinatários verificados, com usuário vinculado e permissão manual. Falta de acesso retorna estado genérico, sem revelar o catálogo."],
+      ["Importação do .123", "As definições, contatos, permissões e programações legadas são importados desativados. Contatos com telefone compartilhado permanecem separados. Procedimentos Firebird, PDFs externos e integrações de mensagens ou Meta têm pendências explícitas; não são executados automaticamente nem convertidos por aproximação. O Firebird legado não ? uma dependência operacional do novo catálogo."],
+      ["Execuções e entrega", "PDF, CSV e texto têm limites de tempo, linhas e tamanho. Execuções, origem e resultados ficam no histórico. O transporte de relatórios usa Baileys e respeita o bloqueio do ambiente e da unidade. Envios de resultado incerto não são repetidos automaticamente. Gerar pelo painel não envia pela conta conectada. Alterações no relatório, conexão, destinatário ou permissão podem bloquear resultados anteriores."],
     ],
   },
   operationsAdmin: {
@@ -273,7 +278,7 @@ const title = document.getElementById("title");
 const content = document.getElementById("content");
 if (guide) {
   title.textContent = guide.title;
-  document.title = `${guide.title} · Ajuda Órbita`;
+  document.title = `${guide.title} · Ajuda SCV Messenger`;
   const unit = params.get("unit");
   document.getElementById("back").href =
     guide.path + (unit ? `?unit=${encodeURIComponent(unit)}` : "");

@@ -1,0 +1,174 @@
+{
+  "legacy123-265": {
+    "file": "consultations.sql",
+    "title": "Consultas por unidade, CBO e equipe",
+    "view": "SIGSAUDEJ.VDIC_MEGA_RELATORIOS_001",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "semantics": "Data final inclusiva: intervalo do início do primeiro dia até o início do dia seguinte à data final, exclusivo.",
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.cbo, EQUI_NOME_REFERENCIA\nAS EQUIPE, count(distinct vr.cd_agendamento)  AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr\n\nwhere vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL\nGROUP BY UNIDADE_SOLICITANTE, CBO, EQUI_NOME_REFERENCIA \nORDER BY UNIDADE_SOLICITANTE, 4 DESC",
+    "legacy_parameters": [
+      {
+        "ID_RELATORIO": 265,
+        "ORDEM": 1,
+        "TIPO": "DATA INICIAL",
+        "NOME": "WPA_DATA_INICIAL",
+        "MASCARA": "DD/MM/YYYY",
+        "CONTEUDO": ""
+      },
+      {
+        "ID_RELATORIO": 265,
+        "ORDEM": 2,
+        "TIPO": "DATA FINAL",
+        "NOME": "WPA_DATA_FINAL",
+        "MASCARA": "DD/MM/YYYY",
+        "CONTEUDO": ""
+      }
+    ]
+  },
+  "legacy123-272": {
+    "file": "consultation_procedures.sql",
+    "title": "Consultas por procedimento",
+    "view": "SIGSAUDEJ.VDIC_MEGA_RELATORIOS_001",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "semantics": "Data final inclusiva: intervalo do início do primeiro dia até o início do dia seguinte à data final, exclusivo.",
+    "original_sql": "select UNIDADE_SOLICITANTE, vr.procedimento,  count(distinct vr.cd_agendamento)  AS QUANTIDADE \nfrom sigsaudej.vdic_mega_relatorios_001 vr\nwhere vr.dt_atendimento between WPA_DATA_INICIAL and WPA_DATA_FINAL GROUP BY UNIDADE_SOLICITANTE, vr.procedimento ORDER BY UNIDADE_SOLICITANTE, 3 DESC",
+    "legacy_parameters": [
+      {
+        "ID_RELATORIO": 272,
+        "ORDEM": 1,
+        "TIPO": "DATA INICIAL",
+        "NOME": "WPA_DATA_INICIAL",
+        "MASCARA": "DD/MM/YYYY",
+        "CONTEUDO": ""
+      },
+      {
+        "ID_RELATORIO": 272,
+        "ORDEM": 2,
+        "TIPO": "DATA FINAL",
+        "NOME": "WPA_DATA_FINAL",
+        "MASCARA": "DD/MM/YYYY",
+        "CONTEUDO": ""
+      }
+    ]
+  },
+  "legacy123-289": {
+    "file": "medication_outputs.sql",
+    "title": "Saída de medicamentos",
+    "view": "SIGSAUDEJ.VDIC_MEGA_RELATORIOS_003",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "integer",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe o ano (AAAA).",
+        "minimum": 1900,
+        "maximum": 9999
+      },
+      "WPA_DATA_FINAL": {
+        "type": "integer",
+        "required": true,
+        "order": 2,
+        "prompt": "Informe o mês (1 a 12).",
+        "minimum": 1,
+        "maximum": 12
+      }
+    },
+    "semantics": "Marcadores legados DATA_INICIAL e DATA_FINAL representam ano e mês, respectivamente, não duas datas.",
+    "original_sql": "select estoque, produto, qtde, valor_unit, valor_total  from sigsaudej.vdic_mega_relatorios_003 vr3\nwhere vr3.Ano = WPA_DATA_INICIAL and vr3.Mes = WPA_DATA_FINAL\norder by 1, 2",
+    "legacy_parameters": [
+      {
+        "ID_RELATORIO": 289,
+        "ORDEM": 1,
+        "TIPO": "DATA INICIAL",
+        "NOME": "WPA_DATA_INICIAL",
+        "MASCARA": "YYYY",
+        "CONTEUDO": ""
+      },
+      {
+        "ID_RELATORIO": 289,
+        "ORDEM": 2,
+        "TIPO": "DATA FINAL",
+        "NOME": "WPA_DATA_FINAL",
+        "MASCARA": "MM",
+        "CONTEUDO": ""
+      }
+    ]
+  },
+  "legacy123-291": {
+    "file": "pregnancies.sql",
+    "title": "Gestantes por unidade",
+    "view": "SIGSAUDEJ.VDIC_MEGA_RELATORIOS_004",
+    "schema": {},
+    "semantics": "Sem parâmetros no cadastro legado; lista ordenada por unidade e nome.",
+    "original_sql": "select unidade_referencia as UNIDADE_REF, \nnm_gestante AS NOME_GESTANTE, \ndt_dum AS DATA_ULT_MENSTRUACAO, \ndt_dpp AS DATA_PARTO, \nds_tipo_gravidez AS TP_GRAVIDEZ, \nds_status_tb_gestante AS STATUS,\nds_status_tb_sisprenatal AS STATUS_PRENATAL,\nCASE ds_risco_gravidez\n WHEN 1 THEN 'RISCO HABITUAL'\n WHEN 2 THEN 'RISCO INTERMEDIÁRIO'\n WHEN 3 THEN 'ALTO RISCO'\n ELSE NULL\nEND AS RISCO  \nfrom sigsaudej.vdic_mega_relatorios_004 vr4\norder by 1, 2",
+    "legacy_parameters": []
+  },
+  "legacy123-312": {
+    "file": "regulated_exams.sql",
+    "title": "Exames regulados UPA/PA",
+    "view": "SIGSAUDEJ.VDIC_MEGA_RELATORIOS_011",
+    "schema": {
+      "WPA_DATA_INICIAL": {
+        "type": "date",
+        "required": true,
+        "order": 1,
+        "prompt": "Informe a data inicial (DD/MM/AAAA)."
+      },
+      "WPA_DATA_FINAL": {
+        "type": "date",
+        "required": true,
+        "order": 2,
+        "not_before": "WPA_DATA_INICIAL",
+        "prompt": "Informe a data final (DD/MM/AAAA)."
+      }
+    },
+    "semantics": "Data final inclusiva: intervalo do início do primeiro dia até o início do dia seguinte à data final, exclusivo.",
+    "original_sql": "select vr11.unidade,\n       vr11.data,\n       vr11.profissional,       \n       vr11.procedimento,\n       vr11.obs,\n       vr11.cd_paciente || '-' ||  vr11.paciente as paciente\nfrom sigsaudej.vdic_mega_relatorios_011 vr11\nwhere vr11.unsa_cod in ('107-1','105-1')\nand vr11.data between WPA_DATA_INICIAL and WPA_DATA_FINAL\nand vr11.obs is not null\norder by 1, 2, 3",
+    "legacy_parameters": [
+      {
+        "ID_RELATORIO": 312,
+        "ORDEM": 1,
+        "TIPO": "DATA INICIAL",
+        "NOME": "WPA_DATA_INICIAL",
+        "MASCARA": "DD/MM/YYYY",
+        "CONTEUDO": ""
+      },
+      {
+        "ID_RELATORIO": 312,
+        "ORDEM": 2,
+        "TIPO": "DATA FINAL",
+        "NOME": "WPA_DATA_FINAL",
+        "MASCARA": "DD/MM/YYYY",
+        "CONTEUDO": ""
+      }
+    ]
+  }
+}

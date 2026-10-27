@@ -1,0 +1,15 @@
+# Imagem de staging do painel: igual ao Dockerfile, mas o upstream da API vem de
+# ${API_UPSTREAM} (a imagem oficial do nginx aplica envsubst apenas às variáveis definidas,
+# preservando $uri, $http_host etc.). Uso: scripts/canvas-stage.sh com API_UPSTREAM.
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+FROM nginx:alpine
+ENV API_UPSTREAM=api:8000
+ENV NGINX_ENVSUBST_FILTER=^API_UPSTREAM$
+COPY nginx.stage.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80

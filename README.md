@@ -166,3 +166,20 @@ WABA e o número e consultar o catálogo de templates. O envio real permanece
 bloqueado no backend, inclusive em `meta_test`. Consulte
 [o guia de configuração e validação](docs/META_CONFIGURATION.md).
 
+
+
+### Regressão de envios na suíte padrão
+
+Os cenários Oracle, geração de agendas, calendário e conflitos integram `backend/tests` e são executados pelo comando normal:
+
+```sh
+docker compose --profile test run --rm tests
+```
+
+O serviço usa o código atual montado somente para leitura, banco de testes PostgreSQL separado (`test_orbita_suite`) e modo simulado. Para executar somente esse grupo:
+
+```sh
+docker compose --profile test run --rm tests pytest -q -p no:cacheprovider -m send_regression tests
+```
+
+O marcador `send_regression` reúne os cenários existentes e novos, sem duplicar arquivos de testes. O runner `scripts/run-send-regression.sh` usa o mesmo marcador e gera JUnit em uma pasta de resultados. A consulta real de homologação é opcional e fica fora dos testes automáticos; consulte `docs/REGRESSAO_ENVIOS.md`.

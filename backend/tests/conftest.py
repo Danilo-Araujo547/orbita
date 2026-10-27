@@ -16,6 +16,7 @@ from scheduling.services import queue_appointment, upsert_appointment
 def fast_test_passwords(settings):
     settings.SIMULATED_SQLITE_PATH = ""
     settings.META_REAL_ENABLED = False
+    settings.REPORT_BAILEYS_ALLOW_SENDS = False
     settings.SEND_MODE = "simulated"
     settings.META_INBOX_SSH_HOST = ""
     # Only test databases use this hasher; application password storage is unchanged.

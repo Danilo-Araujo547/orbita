@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useState } from "react";
 import {
   Check,
@@ -77,7 +78,7 @@ export default function ModalContent({
 
         <label>
           Número autorizado
-          <select
+          <Select
             value={testPhone}
             onChange={(e) => setTestPhone(e.target.value)}
           >
@@ -87,11 +88,11 @@ export default function ModalContent({
                 +{phone}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label>
           Tipo de agendamento
-          <select
+          <Select
             value={testKind}
             onChange={(e) => setTestKind(e.target.value)}
           >
@@ -100,7 +101,7 @@ export default function ModalContent({
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         {!control.test_recipients.length && (
           <div className="inline-error">
@@ -311,7 +312,7 @@ export default function ModalContent({
             {issue.reply && !issue.message && (
               <label>
                 Vincular a um lembrete
-                <select
+                <Select
                   value={linkedMessage}
                   onChange={(e) => setLinkedMessage(e.target.value)}
                 >
@@ -321,7 +322,7 @@ export default function ModalContent({
                       {m.patient} · {m.procedure} · +{m.recipient}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             )}
             {candidateError && (
@@ -329,7 +330,7 @@ export default function ModalContent({
             )}
             <label>
               Classificação da resposta (opcional)
-              <select
+              <Select
                 value={classification}
                 onChange={(e) => setClassification(e.target.value)}
               >
@@ -337,7 +338,7 @@ export default function ModalContent({
                 <option value="confirmed">Confirmado</option>
                 <option value="declined">Recusado</option>
                 <option value="review">Revisar</option>
-              </select>
+              </Select>
             </label>
             <button
               className="button primary"

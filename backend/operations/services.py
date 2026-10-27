@@ -2,28 +2,55 @@ import hashlib
 import json
 from datetime import timedelta
 
-from core.models import Audit, Membership
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
-from messaging.models import Message
 from rest_framework.exceptions import APIException, ValidationError
-from scheduling.connectors import normalize_phone
 
-from operations.models import ActionReceipt, Case, Contact, Interaction, Purpose, SourceEvent
+from core.models import Audit, Membership
+from messaging.models import Message
+from operations.models import (
+    ActionReceipt,
+    Case,
+    Contact,
+    Interaction,
+    Purpose,
+    SourceEvent,
+)
+from scheduling.connectors import normalize_phone
 
 
 class Conflict(APIException):
     status_code = 409
-    default_detail = "O registro foi alterado. Atualize os dados antes de tentar novamente."
+    default_detail = (
+        "O registro foi alterado. Atualize os dados antes de tentar novamente."
+    )
 
 
 OUTCOMES = {
     Purpose.APPOINTMENT: {"confirmed", "declined", "wrong_person", "opt_out", "review"},
-    Purpose.WAITLIST: {"stay_waitlist", "leave_waitlist", "wrong_person", "opt_out", "review"},
+    Purpose.WAITLIST: {
+        "stay_waitlist",
+        "leave_waitlist",
+        "wrong_person",
+        "opt_out",
+        "review",
+    },
     Purpose.SUMMONS: {"acknowledged", "declined", "wrong_person", "opt_out", "review"},
-    Purpose.POSTOPERATIVE: {"well", "needs_attention", "wrong_person", "opt_out", "review"},
-    Purpose.ABSENCE: {"reason_received", "confirmed", "wrong_person", "opt_out", "review"},
+    Purpose.POSTOPERATIVE: {
+        "well",
+        "needs_attention",
+        "wrong_person",
+        "opt_out",
+        "review",
+    },
+    Purpose.ABSENCE: {
+        "reason_received",
+        "confirmed",
+        "wrong_person",
+        "opt_out",
+        "review",
+    },
     Purpose.MOVEMENT: {"acknowledged", "wrong_person", "opt_out", "review"},
     Purpose.REPORT: {"acknowledged", "wrong_person", "opt_out", "review"},
 }
@@ -79,7 +106,10 @@ def ensure_appointment_case(appointment):
     )
     if not created and event.revision != appointment.revision:
         event.patient, event.phone = appointment.patient, appointment.phone
-        event.occurred_at, event.revision = appointment.scheduled_at, appointment.revision
+        event.occurred_at, event.revision = (
+            appointment.scheduled_at,
+            appointment.revision,
+        )
         event.data = {
             "procedure": appointment.procedure,
             "procedure_code": appointment.procedure_code,
@@ -104,17 +134,30 @@ def ensure_appointment_case(appointment):
                 "Dados atualizados pela origem.",
                 data={"revision": event.revision},
             )
-    case, new = Case.objects.get_or_create(unit=appointment.unit, event=event, purpose=Purpose.APPOINTMENT)
+    case, new = Case.objects.get_or_create(
+        unit=appointment.unit,
+        event=event,
+        purpose=Purpose.POSTOPERATIVE
+        if appointment.kind == "postprocedure"
+        else Purpose.APPOINTMENT,
+    )
     if new:
         log(case, "created", "Acompanhamento criado a partir do agendamento.")
     for phone in contact_numbers(appointment.phone_numbers, appointment.phone):
         patient_phone = None
         if patient:
-            patient_phone, _ = PatientPhone.objects.get_or_create(patient=patient, phone=phone)
-        contact, _ = Contact.objects.get_or_create(unit=event.unit, event=event, phone=phone)
+            patient_phone, _ = PatientPhone.objects.get_or_create(
+                patient=patient, phone=phone
+            )
+        contact, _ = Contact.objects.get_or_create(
+            unit=event.unit, event=event, phone=phone
+        )
         if patient_phone and contact.patient_phone_id != patient_phone.pk:
             contact.patient_phone = patient_phone
-            contact.status, contact.opted_out = patient_phone.status, patient_phone.opted_out
+            contact.status, contact.opted_out = (
+                patient_phone.status,
+                patient_phone.opted_out,
+            )
             contact.save(update_fields=["patient_phone", "status", "opted_out"])
     return case
 
@@ -125,7 +168,9 @@ def idempotent(unit, actor, key, payload, execute):
         raise ValidationError("Informe Idempotency-Key entre 8 e 100 caracteres.")
     # Serialize actions per unit. This works together with the unique receipt constraint.
     type(unit).objects.select_for_update(no_key=True).get(pk=unit.pk)
-    fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+    fingerprint = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=str).encode()
+    ).hexdigest()
     receipt = ActionReceipt.objects.filter(unit=unit, actor=actor, key=key).first()
     if receipt:
         if receipt.fingerprint != fingerprint:
@@ -134,15 +179,17 @@ def idempotent(unit, actor, key, payload, execute):
     from rest_framework.renderers import JSONRenderer
 
     result = json.loads(JSONRenderer().render(execute()))
-    ActionReceipt.objects.create(unit=unit, actor=actor, key=key, fingerprint=fingerprint, result=result)
+    ActionReceipt.objects.create(
+        unit=unit, actor=actor, key=key, fingerprint=fingerprint, result=result
+    )
     return result
 
 
 def lock_case(case, version):
     # Conditional UPDATE also guards SQLite, where SELECT FOR UPDATE is ineffective.
-    if type(version) is not int or not Case.objects.filter(pk=case.pk, version=version).update(
-        version=F("version") + 1, updated_at=timezone.now()
-    ):
+    if type(version) is not int or not Case.objects.filter(
+        pk=case.pk, version=version
+    ).update(version=F("version") + 1, updated_at=timezone.now()):
         raise Conflict()
     case.refresh_from_db()
     return case
@@ -151,7 +198,9 @@ def lock_case(case, version):
 def eligible_operator(user, unit):
     return user.is_active and (
         user.is_superuser
-        or Membership.objects.filter(unit=unit, user=user, role__in=["admin", "operator"]).exists()
+        or Membership.objects.filter(
+            unit=unit, user=user, role__in=["admin", "operator"]
+        ).exists()
     )
 
 
@@ -174,7 +223,9 @@ def apply_outcome(
         from responses.models import Reply
 
         phone = Reply.objects.get(pk=reply_id).sender
-    historical = case.last_response_at is not None and occurred_at < case.last_response_at
+    historical = (
+        case.last_response_at is not None and occurred_at < case.last_response_at
+    )
     # Different contacts may legitimately respond out of order.
     if phone:
         historical = case.interactions.filter(
@@ -203,10 +254,12 @@ def apply_outcome(
     aggregate = outcome
     if phone:
         latest = {}
-        for action in case.interactions.filter(kind="classification").order_by("-occurred_at", "-id"):
-            if action.data.get("revision", case.event.revision) != case.event.revision or action.data.get(
-                "historical"
-            ):
+        for action in case.interactions.filter(kind="classification").order_by(
+            "-occurred_at", "-id"
+        ):
+            if action.data.get(
+                "revision", case.event.revision
+            ) != case.event.revision or action.data.get("historical"):
                 continue
             key = action.data.get("phone", "")
             if not key:
@@ -224,7 +277,9 @@ def apply_outcome(
             aggregate = "confirmed"
             from responses.models import Issue
 
-            Issue.objects.filter(case=case, category="conflicting_replies", resolved_at__isnull=True).update(
+            Issue.objects.filter(
+                case=case, category="conflicting_replies", resolved_at__isnull=True
+            ).update(
                 resolved_at=timezone.now(),
                 resolution="Agendamento confirmado por pelo menos um contato.",
             )
@@ -256,22 +311,30 @@ def apply_outcome(
     case.version += 1
     case.save()
     if aggregate in {"declined", "leave_waitlist"}:
-        Message.objects.filter(case=case, state__in=["queued", "preview", "blocked"]).update(
-            state="cancelled"
-        )
+        Message.objects.filter(
+            case=case, state__in=["queued", "preview", "blocked"]
+        ).update(state="cancelled")
     if outcome in {"wrong_person", "opt_out"}:
         phone = phone or case.event.phone
         Contact.objects.filter(event=case.event, phone=phone).update(
-            **({"status": "wrong_person"} if outcome == "wrong_person" else {"opted_out": True})
+            **(
+                {"status": "wrong_person"}
+                if outcome == "wrong_person"
+                else {"opted_out": True}
+            )
         )
     if outcome in {"wrong_person", "opt_out"}:
         from scheduling.models import PatientPhone
 
-        patient_phones = Contact.objects.filter(event=case.event, phone=phone).values_list(
-            "patient_phone_id", flat=True
-        )
+        patient_phones = Contact.objects.filter(
+            event=case.event, phone=phone
+        ).values_list("patient_phone_id", flat=True)
         PatientPhone.objects.filter(pk__in=patient_phones).update(
-            **({"status": "wrong_person"} if outcome == "wrong_person" else {"opted_out": True})
+            **(
+                {"status": "wrong_person"}
+                if outcome == "wrong_person"
+                else {"opted_out": True}
+            )
         )
     if outcome == "opt_out":
         # Suppress this destination for the unit across cases, preserving all event identities.
@@ -280,17 +343,21 @@ def apply_outcome(
             unit=case.unit, recipient=phone, state__in=["queued", "preview", "blocked"]
         ).update(state="cancelled")
     if outcome == "wrong_person":
-        Message.objects.filter(case=case, recipient=phone, state__in=["queued", "preview", "blocked"]).update(
-            state="cancelled"
-        )
+        Message.objects.filter(
+            case=case, recipient=phone, state__in=["queued", "preview", "blocked"]
+        ).update(state="cancelled")
     from responses.models import Issue
 
-    Issue.objects.filter(message__case=case, category="no_response", resolved_at__isnull=True).update(
+    Issue.objects.filter(
+        message__case=case, category="no_response", resolved_at__isnull=True
+    ).update(
         resolved_at=timezone.now(), resolution="Resposta registrada no acompanhamento."
     )
     if outcome in {"needs_attention", "wrong_person", "review"}:
         message = (
-            case.messages.filter(**({"recipient": phone} if phone else {})).order_by("-created_at").first()
+            case.messages.filter(**({"recipient": phone} if phone else {}))
+            .order_by("-created_at")
+            .first()
         )
         if message:
             from messaging.services import issue_once
@@ -314,14 +381,20 @@ def apply_outcome(
 
 
 def contextual_classify(
-    text, purpose="appointment", button_id="", content_type="text", response_policy="contextual"
+    text,
+    purpose="appointment",
+    button_id="",
+    content_type="text",
+    response_policy="contextual",
 ):
     import unicodedata
 
     if content_type not in {"text", "button", "interactive"}:
         return "review"
     clean = "".join(
-        c for c in unicodedata.normalize("NFD", text.strip().lower()) if unicodedata.category(c) != "Mn"
+        c
+        for c in unicodedata.normalize("NFD", text.strip().lower())
+        if unicodedata.category(c) != "Mn"
     )
     if response_policy == "confirmation_test" and purpose == "absence":
         if clean in {"sim", "nao"} or button_id in {"confirmed", "declined"}:
@@ -342,16 +415,30 @@ def contextual_classify(
         "movement": ("acknowledged", "review"),
     }
     if purpose in pairs:
-        return pairs[purpose][0] if positive else pairs[purpose][1] if negative else "review"
+        return (
+            pairs[purpose][0]
+            if positive
+            else pairs[purpose][1]
+            if negative
+            else "review"
+        )
     return "review"
 
 
+@transaction.atomic
 def preview_campaign(campaign):
-    if campaign.state != "draft" or not campaign.template or campaign.template.unit_id != campaign.unit_id:
-        raise ValidationError("Campanha deve estar em rascunho e possuir template da unidade.")
+    if (
+        campaign.state != "draft"
+        or not campaign.template
+        or campaign.template.unit_id != campaign.unit_id
+    ):
+        raise ValidationError(
+            "Campanha deve estar em rascunho e possuir template da unidade."
+        )
     test_confirmation = campaign.response_policy == "confirmation_test"
     if test_confirmation and (
-        campaign.purpose != "absence" or campaign.template.name != "confirmacao_consulta_sqlite_v1"
+        campaign.purpose != "absence"
+        or campaign.template.name != "confirmacao_consulta_sqlite_v1"
     ):
         raise ValidationError(
             "Política de teste restrita ao template de confirmação da campanha de ausentes."
@@ -375,18 +462,39 @@ def preview_campaign(campaign):
                 appointment_type="DO SEU ATENDIMENTO",
                 arrival_time=timezone.localtime(event.occurred_at).strftime("%H:%M"),
             )
-        params = [str(available.get(field, "")) for field in campaign.template.fields]
+        parameter_fields = campaign.template.fields
+        frozen = None
+        if campaign.import_batch_id:
+            batch = campaign.import_batch
+            frozen = batch.configuration.get("template", {})
+            if (
+                batch.unit_id != campaign.unit_id
+                or batch.template_id != campaign.template_id
+                or frozen.get("version") != campaign.template.version
+            ):
+                raise ValidationError(
+                    "Configuração do template da importação foi alterada; gere uma nova prévia."
+                )
+            parameter_fields = batch.configuration.get("parameter_fields", [])
+            available = event.data.get("standardized", {})
+        params = [str(available.get(field, "")) for field in parameter_fields]
         if any(not p.strip() for p in params):
             raise ValidationError("Parâmetros incompletos para um dos casos.")
         from messaging.models import Notification
         from scheduling.services import contact_numbers
 
         numbers = contact_numbers(
-            event.appointment.phone_numbers if event.appointment_id else event.data.get("phone_numbers", []),
+            event.appointment.phone_numbers
+            if event.appointment_id
+            else event.data.get("phone_numbers", []),
             event.phone,
         )
         notification, _ = Notification.objects.get_or_create(
-            key=f"campaign:{campaign.pk}:{campaign.version}:{case.pk}:{event.revision}",
+            key=(
+                f"cross:{campaign.import_batch_id}:{case.pk}:{event.revision}"
+                if campaign.import_batch_id
+                else f"campaign:{campaign.pk}:{campaign.version}:{case.pk}:{event.revision}"
+            ),
             defaults={
                 "unit": campaign.unit,
                 "appointment": event.appointment,
@@ -398,10 +506,27 @@ def preview_campaign(campaign):
             try:
                 recipient = normalize_phone(phone)
             except ValueError:
-                raise ValidationError("Contato inválido; revise antes de criar a prévia.") from None
-            body = campaign.template.body
+                raise ValidationError(
+                    "Contato inválido; revise antes de criar a prévia."
+                ) from None
+            body = frozen["body"] if frozen else campaign.template.body
             for i, value in enumerate(params, 1):
                 body = body.replace("{{" + str(i) + "}}", value)
+            existing = (
+                Message.objects.filter(
+                    unit=campaign.unit,
+                    case=case,
+                    recipient=recipient,
+                    snapshot__import_batch=str(campaign.import_batch_id),
+                )
+                .order_by("created_at")
+                .first()
+                if campaign.import_batch_id
+                else None
+            )
+            if existing:
+                messages.append(str(existing.pk))
+                continue
             message, _ = Message.objects.get_or_create(
                 notification_key=f"{notification.key}:{recipient}",
                 defaults={
@@ -428,7 +553,13 @@ def preview_campaign(campaign):
                         "event_revision": event.revision,
                         "synthetic": event.synthetic,
                         "components": campaign.template.components,
-                        "fields": campaign.template.fields,
+                        "fields": parameter_fields,
+                        "import_batch": str(campaign.import_batch_id)
+                        if campaign.import_batch_id
+                        else None,
+                        "standard_schema_version": 1
+                        if campaign.import_batch_id
+                        else None,
                         "template_version": campaign.template.version,
                     },
                 },

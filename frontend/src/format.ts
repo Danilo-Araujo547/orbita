@@ -2,6 +2,7 @@ export const kinds: Record<string, string> = {
   consultation: "Consulta",
   exam: "Exame",
   lab: "Laboratório",
+  postprocedure: "Busca ativa - pós procedimento",
   waitlist: "Fila CDR",
   postoperative: "Pós-cirúrgico",
 };
@@ -42,14 +43,16 @@ export const labels: Record<string, string> = {
   acknowledged: "Ciente",
   reason_received: "Motivo informado",
 };
-export const dateTime = (date: string) =>
-  new Intl.DateTimeFormat("pt-BR", {
+export const dateTime = (date?: string | null) => {
+  if (!date || !Number.isFinite(new Date(date).getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(date));
+};
 export const dateOnly = (date: string) =>
   new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",

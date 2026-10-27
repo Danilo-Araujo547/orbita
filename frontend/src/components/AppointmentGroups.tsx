@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useId, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowLeft, CalendarClock, ChevronRight, Pencil } from "lucide-react";
@@ -303,17 +304,17 @@ export default function AppointmentGroups({
         <div className="op-card group-filters">
           <label className="op-field">
             <span>Tipo de agendamento</span>
-            <select
+            <Select
               value={filters.kind}
               onChange={(e) => filter("kind", e.target.value)}
             >
               <option value="">Todos</option>
-              {["consultation", "exam", "lab"].map((k) => (
+              {["consultation", "exam", "lab", "postprocedure"].map((k) => (
                 <option key={k} value={k}>
                   {kinds[k]}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="op-field">
             <span>Atendimentos a partir de</span>

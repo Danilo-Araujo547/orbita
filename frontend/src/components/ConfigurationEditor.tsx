@@ -1,3 +1,4 @@
+import Select from "./Select";
 import FormAction from "./FormAction";
 type Choice = {value: string|number;label:string};
 export type EditField = {key:string;label:string;type?:"text"|"number"|"time"|"checkbox"|"textarea"|"select"|"multiple"|"weekdays"|"mapping";options?:Choice[];required?:boolean};
@@ -20,7 +21,7 @@ export default function ConfigurationEditor({record, fields, path, act, busy, ti
         if(field.type==="mapping")return <fieldset key={field.key}><legend>{field.label}</legend>{Object.entries((value||{}) as Record<string,string>).map(([key,v])=><label className="op-field" key={key}>{key}<input name={`${field.key}:${key}`} defaultValue={v} required/></label>)}</fieldset>;
         if(field.type==="checkbox")return <label className="checkbox-label" key={field.key}><input name={field.key} type="checkbox" defaultChecked={!!value}/>{field.label}</label>;
         if(field.type==="multiple"||field.type==="weekdays")return <fieldset key={field.key}><legend>{field.label}</legend><div className="op-checklist">{(field.type==="weekdays"?["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map((label,value)=>({value,label})):field.options||[]).map(option=><label key={option.value}><input name={field.key} type="checkbox" value={option.value} defaultChecked={Array.isArray(value)&&value.includes(Number(option.value))}/>{option.label}</label>)}</div></fieldset>;
-        return <label className="op-field" key={field.key}>{field.label}{field.type==="textarea"?<textarea name={field.key} defaultValue={String(value||"")} required={field.required} maxLength={4000}/>:field.type==="select"?<select name={field.key} defaultValue={String(value??"")} required={field.required}>{field.options?.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input name={field.key} type={field.type||"text"} required={field.required} defaultValue={field.type==="time"?String(value||"").slice(0,5):String(value??"")}/>}</label>;
+        return <label className="op-field" key={field.key}>{field.label}{field.type==="textarea"?<textarea name={field.key} defaultValue={String(value||"")} required={field.required} maxLength={4000}/>:field.type==="select"?<Select name={field.key} defaultValue={String(value??"")} required={field.required}>{field.options?.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</Select>:<input name={field.key} type={field.type||"text"} required={field.required} defaultValue={field.type==="time"?String(value||"").slice(0,5):String(value??"")}/>}</label>;
       })}
       <button type="submit" className="button primary" disabled={busy}>Salvar</button>
     </form>

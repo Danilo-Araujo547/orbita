@@ -37,3 +37,17 @@ describe("Session polling", () => {
     expect(reconcileSession(session, next)).toBe(next);
   });
 });
+
+
+describe("Meta costs",()=>{
+  it("denies by default for operators and accepts explicit read grants",()=>{
+    const local={...session,permissions:undefined};
+    expect(canAccess(local,"ame","costs")).toBe(false);
+    const grant={...session,permissions:{ame:{costs:"read" as const}}};
+    expect(canAccess(grant,"ame","costs")).toBe(true);
+    expect(canAccess(grant,"ame","costs",true)).toBe(false);
+  });
+  it("revoked units cannot read costs",()=>{
+    expect(canAccess({...session,units:[],permissions:{ame:{costs:"read"}}},"ame","costs")).toBe(false);
+  });
+});

@@ -1,3 +1,4 @@
+import BrandLogo from "./BrandLogo";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { request, signIn } from "../api";
@@ -32,11 +33,8 @@ export default function Login({ onLogin }: { onLogin: (session: Session) => void
         <ThemeToggle />
       </div>
       <header className="lg-brand">
-        <div className="orbita-logo" role="img" aria-label="Órbita">
-          <span className="orbita-logo__symbol" aria-hidden="true" />
-          <span aria-hidden="true">
-            órbita<span className="orbita-logo__dot">.</span>
-          </span>
+        <div className="orbita-logo" role="img" aria-label="SCV Messenger">
+          <BrandLogo wordmark />
         </div>
       </header>
       <section className="lg-panel">

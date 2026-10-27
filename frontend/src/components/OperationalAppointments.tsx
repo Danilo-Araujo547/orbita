@@ -1,6 +1,7 @@
 import FilterSelect from "./FilterSelect";
 import WhatsAppStatus from "./WhatsAppStatus";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { whatsappStatus } from "../whatsappStatus";
 import type { ReactNode } from "react";
 import {
   Check,
@@ -8,6 +9,7 @@ import {
   ChevronRight,
   Download,
   MessageSquare,
+  RotateCcw,
   Search,
   User,
   X,
@@ -120,6 +122,91 @@ export function isAppointmentIssue(item: Appointment): boolean {
   return false;
 }
 
+function ExpandableSearch({
+  value,
+  onChange,
+  placeholder = "Buscar paciente, código ou telefone...",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const [expanded, setExpanded] = useState(Boolean(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (value) {
+      setExpanded(true);
+    }
+  }, [value]);
+
+  const handleToggle = () => {
+    if (!expanded) {
+      setExpanded(true);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else if (!value) {
+      setExpanded(false);
+    } else {
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    if (!value) {
+      setExpanded(false);
+    }
+  };
+
+  const handleClear = () => {
+    onChange("");
+    setExpanded(false);
+  };
+
+  return (
+    <div
+      className={`expandable-search ${expanded ? "is-expanded" : ""}`}
+      onBlur={handleBlur}
+    >
+      <button
+        type="button"
+        className="expandable-search-toggle"
+        onClick={handleToggle}
+        title="Buscar agendamento"
+        aria-label="Buscar agendamento"
+      >
+        <Search size={16} />
+      </button>
+      <div className="expandable-search-input-wrap">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") handleClear();
+          }}
+          placeholder={placeholder}
+          aria-label={placeholder}
+        />
+        {value && (
+          <button
+            type="button"
+            className="expandable-search-clear"
+            onClick={handleClear}
+            title="Limpar busca"
+            aria-label="Limpar busca"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function OperationalAppointments({
   unit,
   role,
@@ -158,7 +245,63 @@ export default function OperationalAppointments({
     delivery: "",
     corrections: "",
     observations: "",
+    professional: "",
+    specialty: "",
   });
+  // Carregar profissionais e especialidades exclusivamente dos itens presentes na lista (sem extras do banco)
+  const [listProfessionals, setListProfessionals] = useState<string[]>([]);
+  const [listSpecialties, setListSpecialties] = useState<string[]>([]);
+
+  useEffect(() => {
+    setListProfessionals([]);
+    setListSpecialties([]);
+  }, [unit, issuesOnly, refreshKey]);
+
+  useEffect(() => {
+    if (items.results.length > 0) {
+      const profs = new Set<string>();
+      const specs = new Set<string>();
+      items.results.forEach((item) => {
+        if (item.professional?.trim()) profs.add(item.professional.trim());
+        if (item.procedure?.trim()) specs.add(item.procedure.trim());
+      });
+
+      setListProfessionals((prev) => {
+        if (!filters.professional) {
+          return Array.from(profs).sort((a, b) => a.localeCompare(b, "pt-BR"));
+        }
+        const combined = new Set([...prev, ...profs]);
+        return Array.from(combined).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      });
+
+      setListSpecialties((prev) => {
+        if (!filters.specialty) {
+          return Array.from(specs).sort((a, b) => a.localeCompare(b, "pt-BR"));
+        }
+        const combined = new Set([...prev, ...specs]);
+        return Array.from(combined).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      });
+    } else if (!filters.professional && !filters.specialty) {
+      setListProfessionals([]);
+      setListSpecialties([]);
+    }
+  }, [items.results, filters.professional, filters.specialty]);
+
+  const professionalOptions = useMemo(() => {
+    const set = new Set<string>(listProfessionals);
+    if (filters.professional?.trim()) {
+      set.add(filters.professional.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [listProfessionals, filters.professional]);
+
+  const specialtyOptions = useMemo(() => {
+    const set = new Set<string>(listSpecialties);
+    if (filters.specialty?.trim()) {
+      set.add(filters.specialty.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [listSpecialties, filters.specialty]);
   const [typeOptions, setTypeOptions] = useState<{value: string; label: string; group: string}[]>([]);
   useEffect(() => {
     let active = true;
@@ -314,6 +457,37 @@ export default function OperationalAppointments({
   };
   const responseOptions = [...new Set(["pending", "no_response", "answered", "confirmed", "declined", "review",
     ...(filters.kind ? contextualOutcomes[filters.kind] || [] : typeOptions.flatMap(option => contextualOutcomes[option.value] || []))])];
+  const hasActiveFilters = Boolean(
+    filters.search ||
+    filters.kind ||
+    filters.professional ||
+    filters.specialty ||
+    filters.response ||
+    filters.outcome ||
+    filters.delivery ||
+    filters.corrections ||
+    filters.observations ||
+    filters.date_basis !== "appointment" ||
+    (issuesOnly && issueFilter !== "all")
+  );
+
+  const clearAllFilters = () => {
+    setFilters({
+      search: "",
+      date_basis: "appointment",
+      kind: "",
+      response: "",
+      outcome: "",
+      delivery: "",
+      corrections: "",
+      observations: "",
+      professional: "",
+      specialty: "",
+    });
+    setIssueFilter("all");
+    setPage(1);
+  };
+
   const displayedItems = issuesOnly
     ? items.results.filter(isAppointmentIssue)
     : items.results;
@@ -414,15 +588,34 @@ export default function OperationalAppointments({
       ) : (
         <>
           <div className="op-heading">
-            <span className="appointment-result-count">
-              <strong>{items.count}</strong>{" "}
-              {issuesOnly
-                ? items.count === 1
-                  ? "pendência"
-                  : "pendências"
-                : !filters.kind || filters.kind.startsWith("cross:") ? "registros" : "agendamentos"}
-            </span>
+            <div className="appointment-heading-info">
+              <span className="appointment-result-count">
+                <strong>{items.count}</strong>{" "}
+                {issuesOnly
+                  ? items.count === 1
+                    ? "pendência"
+                    : "pendências"
+                  : !filters.kind || filters.kind.startsWith("cross:") ? "registros" : "agendamentos"}
+              </span>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="clear-filters-btn"
+                  onClick={clearAllFilters}
+                  title="Limpar todos os filtros ativos"
+                  aria-label="Limpar filtros"
+                >
+                  <RotateCcw size={12} />
+                  <span>Limpar filtros</span>
+                </button>
+              )}
+            </div>
             <div className="appointment-list-actions">
+              <ExpandableSearch
+                value={filters.search}
+                onChange={(val) => filter("search", val)}
+                placeholder="Buscar por paciente, código ou telefone..."
+              />
               {periodFilter}
               <a className="button" href={query("agenda-items/export", params)}>
                 <Download size={16} /> Exportar
@@ -430,16 +623,7 @@ export default function OperationalAppointments({
             </div>
           </div>
           <div className="op-card op-appointment-filters">
-            <label className="op-field">
-              <span>
-                <Search size={14} /> Paciente, código ou número
-              </span>
-              <input
-                value={filters.search}
-                onChange={(e) => filter("search", e.target.value)}
-                placeholder="Buscar agendamento"
-              />
-            </label>
+            {/* 1. Período referente a */}
             <label className="op-field">
               <span>Período referente a</span>
               <FilterSelect label="Período referente a"
@@ -451,13 +635,15 @@ export default function OperationalAppointments({
                 <option value="reply">Data da resposta</option>
               </FilterSelect>
             </label>
+
+            {/* 2. Tipo */}
             <label className="op-field">
               <span>Tipo</span>
               <FilterSelect label="Tipo"
                 value={filters.kind}
                 onChange={(e) => filter("kind", e.target.value)}
               >
-                <option value="">Todos</option>
+                <option value="">Todos os tipos</option>
                 {typeOptions.map(option => (
                   <option key={option.value} value={option.value} data-group={option.group}>
                     {option.label}
@@ -465,23 +651,91 @@ export default function OperationalAppointments({
                 ))}
               </FilterSelect>
             </label>
-            {issuesOnly ? (
-              <label className="op-field">
-                <span>Tipo de pendência</span>
-                <FilterSelect label="Tipo de pendência"
-                  value={issueFilter}
-                  onChange={(e) => handleIssueFilterChange(e.target.value)}
-                >
-                  <option value="all">Todas as pendências</option>
-                  <option value="declined">Recusou (respondeu não)</option>
-                  <option value="invalid">
-                    Número inválido / falha de entrega
+
+            {/* 3. Profissional */}
+            <label className="op-field">
+              <span>Profissional</span>
+              <FilterSelect label="Profissional"
+                value={filters.professional}
+                onChange={(e) => filter("professional", e.target.value)}
+              >
+                <option value="">Todos os profissionais</option>
+                {professionalOptions.map(prof => (
+                  <option key={prof} value={prof}>
+                    {prof}
                   </option>
-                  <option value="review">Aguardando revisão</option>
-                  <option value="corrections">Com correções abertas</option>
-                  <option value="no_response">Sem resposta no prazo</option>
-                </FilterSelect>
-              </label>
+                ))}
+              </FilterSelect>
+            </label>
+
+            {/* 4. Especialidade */}
+            <label className="op-field">
+              <span>Especialidade</span>
+              <FilterSelect label="Especialidade"
+                value={filters.specialty}
+                onChange={(e) => filter("specialty", e.target.value)}
+              >
+                <option value="">Todas as especialidades</option>
+                {specialtyOptions.map(spec => (
+                  <option key={spec} value={spec}>
+                    {spec}
+                  </option>
+                ))}
+              </FilterSelect>
+            </label>
+
+            {/* 5 & 6 (total exactly 6 filters) */}
+            {issuesOnly ? (
+              <>
+                <label className="op-field">
+                  <span>Tipo de pendência</span>
+                  <FilterSelect label="Tipo de pendência"
+                    value={issueFilter}
+                    onChange={(e) => handleIssueFilterChange(e.target.value)}
+                  >
+                    <option value="all">Todas as pendências</option>
+                    <option value="declined">Recusou (respondeu não)</option>
+                    <option value="invalid">
+                      Número inválido / falha de entrega
+                    </option>
+                    <option value="review">Aguardando revisão</option>
+                    <option value="corrections">Com correções abertas</option>
+                    <option value="no_response">Sem resposta no prazo</option>
+                  </FilterSelect>
+                </label>
+                <label className="op-field">
+                  <span>Intervenções</span>
+                  <FilterSelect label="Intervenções"
+                    value={
+                      filters.corrections
+                        ? "corrections"
+                        : filters.observations === "false"
+                          ? "no_observations"
+                          : filters.observations === "true"
+                            ? "observations"
+                            : ""
+                    }
+                    onChange={(e) => {
+                      setFilters((v) => ({
+                        ...v,
+                        corrections: e.target.value === "corrections" ? "true" : "",
+                        observations:
+                          e.target.value === "observations"
+                            ? "true"
+                            : e.target.value === "no_observations"
+                              ? "false"
+                              : "",
+                      }));
+                      setPage(1);
+                    }}
+                  >
+                    <option value="">Todas as intervenções</option>
+                    <option value="corrections">Com correções abertas</option>
+                    <option value="observations">Com observação ou ligação</option>
+                    <option value="no_observations">Sem observação</option>
+                  </FilterSelect>
+                </label>
+              </>
             ) : (
               <>
                 <label className="op-field">
@@ -502,7 +756,7 @@ export default function OperationalAppointments({
                       setPage(1);
                     }}
                   >
-                    <option value="">Todas</option>
+                    <option value="">Todas as respostas</option>
                     {responseOptions.map((k) => (
                       <option key={k} value={k}>
                         {responseLabels[k]}
@@ -511,62 +765,73 @@ export default function OperationalAppointments({
                   </FilterSelect>
                 </label>
                 <label className="op-field">
-                  <span>Entrega por contato</span>
-                  <FilterSelect label="Entrega por contato"
-                    value={filters.delivery}
-                    onChange={(e) => filter("delivery", e.target.value)}
+                  <span>Status e intervenções</span>
+                  <FilterSelect label="Status e intervenções"
+                    value={
+                      filters.delivery
+                        ? `delivery:${filters.delivery}`
+                        : filters.corrections === "true"
+                          ? "corrections"
+                          : filters.observations === "true"
+                            ? "observations"
+                            : filters.observations === "false"
+                              ? "no_observations"
+                              : ""
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.startsWith("delivery:")) {
+                        setFilters((v) => ({
+                          ...v,
+                          delivery: val.slice(9),
+                          corrections: "",
+                          observations: "",
+                        }));
+                      } else if (val === "corrections") {
+                        setFilters((v) => ({
+                          ...v,
+                          delivery: "",
+                          corrections: "true",
+                          observations: "",
+                        }));
+                      } else if (val === "observations") {
+                        setFilters((v) => ({
+                          ...v,
+                          delivery: "",
+                          corrections: "",
+                          observations: "true",
+                        }));
+                      } else if (val === "no_observations") {
+                        setFilters((v) => ({
+                          ...v,
+                          delivery: "",
+                          corrections: "",
+                          observations: "false",
+                        }));
+                      } else {
+                        setFilters((v) => ({
+                          ...v,
+                          delivery: "",
+                          corrections: "",
+                          observations: "",
+                        }));
+                      }
+                      setPage(1);
+                    }}
                   >
-                    <option value="">Todas</option>
-                    {[
-                      "preview",
-                      "queued",
-                      "accepted",
-                      "delivered",
-                      "read",
-                      "failed",
-                      "uncertain",
-                      "blocked",
-                    ].map((k) => (
-                      <option key={k} value={k}>
-                        {labels[k] || k}
-                      </option>
-                    ))}
+                    <option value="">Todos os status e intervenções</option>
+                    <option value="delivery:delivered">Entregue ao paciente</option>
+                    <option value="delivery:read">Lida pelo paciente</option>
+                    <option value="delivery:accepted">Envio aceito pela operadora</option>
+                    <option value="delivery:failed">Falha no envio / Erro</option>
+                    <option value="delivery:blocked">Bloqueado / Recusa de canal</option>
+                    <option value="corrections">Com correções abertas</option>
+                    <option value="observations">Com anotação ou ligação</option>
+                    <option value="no_observations">Sem anotação</option>
                   </FilterSelect>
                 </label>
               </>
             )}
-            <label className="op-field">
-              <span>Intervenções</span>
-              <FilterSelect label="Intervenções"
-                value={
-                  filters.corrections
-                    ? "corrections"
-                    : filters.observations === "false"
-                      ? "no_observations"
-                      : filters.observations === "true"
-                        ? "observations"
-                        : ""
-                }
-                onChange={(e) => {
-                  setFilters((v) => ({
-                    ...v,
-                    corrections: e.target.value === "corrections" ? "true" : "",
-                    observations:
-                      e.target.value === "observations"
-                        ? "true"
-                        : e.target.value === "no_observations"
-                          ? "false"
-                          : "",
-                  }));
-                  setPage(1);
-                }}
-              >
-                <option value="">Todas</option>
-                <option value="corrections">Com correções abertas</option>
-                <option value="observations">Com observação ou ligação</option>
-                <option value="no_observations">Sem observação</option>
-              </FilterSelect>
-            </label>
           </div>
           <div className="op-card appointment-table-wrap" aria-busy={loading}>
             <table className="appointment-table">
@@ -587,11 +852,17 @@ export default function OperationalAppointments({
                 </tr>
               </thead>
               <tbody>
-                {displayedItems.map((item) => (
+                {displayedItems.map((item) => {
+                  const ws = whatsappStatus(item);
+                  return (
                   <tr key={item.id}>
                     <td>
                       <div className="patient-cell">
-                        <span className="patient-icon" aria-hidden="true">
+                        <span
+                          className={`patient-icon patient-icon-status-${ws.state}`}
+                          title={`${item.patient} · ${ws.label}`}
+                          aria-hidden="true"
+                        >
                           <User size={15} />
                         </span>
                         <div>
@@ -775,7 +1046,8 @@ export default function OperationalAppointments({
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {!displayedItems.length && (

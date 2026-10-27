@@ -212,7 +212,14 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             )
         kind = params.get("kind", "")
         if kind:
-            if kind.startswith("cross:") and kind[6:] in PATIENT_PURPOSES:
+            if kind in {"cross:absence:A", "cross:absence:I", "cross:absence:L"}:
+                qs = qs.filter(
+                    purpose="absence",
+                    event__appointment__isnull=True,
+                    event__data__source_origin="oracle_absences",
+                    event__data__tp_item=kind[-1],
+                )
+            elif kind.startswith("cross:") and kind[6:] in PATIENT_PURPOSES:
                 qs = qs.filter(event__appointment__isnull=True, purpose=kind[6:])
             elif kind in dict(Appointment.Kind.choices):
                 qs = qs.filter(purpose="appointment", event__appointment__kind=kind)
@@ -254,7 +261,44 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(interactions__kind__in=["note", "call"])
         elif params.get("observations") == "false":
             qs = qs.exclude(interactions__kind__in=["note", "call"])
-        search = params.get("search", "")
+        professional = params.get("professional", "").strip()
+        if professional:
+            qs = qs.filter(
+                Q(event__appointment__professional__iexact=professional)
+                | Q(event__data__professional__iexact=professional)
+            )
+        specialty = params.get("specialty", "").strip()
+        if specialty:
+            qs = qs.filter(
+                Q(event__appointment__procedure__icontains=specialty)
+                | Q(event__data__procedure__icontains=specialty)
+                | Q(event__data__specialty__icontains=specialty)
+            )
+        status_filter = params.get("status_filter", "")
+        if status_filter:
+            if status_filter == "corrections":
+                qs = qs.filter(
+                    corrections__resolved_at__isnull=True, corrections__isnull=False
+                )
+            elif status_filter == "observations":
+                qs = qs.filter(interactions__kind__in=["note", "call"])
+            elif status_filter == "no_observations":
+                qs = qs.exclude(interactions__kind__in=["note", "call"])
+            elif status_filter in [
+                "preview",
+                "queued",
+                "accepted",
+                "delivered",
+                "read",
+                "failed",
+                "uncertain",
+                "blocked",
+            ]:
+                qs = qs.filter(
+                    messages__state=status_filter,
+                    messages__appointment_revision=F("event__revision"),
+                )
+        search = params.get("search", "").strip()
         if search:
             qs = qs.filter(
                 Q(event__patient__icontains=search)
@@ -263,6 +307,10 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(event__contact__phone__icontains=search)
                 | Q(event__appointment__patient_external_id__icontains=search)
                 | Q(event__data__patient_external_id__icontains=search)
+                | Q(event__appointment__professional__icontains=search)
+                | Q(event__data__professional__icontains=search)
+                | Q(event__appointment__procedure__icontains=search)
+                | Q(event__data__procedure__icontains=search)
                 | Q(messages__recipient__icontains=search)
             )
         return qs.distinct().order_by("agenda_date", "pk")
@@ -330,7 +378,72 @@ class AgendaViewSet(viewsets.ReadOnlyModelViewSet):
             for purpose, label in Purpose.choices
             if purpose in registered and purpose in PATIENT_PURPOSES
         )
+        oracle_types = set(
+            Case.objects.filter(
+                unit=unit,
+                event__unit=unit,
+                purpose="absence",
+                event__data__source_origin="oracle_absences",
+            ).values_list("event__data__tp_item", flat=True)
+        )
+        for code, label in [
+            ("A", "Consulta"),
+            ("I", "Imagem / Exames"),
+            ("L", "Laboratório"),
+        ]:
+            if code in oracle_types:
+                result.append(
+                    {
+                        "value": f"cross:absence:{code}",
+                        "label": f"Ausentes · {label}",
+                        "group": "Importa CROSS",
+                    }
+                )
         return Response(result)
+
+    @action(detail=False, methods=["get"], pagination_class=None)
+    def filter_options(self, request):
+        unit = get_unit(request)
+        appt_profs = list(
+            Appointment.objects.filter(unit=unit)
+            .exclude(professional="")
+            .values_list("professional", flat=True)
+            .distinct()[:200]
+        )
+        cross_profs = list(
+            Case.objects.filter(
+                unit=unit, event__unit=unit, event__appointment__isnull=True
+            )
+            .values_list("event__data__professional", flat=True)
+            .distinct()[:200]
+        )
+        profs = sorted(
+            set(p.strip() for p in (appt_profs + cross_profs) if p and p.strip())
+        )
+
+        appt_specs = list(
+            Appointment.objects.filter(unit=unit)
+            .exclude(procedure="")
+            .values_list("procedure", flat=True)
+            .distinct()[:200]
+        )
+        cross_specs = list(
+            Case.objects.filter(
+                unit=unit, event__unit=unit, event__appointment__isnull=True
+            )
+            .values_list("event__data__procedure", flat=True)
+            .distinct()[:200]
+        )
+        specs = sorted(
+            set(s.strip() for s in (appt_specs + cross_specs) if s and s.strip())
+        )
+
+        return Response(
+            {
+                "professionals": profs,
+                "specialties": specs,
+            }
+        )
 
     @extend_schema(
         responses=AppointmentCommunicationsSerializer,

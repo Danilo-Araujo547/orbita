@@ -1,0 +1,792 @@
+import Select from "./Select";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { DragEvent, FormEvent } from "react";
+import FormAction from "./FormAction";
+import { query, request } from "../api";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  FileSpreadsheet,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+
+export const standardFields = [
+  "nome_completo",
+  "data",
+  "hora",
+  "celular",
+  "celular2",
+  "tipo",
+  "horario_chegada",
+  "data_nascimento",
+  "codigo",
+  "local",
+  "tipo2",
+  "obs",
+] as const;
+
+export const standardFieldLabels: Record<string, string> = {
+  nome_completo: "Nome do paciente",
+  data: "Data do agendamento",
+  hora: "Horário",
+  celular: "WhatsApp / Celular principal",
+  celular2: "Celular secundário",
+  tipo: "Procedimento / Especialidade",
+  horario_chegada: "Horário de chegada",
+  data_nascimento: "Data de nascimento",
+  codigo: "Código / Prontuário",
+  local: "Local / Sala / Unidade",
+  tipo2: "Tipo de atendimento",
+  obs: "Observações adicionais",
+};
+
+const aliases: Record<string, string> = {
+  patient: "nome_completo",
+  date: "data",
+  arrival_time: "horario_chegada",
+  phone: "celular",
+  procedure: "tipo",
+  external_id: "codigo",
+  city: "local",
+  source_observation: "obs",
+  appointment_type: "tipo2",
+};
+
+export type CrossTemplate = {
+  id: string | number;
+  name?: string;
+  fields?: string[];
+  body?: string;
+  purpose?: string;
+};
+
+export type CrossLayout = {
+  id: string | number;
+  name?: string;
+  version?: number;
+  format?: string;
+  verified?: boolean;
+  evidence?: string;
+  standard_mapping?: Record<string, string>;
+  default_template?: number | null;
+  parameter_fields?: string[];
+  mapping?: Record<string, string>;
+};
+
+type Schema = {
+  version: number;
+  default_mappings: Record<string, Record<string, string>>;
+};
+
+type Act = (path: string, body: unknown) => Promise<unknown>;
+
+export function parameterCount(template?: CrossTemplate) {
+  if (!template) return 0;
+  const positions = [...(template.body || "").matchAll(/{{\s*(\d+)\s*}}/g)].map(
+    (match) => Number(match[1]),
+  );
+  return Math.min(
+    30,
+    positions.length ? Math.max(...positions) : template.fields?.length || 0,
+  );
+}
+
+export function suggestedParameters(template?: CrossTemplate) {
+  return Array.from({ length: parameterCount(template) }, (_, i) => {
+    const field = template?.fields?.[i] || "";
+    return standardFields.includes(field as (typeof standardFields)[number])
+      ? field
+      : aliases[field] || standardFields[i] || "";
+  });
+}
+
+function compatible(template: CrossTemplate, format: string) {
+  return format === "absence_html"
+    ? template.purpose === "absence"
+    : format === "cross_demand_csv"
+      ? template.purpose === "waitlist"
+      : ["waitlist", "summons"].includes(template.purpose || "");
+}
+
+function MappingFields({
+  mapping,
+  onChange,
+}: {
+  mapping: Record<string, string>;
+  onChange: (next: Record<string, string>) => void;
+}) {
+  return (
+    <div className="cross-mapping-grid">
+      {standardFields.map((field, index) => (
+        <div className="cross-mapping-item" key={field}>
+          <div className="cross-mapping-label-row">
+            <span className="cross-mapping-index">#{index + 1}</span>
+            <span className="cross-mapping-field-name">{field}</span>
+          </div>
+          {standardFieldLabels[field] && (
+            <span className="cross-mapping-field-hint">
+              {standardFieldLabels[field]}
+            </span>
+          )}
+          <input
+            className="cross-mapping-input"
+            value={mapping[field] || ""}
+            placeholder="Coluna na planilha"
+            maxLength={200}
+            onChange={(e) =>
+              onChange({ ...mapping, [field]: e.target.value })
+            }
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TemplateFields({
+  template,
+  fields,
+  onChange,
+}: {
+  template?: CrossTemplate;
+  fields: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const count = parameterCount(template);
+  if (count <= 0) return null;
+  return (
+    <div className="cross-template-grid">
+      {Array.from({ length: count }, (_, index) => (
+        <div className="cross-template-item" key={index}>
+          <div className="cross-template-tag">{`{{${index + 1}}}`}</div>
+          <Select
+            required
+            className="cross-template-select"
+            value={fields[index] || ""}
+            onChange={(e) =>
+              onChange(
+                Array.from({ length: count }, (_, i) =>
+                  i === index ? e.target.value : fields[i] || "",
+                ),
+              )
+            }
+          >
+            <option value="">Selecione o campo correspondente</option>
+            {standardFields.map((field) => (
+              <option key={field} value={field}>
+                {field} {standardFieldLabels[field] ? `(${standardFieldLabels[field]})` : ""}
+              </option>
+            ))}
+          </Select>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function useSchema(unit: string) {
+  const [schema, setSchema] = useState<Schema | null>(null),
+    [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    request<Schema>(query("sheet-imports/schema", { unit }))
+      .then((s) => active && setSchema(s))
+      .catch((e) => active && setError(e.message));
+    return () => {
+      active = false;
+    };
+  }, [unit]);
+  return { schema, error };
+}
+
+export function CrossLayoutEditor({
+  unit,
+  templates,
+  record,
+  act,
+  busy,
+}: {
+  unit: string;
+  templates: CrossTemplate[];
+  record?: CrossLayout;
+  act: Act;
+  busy: boolean;
+}) {
+  const { schema, error } = useSchema(unit);
+  const [name, setName] = useState(record?.name || ""),
+    [format, setFormat] = useState(record?.format || "table");
+  const [mapping, setMapping] = useState<Record<string, string> | null>(
+    record?.standard_mapping && Object.keys(record.standard_mapping).length
+      ? record.standard_mapping
+      : null,
+  );
+  const [reference, setReference] = useState(
+      record?.mapping?.occurred_at || "",
+    ),
+    [templateId, setTemplateId] = useState(
+      String(record?.default_template || ""),
+    );
+  const [fields, setFields] = useState<string[] | null>(
+    record?.parameter_fields?.length ? record.parameter_fields : null,
+  );
+  const [evidence, setEvidence] = useState(record?.evidence || ""),
+    [verified, setVerified] = useState(record?.verified || false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+  const selected = templates.find((t) => String(t.id) === templateId),
+    current = mapping || schema?.default_mappings[format] || {};
+  return (
+    <FormAction
+      title={record ? "Nova versão do modelo" : "Novo modelo Importa CROSS"}
+      label={record ? "Editar" : "Adicionar modelo"}
+      busy={busy}
+      error={error}
+    >
+      <form
+        className="op-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void act("layouts", {
+            name,
+            format,
+            standard_mapping: current,
+            default_template: templateId ? Number(templateId) : null,
+            parameter_fields: templateId ? (fields || suggestedParameters(selected)) : [],
+            mapping:
+              format === "table"
+                ? {
+                    external_id: current.codigo || "",
+                    patient: current.nome_completo || "",
+                    phone: current.celular || current.celular2 || "",
+                    occurred_at: reference || current.data || "",
+                  }
+                : {},
+            evidence,
+            verified,
+          }).catch(() => {});
+        }}
+      >
+        <div className="op-two">
+          <label className="op-field">
+            Nome
+            <input
+              required
+              maxLength={120}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label className="op-field">
+            Formato
+            <Select
+              value={format}
+              onChange={(e) => {
+                setFormat(e.target.value);
+                setMapping(null);
+                setTemplateId("");
+                setFields(null);
+              }}
+            >
+              <option value="table">CSV / XLSX</option>
+              <option value="absence_html">Ausentes HTML (.xls)</option>
+              <option value="cross_demand_csv">
+                Demanda por recurso CROSS (.csv)
+              </option>
+            </Select>
+          </label>
+        </div>
+        <label className="op-field">
+          Template
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <Select
+              value={templateId}
+              style={{ flex: 1 }}
+              onChange={(e) => {
+                setTemplateId(e.target.value);
+                setFields(null);
+              }}
+            >
+              <option value="">Sem template vinculado</option>
+              {templates
+                .filter((t) => compatible(t, format))
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </Select>
+            {templateId && (
+              <button
+                type="button"
+                className="button"
+                title="Remover vínculo do template com este modelo"
+                onClick={() => {
+                  setTemplateId("");
+                  setFields(null);
+                }}
+              >
+                Remover template
+              </button>
+            )}
+          </div>
+        </label>
+        {selected && (
+          <div className="cross-mapping-subgroup">
+            <h4 className="cross-mapping-subtitle">Parâmetros do template</h4>
+            <TemplateFields
+              template={selected}
+              fields={fields || suggestedParameters(selected)}
+              onChange={setFields}
+            />
+          </div>
+        )}
+        <div className="cross-mapping-subgroup">
+          <h4 className="cross-mapping-subtitle">Mapeamento de colunas da planilha</h4>
+          <MappingFields mapping={current} onChange={setMapping} />
+        </div>
+        {format === "table" && (
+          <label className="op-field">
+            Coluna da data de referência (se diferente de data)
+            <input
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              maxLength={200}
+            />
+          </label>
+        )}
+        <label className="op-field">
+          Referência da validação
+          <textarea
+            required
+            maxLength={4000}
+            value={evidence}
+            onChange={(e) => setEvidence(e.target.value)}
+          />
+        </label>
+        <label className="op-check">
+          <input
+            type="checkbox"
+            checked={verified}
+            onChange={(e) => setVerified(e.target.checked)}
+          />
+          Modelo validado
+        </label>
+        <button className="button primary" disabled={busy || !schema}>
+          Salvar modelo
+        </button>
+        {record && (
+          <div style={{ borderTop: "1px solid var(--border-default)", paddingTop: "14px", marginTop: "10px" }}>
+            {!confirmRemove ? (
+              <button
+                type="button"
+                className="button danger"
+                disabled={busy}
+                onClick={() => setConfirmRemove(true)}
+              >
+                Remover modelo
+              </button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--danger-text, #dc2626)" }}>
+                  Tem certeza que deseja remover o modelo <strong>{record.name}</strong>?
+                </p>
+                {removeError && (
+                  <p className="inline-error" role="alert" style={{ margin: 0 }}>
+                    {removeError}
+                  </p>
+                )}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    className="button danger"
+                    disabled={busy}
+                    onClick={() => {
+                      setRemoveError("");
+                      void act(`layouts/${record.id}/remove`, { all_versions: true })
+                        .catch((err: Error) => setRemoveError(err.message));
+                    }}
+                  >
+                    Confirmar remoção
+                  </button>
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirmRemove(false);
+                      setRemoveError("");
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </form>
+    </FormAction>
+  );
+}
+
+export function CrossImportForm({
+  unit,
+  layouts,
+  templates,
+  act,
+  busy,
+}: {
+  unit: string;
+  layouts: CrossLayout[];
+  templates: CrossTemplate[];
+  act: Act;
+  busy: boolean;
+}) {
+  const { schema, error } = useSchema(unit);
+  const [layoutId, setLayoutId] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const [fields, setFields] = useState<string[] | null>(null);
+  const [mapping, setMapping] = useState<Record<string, string> | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [localError, setLocalError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const distinctLayouts = useMemo(() => {
+    const map = new Map<string, CrossLayout>();
+    for (const l of layouts) {
+      const key = l.name || String(l.id);
+      const existing = map.get(key);
+      if (!existing || (Number(l.version) || 0) > (Number(existing.version) || 0)) {
+        map.set(key, l);
+      }
+    }
+    return Array.from(map.values());
+  }, [layouts]);
+
+  const layout = distinctLayouts.find((l) => String(l.id) === layoutId);
+  const selected = templates.find((t) => String(t.id) === templateId);
+  const current =
+    mapping ||
+    (layout?.standard_mapping && Object.keys(layout.standard_mapping).length
+      ? layout.standard_mapping
+      : schema?.default_mappings[layout?.format || "table"]) ||
+    {};
+
+  const mappedCount = Object.values(current).filter((val) => Boolean(val && val.trim())).length;
+  const paramCount = parameterCount(selected);
+
+  const handleFileChange = (newFile: File | null) => {
+    if (!newFile) {
+      setFile(null);
+      return;
+    }
+    if (newFile.size > 5 * 1024 * 1024) {
+      setLocalError("O arquivo excede o limite máximo permitido de 5 MB.");
+      return;
+    }
+    const ext = newFile.name.slice(newFile.name.lastIndexOf(".")).toLowerCase();
+    if (![".csv", ".xlsx", ".xls"].includes(ext)) {
+      setLocalError("Formato não suportado. Utilize .xlsx, .xls ou .csv.");
+      return;
+    }
+    setLocalError("");
+    setFile(newFile);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  const formatLayoutType = (fmt?: string) => {
+    switch (fmt) {
+      case "table":
+        return "Tabela (CSV / XLSX)";
+      case "absence_html":
+        return "Ausentes HTML (.xls)";
+      case "cross_demand_csv":
+        return "Demanda por recurso CROSS (.csv)";
+      default:
+        return fmt || "Padrão";
+    }
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setLocalError("Arquivo excede 5 MB.");
+      return;
+    }
+    setLocalError("");
+    void (async () => {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      await act("sheet-imports", {
+        layout: Number(layoutId),
+        template: Number(templateId),
+        parameter_fields: fields || suggestedParameters(selected),
+        standard_mapping: current,
+        filename: file.name,
+        content_base64: btoa(binary),
+      });
+      setFile(null);
+    })().catch((err: Error) => setLocalError(err.message));
+  };
+
+  return (
+    <FormAction
+      title="Importar planilha"
+      label="Importar planilha"
+      icon={<FileSpreadsheet size={15} />}
+      busy={busy}
+      error={localError || error}
+      className="cross-import-modal"
+    >
+      <form className="op-form cross-import-form" onSubmit={handleSubmit}>
+        <div className="cross-section-card">
+          <div className="cross-two-fields">
+            <div className="cross-field-wrapper">
+              <label className="cross-field-label-text">
+                Modelo homologado
+              </label>
+              <Select
+                required
+                className="cross-select"
+                value={layoutId}
+                onChange={(e) => {
+                  const found = layouts.find(
+                    (l) => String(l.id) === e.target.value,
+                  );
+                  setLayoutId(e.target.value);
+                  setTemplateId(String(found?.default_template || ""));
+                  setFields(
+                    found?.parameter_fields?.length
+                      ? found.parameter_fields
+                      : null,
+                  );
+                  setMapping(null);
+                }}
+              >
+                <option value="">Selecione um modelo</option>
+                {distinctLayouts
+                  .filter((l) => l.verified)
+                  .map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+              </Select>
+              {layout && (
+                <div className="cross-field-tags">
+                  <span className="cross-badge cross-badge-format">
+                    {formatLayoutType(layout.format)}
+                  </span>
+                  <span className="cross-badge cross-badge-success">
+                    <CheckCircle2 size={11} /> Homologado
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="cross-field-wrapper">
+              <label className="cross-field-label-text">
+                Template de mensagem
+              </label>
+              <Select
+                required
+                className="cross-select"
+                value={templateId}
+                onChange={(e) => {
+                  setTemplateId(e.target.value);
+                  setFields(null);
+                }}
+              >
+                <option value="">Selecione o template</option>
+                {templates
+                  .filter((t) => compatible(t, layout?.format || "table"))
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+              </Select>
+              {selected && (
+                <div className="cross-field-tags">
+                  <span className="cross-badge cross-badge-template">
+                    💬 {paramCount} parâmetro{paramCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="cross-section-card">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            style={{ display: "none" }}
+            onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+          />
+
+          {!file ? (
+            <div
+              className={`cross-dropzone ${dragOver ? "drag-over" : ""}`}
+              onDragEnter={handleDragOver}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+            >
+              <div className="cross-dropzone-icon-wrap">
+                <FileSpreadsheet size={32} />
+              </div>
+              <div className="cross-dropzone-texts">
+                <p className="cross-dropzone-primary">
+                  <strong>Arraste e solte o arquivo aqui</strong> ou <span className="cross-browse-link">procure no computador</span>
+                </p>
+                <p className="cross-dropzone-hint">
+                  .xlsx, .xls ou .csv (até 5 MB)
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="cross-file-preview-card">
+              <div className="cross-file-preview-left">
+                <div className="cross-file-icon-box">
+                  <FileSpreadsheet size={24} />
+                </div>
+                <div className="cross-file-details">
+                  <div className="cross-file-name" title={file.name}>
+                    {file.name}
+                  </div>
+                  <div className="cross-file-meta">
+                    <span className="cross-file-size">{formatFileSize(file.size)}</span>
+                    <span className="cross-file-divider">•</span>
+                    <span className="cross-file-status">
+                      <CheckCircle2 size={12} /> Arquivo selecionado
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="cross-file-actions">
+                <button
+                  type="button"
+                  className="cross-file-action-btn cross-file-change-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Substituir arquivo"
+                >
+                  Alterar
+                </button>
+                <button
+                  type="button"
+                  className="cross-file-action-btn cross-file-remove-btn"
+                  onClick={() => setFile(null)}
+                  title="Remover arquivo"
+                  aria-label="Remover arquivo"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {layout && (
+          <div className="cross-accordion-card">
+            <button
+              type="button"
+              className={`cross-accordion-header ${showAdvanced ? "active" : ""}`}
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              aria-expanded={showAdvanced}
+            >
+              <div className="cross-accordion-header-left">
+                <SlidersHorizontal size={15} />
+                <span className="cross-accordion-title">Mapeamento de colunas e parâmetros</span>
+                <span className="cross-accordion-badge">
+                  {mappedCount} campos
+                </span>
+              </div>
+              <div className="cross-accordion-header-right">
+                <span className="cross-accordion-hint">
+                  {showAdvanced ? "Ocultar" : "Personalizar"}
+                </span>
+                {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </button>
+
+            {showAdvanced && (
+              <div className="cross-accordion-body">
+                {paramCount > 0 && (
+                  <div className="cross-mapping-subgroup">
+                    <h4 className="cross-mapping-subtitle">
+                      Parâmetros do Template WhatsApp ({paramCount})
+                    </h4>
+                    <TemplateFields
+                      template={selected}
+                      fields={fields || suggestedParameters(selected)}
+                      onChange={setFields}
+                    />
+                  </div>
+                )}
+
+                <div className="cross-mapping-subgroup">
+                  <h4 className="cross-mapping-subtitle">
+                    Colunas da Planilha
+                  </h4>
+                  <MappingFields mapping={current} onChange={setMapping} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          className="button primary cross-submit-action"
+          disabled={busy || !schema || !layoutId || !templateId || !file}
+        >
+          <ArrowRight size={15} />
+          <span>{busy ? "Processando..." : "Gerar prévia"}</span>
+        </button>
+      </form>
+    </FormAction>
+  );
+}

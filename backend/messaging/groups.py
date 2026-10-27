@@ -1,19 +1,19 @@
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from core.models import Audit
-from core.permissions import get_unit
 from django.conf import settings
 from django.db.models import Count, F, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from operations.services import Conflict, idempotent
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from core.models import Audit
+from core.permissions import get_unit
 from messaging.models import AppointmentGroup
+from operations.services import Conflict, idempotent
 
 SENT = ["accepted", "sent", "delivered", "read"]
 EDITABLE = ["preview", "queued", "blocked"]
@@ -31,14 +31,18 @@ class GroupSerializer(serializers.ModelSerializer):
     def get_can_dispatch_now(self, group) -> bool:
         from messaging.pilot import catalog_template, configuration, enabled
 
-        if settings.SEND_MODE != "simulated" and (not enabled(group.unit) or group.unit.paused):
+        if settings.SEND_MODE != "simulated" and (
+            not enabled(group.unit) or group.unit.paused
+        ):
             return False
         if settings.SEND_MODE == "meta_test":
             try:
                 catalog_template(configuration(group.unit))
             except ValueError:
                 return False
-        pending = group.messages.filter(state__in=EDITABLE, appointment_revision=F("appointment__revision"))
+        pending = group.messages.filter(
+            state__in=EDITABLE, appointment_revision=F("appointment__revision")
+        )
         return (
             pending.exists()
             and not pending.exclude(
@@ -96,10 +100,9 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(request=GroupDispatchInput, responses=GroupSerializer)
     @action(detail=True, methods=["post"], url_path="dispatch-now")
     def dispatch_now(self, request, pk=None):
-        from scheduling.connectors import normalize_phone
-
         from messaging.pilot import enabled, prepare
         from messaging.services import send_guard
+        from scheduling.connectors import normalize_phone
 
         unit = get_unit(request, ["admin"])
         self.get_object()
@@ -108,7 +111,9 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
         data = values.validated_data
         real = enabled(unit)
         if settings.SEND_MODE != "simulated" and not real:
-            raise ValidationError("Envio real desativado. Disparo disponível somente em simulação.")
+            raise ValidationError(
+                "Envio real desativado. Disparo disponível somente em simulação."
+            )
 
         def execute():
             group = AppointmentGroup.objects.select_for_update().get(pk=pk, unit=unit)
@@ -116,7 +121,9 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
                 raise Conflict()
             now = timezone.now()
             messages = list(
-                group.messages.select_related("appointment", "template", "rule", "case").filter(
+                group.messages.select_related(
+                    "appointment", "template", "rule", "case"
+                ).filter(
                     state__in=EDITABLE,
                     appointment_revision=F("appointment__revision"),
                 )
@@ -125,13 +132,21 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
                 raise ValidationError("O grupo não possui mensagens pendentes.")
             for message in messages:
                 message.unit = unit
-                if not message.appointment.synthetic or message.appointment.source not in {
-                    "synthetic",
-                    "sqlite_simulated",
-                }:
-                    raise ValidationError("Disparo disponível apenas para atendimentos simulados.")
+                if (
+                    not message.appointment.synthetic
+                    or message.appointment.source
+                    not in {
+                        "synthetic",
+                        "sqlite_simulated",
+                    }
+                ):
+                    raise ValidationError(
+                        "Disparo disponível apenas para atendimentos simulados."
+                    )
                 if message.appointment.scheduled_at <= now or message.attempt_count:
-                    raise ValidationError("O grupo contém atendimentos vencidos ou mensagens já tentadas.")
+                    raise ValidationError(
+                        "O grupo contém atendimentos vencidos ou mensagens já tentadas."
+                    )
                 if real:
                     try:
                         prepare(message)
@@ -159,19 +174,29 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
                     or len(message.parameters) != len(message.template.fields)
                     or any(not str(value).strip() for value in message.parameters)
                 ):
-                    raise ValidationError(f"Mensagem não elegível: {error or 'missing_template_parameter'}.")
+                    raise ValidationError(
+                        f"Mensagem não elegível: {error or 'missing_template_parameter'}."
+                    )
             group.scheduled_for, group.delay_seconds = now, data["delay_seconds"]
             group.schedule_overridden = True
             group.version += 1
             group.save()
             local = now.astimezone(ZoneInfo(unit.timezone))
-            day_end = datetime.combine(local.date() + timedelta(days=1), time.min, ZoneInfo(unit.timezone))
+            day_end = datetime.combine(
+                local.date() + timedelta(days=1), time.min, ZoneInfo(unit.timezone)
+            )
             for message in messages:
-                message.state, message.error_code, message.scheduled_for = "queued", "", now
+                message.state, message.error_code, message.scheduled_for = (
+                    "queued",
+                    "",
+                    now,
+                )
                 message.expires_at = min(
                     day_end,
                     now + timedelta(hours=message.snapshot.get("validity_hours", 24)),
-                    message.appointment.scheduled_at,
+                    message.appointment.scheduled_at
+                    if message.appointment.kind != "postprocedure"
+                    else day_end,
                 )
                 message.save(
                     update_fields=[
@@ -220,15 +245,23 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
             AppointmentGroup.objects.filter(unit=unit)
             .select_related("rule", "unit")
             .annotate(
-                appointments_total=Count("messages__appointment", distinct=True, filter=current),
-                appointments_sent=Count("messages__appointment", distinct=True, filter=sent),
+                appointments_total=Count(
+                    "messages__appointment", distinct=True, filter=current
+                ),
+                appointments_sent=Count(
+                    "messages__appointment", distinct=True, filter=sent
+                ),
                 messages_total=Count("messages", distinct=True, filter=current),
                 messages_sent=Count("messages", distinct=True, filter=sent),
                 messages_delivered=Count(
-                    "messages", distinct=True, filter=current & Q(messages__state__in=["delivered", "read"])
+                    "messages",
+                    distinct=True,
+                    filter=current & Q(messages__state__in=["delivered", "read"]),
                 ),
                 messages_pending=Count(
-                    "messages", distinct=True, filter=current & Q(messages__state__in=EDITABLE)
+                    "messages",
+                    distinct=True,
+                    filter=current & Q(messages__state__in=EDITABLE),
                 ),
             )
         )
@@ -274,22 +307,37 @@ class AppointmentGroupViewSet(viewsets.ReadOnlyModelViewSet):
             )
             limit = min((m.appointment.scheduled_at for m in messages), default=None)
             local = stamp.astimezone(ZoneInfo(unit.timezone))
-            if local.date() > group.appointment_date or (limit and stamp >= limit):
+            if (
+                group.kind == "postprocedure"
+                and limit
+                and stamp <= max(m.appointment.scheduled_at for m in messages)
+            ):
+                raise ValidationError("O envio precisa ocorrer após o procedimento.")
+            if group.kind != "postprocedure" and (
+                local.date() > group.appointment_date or (limit and stamp >= limit)
+            ):
                 raise ValidationError("O envio precisa ocorrer antes do atendimento.")
-            before = {"scheduled_for": group.scheduled_for.isoformat(), "delay_seconds": group.delay_seconds}
+            before = {
+                "scheduled_for": group.scheduled_for.isoformat(),
+                "delay_seconds": group.delay_seconds,
+            }
             group.scheduled_for = stamp
             group.delay_seconds = data["delay_seconds"]
             group.schedule_overridden = True
             group.version += 1
             # Preserve the existing cooldown: editing a schedule cannot bypass an in-flight send.
             group.save()
-            day_end = datetime.combine(local.date() + timedelta(days=1), time.min, ZoneInfo(unit.timezone))
+            day_end = datetime.combine(
+                local.date() + timedelta(days=1), time.min, ZoneInfo(unit.timezone)
+            )
             for message in messages:
                 message.scheduled_for = stamp
                 message.expires_at = min(
                     day_end,
                     stamp + timedelta(hours=message.snapshot.get("validity_hours", 24)),
-                    message.appointment.scheduled_at,
+                    message.appointment.scheduled_at
+                    if message.appointment.kind != "postprocedure"
+                    else day_end,
                 )
                 message.save(update_fields=["scheduled_for", "expires_at"])
             Audit.objects.create(

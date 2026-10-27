@@ -1,3 +1,5 @@
+import Select from "./Select";
+import LegacyLabel from "./LegacyLabel";
 import FormAction, { FormActionContext } from "./FormAction";
 import UnitDirectory from "./UnitDirectory";
 import UserDirectory from "./UserDirectory";
@@ -136,7 +138,7 @@ export default function OperationsAdministration({
               className={tab === id ? "button primary" : "button"}
               onClick={() => setTab(id)}
             >
-              {label}
+              <LegacyLabel legacy={id === "sources"}>{label}</LegacyLabel>
             </button>
           ))}
         </div>
@@ -169,7 +171,7 @@ export default function OperationsAdministration({
                 >
                   <h3>Origem Oracle da unidade</h3>
                   <Field label="Tipo">
-                    <select
+                    <Select
                       value={sourceKind}
                       onChange={(e) => setSourceKind(e.target.value)}
                     >
@@ -177,7 +179,7 @@ export default function OperationsAdministration({
                       <option value="exam">Exames</option>
                       <option value="lab">Laboratório</option>
                       <option value="postoperative">Pós-cirúrgico</option>
-                    </select>
+                    </Select>
                   </Field>
                   <Field label="View homologada">
                     <input
@@ -344,7 +346,7 @@ export default function OperationsAdministration({
                     />
                   </Field>
                   <Field label="Origem">
-                    <select
+                    <Select
                       required
                       value={source}
                       onChange={(e) => setSource(e.target.value)}
@@ -357,10 +359,10 @@ export default function OperationsAdministration({
                             {s.view_name}
                           </option>
                         ))}
-                    </select>
+                    </Select>
                   </Field>
                   <Field label="Template">
-                    <select
+                    <Select
                       required
                       value={template}
                       onChange={(e) => setTemplate(e.target.value)}
@@ -373,7 +375,7 @@ export default function OperationsAdministration({
                             {t.name}
                           </option>
                         ))}
-                    </select>
+                    </Select>
                   </Field>
                   <Field label="Dias após o procedimento">
                     <input
@@ -466,6 +468,7 @@ export default function OperationsAdministration({
 
           <Panel
             title="Regras de agendamento"
+            legacy
             action={<AgendaRuleForm act={act} busy={busy} templates={templates} />}
           >
             {appointmentRules.length ? (
@@ -536,7 +539,7 @@ export default function OperationsAdministration({
               >
                 <h3>Autorizar número para relatórios</h3>
                 <Field label="Usuário">
-                  <select
+                  <Select
                     required
                     value={user}
                     onChange={(e) => setUser(e.target.value)}
@@ -547,7 +550,7 @@ export default function OperationsAdministration({
                         {m.username}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="WhatsApp">
                   <input
@@ -722,7 +725,7 @@ export default function OperationsAdministration({
               >
                 <h3>Agendar geração de relatório</h3>
                 <Field label="Destinatário autorizado">
-                  <select
+                  <Select
                     required
                     value={scheduleAccess}
                     onChange={(e) => setScheduleAccess(e.target.value)}
@@ -735,10 +738,10 @@ export default function OperationsAdministration({
                           {a.phone}
                         </option>
                       ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Relatório">
-                  <select
+                  <Select
                     required
                     value={scheduleReport}
                     onChange={(e) => setScheduleReport(e.target.value)}
@@ -751,7 +754,7 @@ export default function OperationsAdministration({
                           {r.name}
                         </option>
                       ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Horário (segunda a sexta)">
                   <input
@@ -881,14 +884,14 @@ function AgendaRuleForm({
             />
           </Field>
           <Field label="Tipo">
-            <select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <Select value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="consultation">Consulta</option>
               <option value="exam">Exame</option>
               <option value="lab">Laboratório</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Template">
-            <select
+            <Select
               required
               value={template}
               onChange={(e) => setTemplate(e.target.value)}
@@ -901,7 +904,7 @@ function AgendaRuleForm({
                     {t.name}
                   </option>
                 ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Dias antes">
             <input

@@ -1,3 +1,4 @@
+import LegacyLabel from "./LegacyLabel";
 import type { ReactNode } from "react";
 import {
   Activity,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { dateTime, kinds, labels } from "../format";
 import type { Appointment } from "../types";
+import { whatsappStatus } from "../whatsappStatus";
 
 export function Badge({ value }: { value: string }) {
   return (
@@ -33,26 +35,41 @@ export function Empty({
 }
 export function Panel({
   title,
+  legacy = false,
   subtitle,
   children,
   action: extra,
   className = "",
 }: {
-  title: string;
+  title?: string;
+  legacy?: boolean;
   subtitle?: string;
   children: ReactNode;
   action?: ReactNode;
   className?: string;
 }) {
+  const hasHeading = Boolean(title || subtitle || extra);
   return (
     <section className={`panel ${className}`}>
-      <div className="panel-heading">
-        <div>
-          <h2>{title}</h2>
-          {subtitle && <p>{subtitle}</p>}
+      {hasHeading && (
+        <div className="panel-heading">
+          {Boolean(title || subtitle) && (
+            <div>
+              {title && (
+                <h2>
+                  <LegacyLabel legacy={legacy}>{title}</LegacyLabel>
+                </h2>
+              )}
+              {subtitle && <p>{subtitle}</p>}
+            </div>
+          )}
+          {extra && (
+            <div className="panel-actions" style={{ marginLeft: "auto" }}>
+              {extra}
+            </div>
+          )}
         </div>
-        {extra}
-      </div>
+      )}
       {children}
     </section>
   );
@@ -128,7 +145,9 @@ export function AppointmentTable({
           </tr>
         </thead>
         <tbody>
-          {appointments.map((appointment) => (
+          {appointments.map((appointment) => {
+            const ws = whatsappStatus(appointment);
+            return (
             <tr
               key={appointment.id}
               className="clickable"
@@ -136,7 +155,11 @@ export function AppointmentTable({
             >
               <td data-label="Paciente">
                 <div className="patient-cell">
-                  <span className="patient-icon" aria-hidden="true">
+                  <span
+                    className={`patient-icon patient-icon-status-${ws.state}`}
+                    title={`${appointment.patient} · ${ws.label}`}
+                    aria-hidden="true"
+                  >
                     <User size={15} />
                   </span>
                   <div>
@@ -185,7 +208,8 @@ export function AppointmentTable({
                 </button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

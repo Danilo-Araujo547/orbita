@@ -114,8 +114,10 @@ export default function UnitSelector({
       >
         {sidebar ? (
           <>
-            <span className="unit-avatar">
-              {chosen?.remote ? (
+            <span className={`unit-avatar ${chosen?.logo ? "has-logo" : ""}`}>
+              {chosen?.logo ? (
+                <img src={chosen.logo} alt="" className="unit-logo-img" />
+              ) : chosen?.remote ? (
                 <Cloud size={18} aria-label="Instância remota" />
               ) : (
                 chosen?.name.slice(0, 1) || "A"
@@ -130,7 +132,11 @@ export default function UnitSelector({
           </>
         ) : (
           <>
-            {chosen?.remote ? (
+            {chosen?.logo ? (
+              <span className="unit-logo-badge">
+                <img src={chosen.logo} alt="" className="unit-logo-img" />
+              </span>
+            ) : chosen?.remote ? (
               <Cloud size={16} aria-label="Instância remota" />
             ) : (
               <Building2 size={15} />
@@ -161,7 +167,11 @@ export default function UnitSelector({
                   trigger.current?.focus();
                 }}
               >
-                {u.remote ? (
+                {u.logo ? (
+                  <span className="unit-logo-badge">
+                    <img src={u.logo} alt="" className="unit-logo-img" />
+                  </span>
+                ) : u.remote ? (
                   <Cloud size={17} aria-label="Instância remota" />
                 ) : (
                   <Building2 size={17} />

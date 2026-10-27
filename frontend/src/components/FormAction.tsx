@@ -23,20 +23,26 @@ export default function FormAction({
   title,
   label,
   description,
+  subtitleIcon,
   children,
   version,
   error,
   busy,
   onClose,
+  className,
+  icon,
 }: {
   title: string;
   label?: string;
   description?: string;
+  subtitleIcon?: ReactNode;
   children: ReactNode;
   version?: number;
   error?: string;
   busy?: boolean;
   onClose?: () => void;
+  className?: string;
+  icon?: ReactNode;
 }) {
   const context = useContext(FormActionContext);
   const [open, setOpen] = useState(false);
@@ -95,17 +101,21 @@ export default function FormAction({
           setOpen(true);
         }}
       >
-        {/^(Adicionar|Nov[oa])/i.test(label || title) && (
+        {icon ? (
+          icon
+        ) : /^(Adicionar|Nov[oa])/i.test(label || title) ? (
           <Plus size={15} aria-hidden="true" />
-        )}
+        ) : null}
         <span>{label || title}</span>
       </button>
       {open && (
         <InlineDialog
           title={title}
           subtitle={description || ""}
+          subtitleIcon={subtitleIcon}
           busy={locked}
           onClose={close}
+          className={className}
           footer={
             <footer className="form-action-footer">
               <button

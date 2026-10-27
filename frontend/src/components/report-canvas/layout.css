@@ -1,0 +1,325 @@
+/* ==========================================================================
+   REPORT CANVAS — LAYOUT, WORKSPACE GRID, RESIZERS & ROUTE STATES
+   ========================================================================== */
+
+.cv-root.report-canvas-page {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--cv-bg-app);
+  color: var(--cv-text);
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-md);
+  z-index: var(--cv-z-panel);
+  overflow: hidden;
+}
+
+.cv-root :is(button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--cv-focus);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-root *,
+  .cv-root *::before,
+  .cv-root *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* 4-column studio workspace: Rail (56px) | Left Panel (240..400) | Stage (1fr) | Inspector (240..400) */
+.cv-root .cv-workspace {
+  position: relative;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns:
+    var(--cv-w-rail)
+    var(--cv-left-w, var(--cv-w-panel))
+    minmax(0, 1fr)
+    var(--cv-right-w, var(--cv-w-inspector));
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--cv-stage);
+}
+
+@media (max-width: 1180px) {
+  .cv-root .cv-workspace {
+    grid-template-columns:
+      var(--cv-w-rail)
+      min(var(--cv-left-w, var(--cv-w-panel)), 256px)
+      minmax(0, 1fr)
+      min(var(--cv-right-w, var(--cv-w-inspector)), 272px);
+  }
+}
+
+.cv-root .cv-left-panel {
+  grid-column: 2;
+  grid-row: 1;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--cv-surface);
+  border-right: 1px solid var(--cv-line);
+  z-index: var(--cv-z-overlay);
+}
+
+.cv-root .cv-left-panel[hidden] {
+  display: none !important;
+}
+
+/* Panel resize handles (out of CSS grid flow via position:absolute, preserving Tab order) */
+.cv-root .cv-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 25;
+  touch-action: none;
+}
+
+.cv-root .cv-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background-color var(--cv-dur-fast) var(--cv-ease);
+}
+
+.cv-root .cv-resizer:hover::after,
+.cv-root .cv-resizer.is-dragging::after,
+.cv-root .cv-resizer:focus-visible::after {
+  background: var(--cv-focus);
+}
+
+.cv-root .cv-resizer-left {
+  left: calc(var(--cv-w-rail) + var(--cv-left-w, var(--cv-w-panel)) - 3px);
+}
+
+.cv-root .cv-resizer-right {
+  right: calc(var(--cv-right-w, var(--cv-w-inspector)) - 3px);
+}
+
+@media (max-width: 1180px) {
+  .cv-root .cv-resizer-left {
+    left: calc(var(--cv-w-rail) + min(var(--cv-left-w, var(--cv-w-panel)), 256px) - 3px);
+  }
+  .cv-root .cv-resizer-right {
+    right: calc(min(var(--cv-right-w, var(--cv-w-inspector)), 272px) - 3px);
+  }
+}
+
+.cv-root .cv-inspector-toggle-edge {
+  position: absolute;
+  top: var(--cv-sp-2);
+  right: var(--cv-sp-2);
+  z-index: 24;
+  background: var(--cv-surface);
+}
+
+/* ==========================================================================
+   ROUTE STATES & SHELL SKELETON (No giant spinner)
+   ========================================================================== */
+
+.cv-root.cv-route-error-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--cv-bg-app);
+  color: var(--cv-text);
+  font-family: var(--cv-font-ui);
+}
+
+.cv-root .cv-route-error-body {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--cv-sp-5);
+}
+
+.cv-root .cv-route-error-panel {
+  width: min(460px, 100%);
+  padding: var(--cv-sp-4);
+  background: var(--cv-surface);
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-r-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-3);
+}
+
+.cv-root .cv-route-error-panel h1 {
+  font-family: var(--cv-font-head);
+  font-size: var(--cv-fs-xl);
+  font-weight: var(--cv-fw-semibold);
+  color: var(--cv-text);
+  margin: 0;
+}
+
+.cv-root .cv-route-error-msg {
+  padding: var(--cv-sp-2) var(--cv-sp-3);
+  border: 1px solid var(--cv-danger-line);
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-danger-bg);
+  color: var(--cv-danger);
+  font-size: var(--cv-fs-md);
+  line-height: var(--cv-lh-base);
+}
+
+.cv-root .cv-route-error-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-sp-2);
+}
+
+/* Skeleton lines & workspace placeholder */
+.cv-root .cv-skel-line {
+  display: block;
+  height: 10px;
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-surface-3);
+}
+
+.cv-root .cv-skel-workspace {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: var(--cv-w-rail) var(--cv-w-panel) minmax(0, 1fr) var(--cv-w-inspector);
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1180px) {
+  .cv-root .cv-skel-workspace {
+    grid-template-columns: var(--cv-w-rail) 240px minmax(0, 1fr) 256px;
+  }
+}
+
+.cv-root .cv-skel-rail {
+  background: var(--cv-surface-2);
+  border-right: 1px solid var(--cv-line);
+  padding: var(--cv-sp-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cv-sp-2);
+}
+
+.cv-root .cv-skel-rail-dot {
+  width: 32px;
+  height: 36px;
+  border-radius: var(--cv-r-sm);
+  background: var(--cv-surface-3);
+}
+
+.cv-root .cv-skel-panel {
+  background: var(--cv-surface);
+  border-right: 1px solid var(--cv-line);
+  padding: var(--cv-sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-2);
+}
+
+.cv-root .cv-skel-panel.is-right {
+  border-right: 0;
+  border-left: 1px solid var(--cv-line);
+}
+
+.cv-root .cv-skel-stage {
+  background: var(--cv-stage);
+  padding: var(--cv-sp-5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cv-root .cv-skel-paper {
+  width: min(560px, 100%);
+  height: min(640px, 100%);
+  background: #ffffff;
+  box-shadow: var(--cv-shadow-paper);
+  padding: var(--cv-sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-sp-3);
+}
+
+.cv-root .cv-skel-paper .cv-skel-line {
+  background: #e2e8f0;
+}
+
+/* ==========================================================================
+   SHARED EMPTY STATE (Carbon Design System Pattern)
+   ========================================================================== */
+
+.cv-root .cv-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--cv-sp-5) var(--cv-sp-4);
+  gap: var(--cv-sp-2);
+  min-height: 140px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cv-root .cv-empty-state.is-compact {
+  padding: var(--cv-sp-3) var(--cv-sp-2);
+  min-height: 80px;
+  gap: var(--cv-sp-1);
+}
+
+.cv-root .cv-empty-state-title {
+  margin: 0;
+  font-family: var(--cv-font-head);
+  font-size: var(--cv-fs-md);
+  font-weight: var(--cv-fw-semibold);
+  color: var(--cv-text);
+  line-height: var(--cv-lh-base);
+}
+
+.cv-root .cv-empty-state-desc {
+  margin: 0;
+  max-width: 340px;
+  font-family: var(--cv-font-ui);
+  font-size: var(--cv-fs-sm);
+  font-weight: var(--cv-fw-regular);
+  color: var(--cv-text-3);
+  line-height: var(--cv-lh-tight);
+}
+
+.cv-root .cv-empty-state-action {
+  margin-top: var(--cv-sp-2);
+}
+
+.cv-root .cv-page-empty-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}

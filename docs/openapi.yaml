@@ -1,8 +1,178 @@
 openapi: 3.0.3
 info:
-  title: Orbita API
+  title: SCV  API
   version: 1.0.0
 paths:
+  /api/v1/agenda-items/:
+    get:
+      operationId: agenda_items_list
+      parameters:
+      - in: query
+        name: corrections
+        schema:
+          type: boolean
+      - in: query
+        name: date_basis
+        schema:
+          type: string
+          enum:
+          - appointment
+          - reply
+          - send
+      - in: query
+        name: delivery
+        schema:
+          type: string
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: group
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: kind
+        schema:
+          type: string
+      - in: query
+        name: observations
+        schema:
+          type: boolean
+      - in: query
+        name: operational_pending
+        schema:
+          type: boolean
+      - in: query
+        name: outcome
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: response
+        schema:
+          type: string
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: unit
+        schema:
+          type: string
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAgendaItemList'
+          description: ''
+  /api/v1/agenda-items/{id}/:
+    get:
+      operationId: agenda_items_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaItem'
+          description: ''
+  /api/v1/agenda-items/{id}/communications/:
+    get:
+      operationId: agenda_items_communications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentCommunications'
+          description: ''
+  /api/v1/agenda-items/export/:
+    get:
+      operationId: agenda_items_export_retrieve
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaItem'
+          description: ''
+  /api/v1/agenda-items/filter_options/:
+    get:
+      operationId: agenda_items_filter_options_retrieve
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaItem'
+          description: ''
+  /api/v1/agenda-items/types/:
+    get:
+      operationId: agenda_items_types_list
+      tags:
+      - agenda-items
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgendaType'
+          description: ''
   /api/v1/appointment-groups/:
     get:
       operationId: appointment_groups_list
@@ -444,6 +614,40 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/VersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/campaigns/{id}/schedule/:
+    post:
+      operationId: campaigns_schedule_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este campaign.
+        required: true
+      tags:
+      - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignScheduleInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CampaignScheduleInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CampaignScheduleInput'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -1254,7 +1458,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedImportLayoutList'
+                $ref: '#/components/schemas/PaginatedLayoutList'
           description: ''
     post:
       operationId: layouts_create
@@ -1265,13 +1469,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -1281,7 +1485,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportLayout'
+                $ref: '#/components/schemas/Layout'
           description: ''
   /api/v1/layouts/{id}/:
     get:
@@ -1304,8 +1508,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportLayout'
+                $ref: '#/components/schemas/Layout'
           description: ''
+    delete:
+      operationId: layouts_destroy
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este import layout.
+        required: true
+      tags:
+      - layouts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/layouts/{id}/configure/:
     post:
       operationId: layouts_configure_create
@@ -1323,13 +1545,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ImportLayout'
+              $ref: '#/components/schemas/Layout'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -1339,7 +1561,116 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportLayout'
+                $ref: '#/components/schemas/Layout'
+          description: ''
+  /api/v1/layouts/{id}/remove/:
+    post:
+      operationId: layouts_remove_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este import layout.
+        required: true
+      tags:
+      - layouts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: layouts_remove_destroy
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este import layout.
+        required: true
+      tags:
+      - layouts
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/logs/:
+    get:
+      operationId: logs_list
+      parameters:
+      - in: query
+        name: category
+        schema:
+          enum:
+          - audit
+          - imports
+          - messages
+          - attempts
+          - flows
+          - cross
+          - reports
+          - events
+          type: string
+          minLength: 1
+        description: |-
+          * `audit` - audit
+          * `imports` - imports
+          * `messages` - messages
+          * `attempts` - attempts
+          * `flows` - flows
+          * `cross` - cross
+          * `reports` - reports
+          * `events` - events
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: status
+        schema:
+          type: string
+          maxLength: 80
+          minLength: 1
+      tags:
+      - logs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogList'
           description: ''
   /api/v1/members/:
     get:
@@ -1624,6 +1955,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/ConfigOutput'
           description: ''
+  /api/v1/meta-costs/:
+    get:
+      operationId: meta_costs_retrieve
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: refresh
+        schema:
+          type: boolean
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: unit
+        schema:
+          type: string
+      tags:
+      - meta-costs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostOutput'
+          description: ''
   /api/v1/movements/:
     get:
       operationId: movements_list
@@ -1727,6 +2092,190 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Movement'
+          description: ''
+  /api/v1/oracle-agendas/:
+    get:
+      operationId: oracle_agendas_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - oracle-agendas
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAgendaOutputList'
+          description: ''
+  /api/v1/oracle-agendas/configure/:
+    post:
+      operationId: oracle_agendas_configure_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/inspect/:
+    post:
+      operationId: oracle_agendas_inspect_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InspectInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InspectInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectOutput'
+          description: ''
+  /api/v1/oracle-agendas/remove/:
+    post:
+      operationId: oracle_agendas_remove_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/restore/:
+    post:
+      operationId: oracle_agendas_restore_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaDeleteInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/synchronize/:
+    post:
+      operationId: oracle_agendas_synchronize_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgendaVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AgendaVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AgendaVersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgendaOutput'
+          description: ''
+  /api/v1/oracle-agendas/test_patient/:
+    post:
+      operationId: oracle_agendas_test_patient_create
+      tags:
+      - oracle-agendas
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestPatientInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TestPatientInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TestPatientInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestPatientOutput'
           description: ''
   /api/v1/oracle-configuration/:
     get:
@@ -2546,6 +3095,875 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReportAccess'
           description: ''
+  /api/v1/report-app-connections/:
+    get:
+      operationId: report_app_connections_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-app-connections
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppConnectionList'
+          description: ''
+    post:
+      operationId: report_app_connections_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-app-connections
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppConnection'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppConnection'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppConnection'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConnection'
+          description: ''
+  /api/v1/report-app-connections/{id}/:
+    get:
+      operationId: report_app_connections_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report application
+          connection.
+        required: true
+      tags:
+      - report-app-connections
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConnection'
+          description: ''
+  /api/v1/report-app-connections/{id}/configure/:
+    post:
+      operationId: report_app_connections_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report application
+          connection.
+        required: true
+      tags:
+      - report-app-connections
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppConnection'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppConnection'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppConnection'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConnection'
+          description: ''
+  /api/v1/report-app-connections/options/:
+    get:
+      operationId: report_app_connections_options_retrieve
+      description: Handler method for HTTP 'OPTIONS' request.
+      tags:
+      - report-app-connections
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConnectionOptionsSchema'
+          description: ''
+  /api/v1/report-automations/:
+    get:
+      operationId: report_automations_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: recipient
+        schema:
+          type: integer
+      - in: query
+        name: recipient_kind
+        schema:
+          type: string
+          enum:
+          - group
+          - phone
+      - in: query
+        name: report
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - active
+          - inactive
+      - in: query
+        name: time_from
+        schema:
+          type: string
+      - in: query
+        name: time_to
+        schema:
+          type: string
+      - in: query
+        name: weekday
+        schema:
+          type: integer
+          enum:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+      tags:
+      - report-automations
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAutomationList'
+          description: ''
+    post:
+      operationId: report_automations_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-automations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Automation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Automation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Automation'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+          description: ''
+  /api/v1/report-automations/{id}/:
+    get:
+      operationId: report_automations_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report automation.
+        required: true
+      tags:
+      - report-automations
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+          description: ''
+  /api/v1/report-automations/{id}/configure/:
+    post:
+      operationId: report_automations_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report automation.
+        required: true
+      tags:
+      - report-automations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Automation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Automation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Automation'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+          description: ''
+  /api/v1/report-connections/:
+    get:
+      operationId: report_connections_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-connections
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConnectionList'
+          description: ''
+    post:
+      operationId: report_connections_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-connections
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Connection'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Connection'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Connection'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/report-connections/{id}/:
+    get:
+      operationId: report_connections_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report connection.
+        required: true
+      tags:
+      - report-connections
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/report-connections/{id}/configure/:
+    post:
+      operationId: report_connections_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report connection.
+        required: true
+      tags:
+      - report-connections
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Connection'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Connection'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Connection'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/report-connections/{id}/test/:
+    post:
+      operationId: report_connections_test_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report connection.
+        required: true
+      tags:
+      - report-connections
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCatalogVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportCatalogVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportCatalogVersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+          description: ''
+  /api/v1/report-executions/:
+    get:
+      operationId: report_executions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-executions
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedExecutionList'
+          description: ''
+    post:
+      operationId: report_executions_create
+      tags:
+      - report-executions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ExecutionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ExecutionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+          description: ''
+  /api/v1/report-executions/{id}/:
+    get:
+      operationId: report_executions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report execution.
+        required: true
+      tags:
+      - report-executions
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+          description: ''
+  /api/v1/report-executions/{id}/download/:
+    get:
+      operationId: report_executions_download_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report execution.
+        required: true
+      tags:
+      - report-executions
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+          description: ''
+  /api/v1/report-grants/:
+    get:
+      operationId: report_grants_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: permission
+        schema:
+          type: string
+          enum:
+          - automatic
+          - both
+          - manual
+          - neither
+      - in: query
+        name: recipient
+        schema:
+          type: integer
+      - in: query
+        name: recipient_kind
+        schema:
+          type: string
+          enum:
+          - group
+          - phone
+      - in: query
+        name: report
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - active
+          - inactive
+      tags:
+      - report-grants
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGrantList'
+          description: ''
+    post:
+      operationId: report_grants_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-grants
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Grant'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Grant'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Grant'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grant'
+          description: ''
+  /api/v1/report-grants/{id}/:
+    get:
+      operationId: report_grants_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report grant.
+        required: true
+      tags:
+      - report-grants
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grant'
+          description: ''
+  /api/v1/report-grants/{id}/configure/:
+    post:
+      operationId: report_grants_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report grant.
+        required: true
+      tags:
+      - report-grants
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Grant'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Grant'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Grant'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grant'
+          description: ''
+  /api/v1/report-recipients/:
+    get:
+      operationId: report_recipients_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-recipients
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecipientList'
+          description: ''
+    post:
+      operationId: report_recipients_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-recipients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Recipient'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Recipient'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Recipient'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+          description: ''
+  /api/v1/report-recipients/{id}/:
+    get:
+      operationId: report_recipients_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report recipient.
+        required: true
+      tags:
+      - report-recipients
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+          description: ''
+  /api/v1/report-recipients/{id}/configure/:
+    post:
+      operationId: report_recipients_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report recipient.
+        required: true
+      tags:
+      - report-recipients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Recipient'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Recipient'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Recipient'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+          description: ''
+  /api/v1/report-recipients/{id}/manual-reports/:
+    get:
+      operationId: report_recipients_manual_reports_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report recipient.
+        required: true
+      tags:
+      - report-recipients
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualReportsOutput'
+          description: ''
+  /api/v1/report-recipients/{id}/verify/:
+    post:
+      operationId: report_recipients_verify_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report recipient.
+        required: true
+      tags:
+      - report-recipients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+          description: ''
+  /api/v1/report-recipients/manual-report-options/:
+    get:
+      operationId: report_recipients_manual_report_options_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+      tags:
+      - report-recipients
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedManualReportOptionOutputList'
+          description: ''
+  /api/v1/report-recipients/users/:
+    get:
+      operationId: report_recipients_users_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-recipients
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+          description: ''
   /api/v1/report-requests/:
     get:
       operationId: report_requests_list
@@ -2783,9 +4201,124 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReportSchedule'
           description: ''
-  /api/v1/reports/:
+  /api/v1/report-snapshot-runs/:
     get:
-      operationId: reports_list
+      operationId: report_snapshot_runs_list
+      parameters:
+      - in: query
+        name: configuration
+        schema:
+          type: integer
+      - in: query
+        name: environment
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: period_type
+        schema:
+          type: string
+      - in: query
+        name: state
+        schema:
+          type: string
+      tags:
+      - report-snapshot-runs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSnapshotRunList'
+          description: ''
+    post:
+      operationId: report_snapshot_runs_create
+      tags:
+      - report-snapshot-runs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotRun'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SnapshotRun'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SnapshotRun'
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRun'
+          description: ''
+  /api/v1/report-snapshot-runs/{id}/:
+    get:
+      operationId: report_snapshot_runs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report snapshot run.
+        required: true
+      tags:
+      - report-snapshot-runs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRun'
+          description: ''
+  /api/v1/report-snapshot-runs/{id}/records/:
+    get:
+      operationId: report_snapshot_runs_records_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este report snapshot run.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - report-snapshot-runs
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSnapshotRecordList'
+          description: ''
+  /api/v1/report-snapshots/:
+    get:
+      operationId: report_snapshots_list
       description: Configuration revisions are appended; there is no delete endpoint.
       parameters:
       - name: page
@@ -2794,6 +4327,243 @@ paths:
         description: Um número de página dentro do conjunto de resultados paginado.
         schema:
           type: integer
+      tags:
+      - report-snapshots
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSnapshotConfigurationList'
+          description: ''
+    post:
+      operationId: report_snapshots_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - report-snapshots
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotConfiguration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SnapshotConfiguration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SnapshotConfiguration'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotConfiguration'
+          description: ''
+  /api/v1/report-snapshots/{id}/:
+    get:
+      operationId: report_snapshots_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report snapshot configuration.
+        required: true
+      tags:
+      - report-snapshots
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotConfiguration'
+          description: ''
+  /api/v1/report-snapshots/{id}/collect/:
+    post:
+      operationId: report_snapshots_collect_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report snapshot configuration.
+        required: true
+      tags:
+      - report-snapshots
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCatalogVersionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReportCatalogVersionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReportCatalogVersionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRun'
+          description: ''
+  /api/v1/report-snapshots/{id}/configure/:
+    post:
+      operationId: report_snapshots_configure_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report snapshot configuration.
+        required: true
+      tags:
+      - report-snapshots
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnapshotConfiguration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SnapshotConfiguration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SnapshotConfiguration'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotConfiguration'
+          description: ''
+  /api/v1/report-snapshots/options/:
+    get:
+      operationId: report_snapshots_options_retrieve
+      description: Handler method for HTTP 'OPTIONS' request.
+      tags:
+      - report-snapshots
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotConfiguration'
+          description: ''
+  /api/v1/report-whatsapp/:
+    get:
+      operationId: report_whatsapp_retrieve
+      tags:
+      - report-whatsapp
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelOutput'
+          description: ''
+    post:
+      operationId: report_whatsapp_create
+      tags:
+      - report-whatsapp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelActionInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChannelActionInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChannelActionInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelActionOutput'
+          description: ''
+  /api/v1/reports/:
+    get:
+      operationId: reports_list
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: query
+        name: connection
+        schema:
+          type: integer
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: section
+        schema:
+          type: string
+          enum:
+          - all
+          - components
+          - reports
+          - review
+      - in: query
+        name: source
+        schema:
+          type: string
+      - in: query
+        name: sql
+        schema:
+          type: string
+          enum:
+          - 'no'
+          - 'yes'
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - disabled
+          - enabled
+          - reviewed
+          - unreviewed
       tags:
       - reports
       security:
@@ -2804,7 +4574,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedReportDefinitionList'
+                $ref: '#/components/schemas/PaginatedCatalogList'
           description: ''
     post:
       operationId: reports_create
@@ -2815,13 +4585,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReportDefinition'
+              $ref: '#/components/schemas/Catalog'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ReportDefinition'
+              $ref: '#/components/schemas/Catalog'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReportDefinition'
+              $ref: '#/components/schemas/Catalog'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -2831,7 +4601,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReportDefinition'
+                $ref: '#/components/schemas/Catalog'
           description: ''
   /api/v1/reports/{id}/:
     get:
@@ -2854,7 +4624,156 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReportDefinition'
+                $ref: '#/components/schemas/Catalog'
+          description: ''
+  /api/v1/reports/{id}/canvas/:
+    get:
+      operationId: reports_canvas_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasConfigSchema'
+          description: ''
+    post:
+      operationId: reports_canvas_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanvasConfigSchema'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CanvasConfigSchema'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CanvasConfigSchema'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasConfigSchema'
+          description: ''
+  /api/v1/reports/{id}/canvas-assets/:
+    get:
+      operationId: reports_canvas_assets_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasAssetSchema'
+          description: ''
+    post:
+      operationId: reports_canvas_assets_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanvasAssetSchema'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CanvasAssetSchema'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CanvasAssetSchema'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasAssetSchema'
+          description: ''
+  /api/v1/reports/{id}/canvas-preview/:
+    post:
+      operationId: reports_canvas_preview_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanvasPreviewSchema'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CanvasPreviewSchema'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CanvasPreviewSchema'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasPreviewResult'
           description: ''
   /api/v1/reports/{id}/configure/:
     post:
@@ -2873,13 +4792,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReportDefinition'
+              $ref: '#/components/schemas/Catalog'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ReportDefinition'
+              $ref: '#/components/schemas/Catalog'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReportDefinition'
+              $ref: '#/components/schemas/Catalog'
         required: true
       security:
       - orbitaInstanceKey: []
@@ -2889,7 +4808,91 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReportDefinition'
+                $ref: '#/components/schemas/Catalog'
+          description: ''
+  /api/v1/reports/{id}/preview/:
+    post:
+      operationId: reports_preview_create
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este report definition.
+        required: true
+      tags:
+      - reports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PreviewInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PreviewInput'
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewOutput'
+          description: ''
+  /api/v1/reports/app-data/:
+    get:
+      operationId: reports_app_data_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+      - in: query
+        name: filters
+        schema:
+          type: string
+      - in: query
+        name: metric
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+      tags:
+      - reports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppDataResponseSchema'
+          description: ''
+  /api/v1/reports/inventory/:
+    get:
+      operationId: reports_inventory_retrieve
+      description: Configuration revisions are appended; there is no delete endpoint.
+      tags:
+      - reports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Catalog'
           description: ''
   /api/v1/rules/:
     get:
@@ -3211,6 +5214,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/Sheet'
           description: ''
+  /api/v1/sheet-imports/{id}/activation/:
+    post:
+      operationId: sheet_imports_activation_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      tags:
+      - sheet-imports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrossBatchControlInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CrossBatchControlInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CrossBatchControlInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sheet'
+          description: ''
   /api/v1/sheet-imports/{id}/confirm/:
     post:
       operationId: sheet_imports_confirm_create
@@ -3246,9 +5284,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Sheet'
           description: ''
-  /api/v1/sheet-imports/{id}/rows/:
+  /api/v1/sheet-imports/{id}/export/:
     get:
-      operationId: sheet_imports_rows_retrieve
+      operationId: sheet_imports_export_retrieve
       parameters:
       - in: path
         name: id
@@ -3265,9 +5303,145 @@ paths:
       responses:
         '200':
           content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/sheet-imports/{id}/record-activation/:
+    post:
+      operationId: sheet_imports_record_activation_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      tags:
+      - sheet-imports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrossRecordsControlInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CrossRecordsControlInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CrossRecordsControlInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Sheet'
+          description: ''
+  /api/v1/sheet-imports/{id}/records/:
+    get:
+      operationId: sheet_imports_records_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCrossRecordList'
+          description: ''
+  /api/v1/sheet-imports/{id}/rows/:
+    get:
+      operationId: sheet_imports_rows_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: Um string UUID que identifica este sheet import.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStandardRowList'
+          description: ''
+  /api/v1/sheet-imports/oracle-absences/:
+    post:
+      operationId: sheet_imports_oracle_absences_create
+      tags:
+      - sheet-imports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OracleAbsenceInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OracleAbsenceInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OracleAbsenceInput'
+        required: true
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sheet'
+          description: ''
+  /api/v1/sheet-imports/schema/:
+    get:
+      operationId: sheet_imports_schema_retrieve
+      tags:
+      - sheet-imports
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardSchema'
           description: ''
   /api/v1/sources/:
     get:
@@ -3447,6 +5621,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/Template'
           description: ''
+    delete:
+      operationId: templates_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este template.
+        required: true
+      tags:
+      - templates
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/templates/{id}/configure/:
     post:
       operationId: templates_configure_create
@@ -3481,6 +5672,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/Template'
           description: ''
+  /api/v1/templates/{id}/remove/:
+    post:
+      operationId: templates_remove_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este template.
+        required: true
+      tags:
+      - templates
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: templates_remove_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este template.
+        required: true
+      tags:
+      - templates
+      security:
+      - orbitaInstanceKey: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/tests/appointments/:
     post:
       operationId: tests_appointments_create
@@ -3757,18 +5988,315 @@ components:
           type: boolean
       required:
       - ok
-    ActionEnum:
+    AgendaDeleteInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    AgendaInput:
+      type: object
+      properties:
+        view_name:
+          type: string
+          maxLength: 200
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          default: Agenda Oracle
+          maxLength: 120
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/AgendaInputKindEnum'
+          default: consultation
+        version:
+          type: integer
+          minimum: 0
+        template_id:
+          type: string
+          maxLength: 40
+        column_mapping: {}
+        parameter_mapping: {}
+        horizon_days:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 10
+        days_after:
+          type: integer
+          maximum: 180
+          minimum: 0
+          default: 10
+        date_format:
+          allOf:
+          - $ref: '#/components/schemas/DateFormatEnum'
+          default: native
+        refresh_interval_minutes:
+          type: integer
+          maximum: 1440
+          minimum: 5
+        days_before:
+          type: integer
+          maximum: 30
+          minimum: 0
+          default: 5
+        send_time:
+          type: string
+          format: time
+          default: 09:00
+        enabled:
+          type: boolean
+          default: true
+        send_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+          minItems: 1
+        blocked_day_policy: {}
+      required:
+      - column_mapping
+      - parameter_mapping
+      - template_id
+      - version
+      - view_name
+    AgendaInputKindEnum:
       enum:
-      - note
-      - call
-      - classify
-      - record_response
+      - consultation
+      - exam
+      - lab
+      - postprocedure
       type: string
       description: |-
-        * `note` - note
-        * `call` - call
-        * `classify` - classify
-        * `record_response` - record_response
+        * `consultation` - consultation
+        * `exam` - exam
+        * `lab` - lab
+        * `postprocedure` - postprocedure
+    AgendaItem:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        external_id:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/AppointmentKindEnum'
+        patient:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 40
+        phone_numbers: {}
+        patient_record:
+          type: integer
+          nullable: true
+        patient_external_id:
+          type: string
+          maxLength: 100
+        professional:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 150
+        tracking:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        procedure:
+          type: string
+          maxLength: 200
+        procedure_code:
+          type: string
+          maxLength: 100
+        appointment_type:
+          type: string
+        scheduled_at:
+          type: string
+          format: date-time
+        arrival_time:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          maxLength: 20
+        synthetic:
+          type: boolean
+        revision:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        source:
+          type: string
+          maxLength: 30
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+        data_issue:
+          type: string
+          maxLength: 50
+        record_type:
+          type: string
+          readOnly: true
+        purpose:
+          type: string
+          readOnly: true
+        kind_label:
+          type: string
+          readOnly: true
+      required:
+      - arrival_time
+      - external_id
+      - id
+      - kind
+      - kind_label
+      - last_seen_at
+      - patient
+      - procedure
+      - purpose
+      - record_type
+      - scheduled_at
+      - tracking
+    AgendaOutput:
+      type: object
+      properties:
+        configurations:
+          type: array
+          items: {}
+        archived_configurations:
+          type: array
+          items: {}
+        archived_configuration:
+          nullable: true
+        configuration:
+          nullable: true
+        templates:
+          type: array
+          items: {}
+        default_columns: {}
+      required:
+      - archived_configuration
+      - archived_configurations
+      - configuration
+      - configurations
+      - default_columns
+      - templates
+    AgendaType:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        group:
+          type: string
+      required:
+      - group
+      - label
+      - value
+    AgendaVersionInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        version:
+          type: integer
+          minimum: 1
+        refresh:
+          type: boolean
+          default: false
+      required:
+      - version
+    AppConnection:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source_name:
+          type: string
+          readOnly: true
+        state:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        local_unit:
+          type: integer
+          nullable: true
+        remote_instance:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - id
+      - name
+      - source_name
+      - state
+      - unit
+      - version
+    AppConnectionOptionsSchema:
+      type: object
+      properties:
+        units:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        remote_instances:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+      required:
+      - remote_instances
+      - units
+    AppDataResponseSchema:
+      type: object
+      properties:
+        protocol:
+          type: string
+        unit:
+          type: string
+        columns:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            type: array
+            items: {}
+      required:
+      - columns
+      - protocol
+      - rows
+      - unit
     Appointment:
       type: object
       properties:
@@ -3811,7 +6339,6 @@ components:
           maxLength: 100
         appointment_type:
           type: string
-          maxLength: 100
         scheduled_at:
           type: string
           format: date-time
@@ -3879,11 +6406,13 @@ components:
       - consultation
       - exam
       - lab
+      - postprocedure
       type: string
       description: |-
         * `consultation` - Consulta
         * `exam` - Exame
         * `lab` - Laboratório
+        * `postprocedure` - Busca ativa - pós procedimento
     Attempt:
       type: object
       properties:
@@ -3938,6 +6467,53 @@ components:
       - actor_name
       - created_at
       - id
+    Automation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        recipient_name:
+          type: string
+          readOnly: true
+        report_name:
+          type: string
+          readOnly: true
+        pending_items:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        send_time:
+          type: string
+          format: time
+        weekdays: {}
+        parameters: {}
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          readOnly: true
+        legacy:
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        report:
+          type: integer
+        recipient:
+          type: integer
+      required:
+      - id
+      - legacy
+      - pending_items
+      - recipient
+      - recipient_name
+      - report
+      - report_name
+      - send_time
+      - unit
+      - version
     CallResultEnum:
       enum:
       - answered
@@ -3981,6 +6557,11 @@ components:
           type: string
           format: date-time
           readOnly: true
+        import_batch:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
         unit:
           type: integer
           readOnly: true
@@ -3996,12 +6577,28 @@ components:
       - cases
       - created_at
       - id
+      - import_batch
       - name
       - next_send_at
       - purpose
       - sends_enabled
       - state
       - unit
+      - version
+    CampaignScheduleInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        scheduled_for:
+          type: string
+          format: date-time
+        name:
+          type: string
+          maxLength: 150
+      required:
+      - scheduled_for
       - version
     CampaignSendingInput:
       type: object
@@ -4014,6 +6611,106 @@ components:
       required:
       - enabled
       - version
+    CanvasAssetSchema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        filename:
+          type: string
+          maxLength: 160
+        content:
+          type: string
+          maxLength: 2800000
+        width:
+          type: integer
+          readOnly: true
+        height:
+          type: integer
+          readOnly: true
+        mime:
+          type: string
+          readOnly: true
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - filename
+      - height
+      - id
+      - mime
+      - results
+      - width
+    CanvasConfigSchema:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        layout: {}
+        enabled:
+          type: boolean
+          default: false
+        output_format:
+          allOf:
+          - $ref: '#/components/schemas/OutputFormat157Enum'
+          default: pdf
+        monthly_goals:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        sources:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        assets:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - assets
+      - layout
+      - monthly_goals
+      - sources
+      - version
+    CanvasPreviewResult:
+      type: object
+      properties:
+        content:
+          type: string
+        format:
+          $ref: '#/components/schemas/Format157Enum'
+        rows:
+          type: integer
+        filename:
+          type: string
+      required:
+      - content
+      - filename
+      - format
+      - rows
+    CanvasPreviewSchema:
+      type: object
+      properties:
+        layout: {}
+        parameters: {}
+        output_format:
+          allOf:
+          - $ref: '#/components/schemas/OutputFormat157Enum'
+          default: pdf
+      required:
+      - layout
     Case:
       type: object
       properties:
@@ -4089,7 +6786,7 @@ components:
           type: integer
           minimum: 1
         action:
-          $ref: '#/components/schemas/ActionEnum'
+          $ref: '#/components/schemas/CaseActionInputActionEnum'
         text:
           type: string
           maxLength: 4000
@@ -4121,6 +6818,18 @@ components:
       - action
       - text
       - version
+    CaseActionInputActionEnum:
+      enum:
+      - note
+      - call
+      - classify
+      - record_response
+      type: string
+      description: |-
+        * `note` - note
+        * `call` - call
+        * `classify` - classify
+        * `record_response` - record_response
     CaseActionInputPriorityEnum:
       enum:
       - normal
@@ -4149,6 +6858,180 @@ components:
         * `assigned` - Em atendimento
         * `waiting_external` - Aguardando ação externa
         * `closed` - Concluído
+    Catalog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        used_by:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        description:
+          type: string
+          maxLength: 16000
+        technical_description:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        parameter_audit:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        source_path:
+          type: string
+          readOnly: true
+        pending_items:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        connection_name:
+          type: string
+          readOnly: true
+        catalog_kind:
+          $ref: '#/components/schemas/CatalogKindEnum'
+        request_message:
+          type: string
+          maxLength: 2000
+        review_queue:
+          type: boolean
+        query_sql:
+          type: string
+        reviewed:
+          type: boolean
+        manual_enabled:
+          type: boolean
+        output_format:
+          $ref: '#/components/schemas/CatalogOutputFormatEnum'
+        keywords: {}
+        legacy:
+          readOnly: true
+        components: {}
+        monthly_goals: {}
+        canvas_layout:
+          readOnly: true
+        canvas_enabled:
+          type: boolean
+          readOnly: true
+        dependencies: {}
+        code:
+          type: string
+          maxLength: 80
+        name:
+          type: string
+          maxLength: 200
+        keyword:
+          type: string
+          maxLength: 80
+        source:
+          type: string
+          maxLength: 80
+        handler:
+          type: string
+          maxLength: 80
+        parameter_schema: {}
+        enabled:
+          type: boolean
+        unavailable_reason:
+          type: string
+        version:
+          type: integer
+          readOnly: true
+        app_connection:
+          type: integer
+          nullable: true
+        connection:
+          type: integer
+          nullable: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - canvas_enabled
+      - canvas_layout
+      - code
+      - connection_name
+      - id
+      - legacy
+      - name
+      - parameter_audit
+      - pending_items
+      - source_path
+      - technical_description
+      - unit
+      - used_by
+      - version
+    CatalogKindEnum:
+      enum:
+      - report
+      - component
+      type: string
+      description: |-
+        * `report` - Relatório
+        * `component` - Componente
+    CatalogOutputFormatEnum:
+      enum:
+      - pdf
+      - csv
+      - xlsx
+      - text
+      type: string
+      description: |-
+        * `pdf` - PDF
+        * `csv` - CSV
+        * `xlsx` - XLSX
+        * `text` - Texto
+    ChannelActionInput:
+      type: object
+      properties:
+        menu_title:
+          type: string
+          maxLength: 60
+        menu_button:
+          type: string
+          maxLength: 20
+        menu_section:
+          type: string
+          maxLength: 24
+        action:
+          $ref: '#/components/schemas/ChannelActionInputActionEnum'
+        version:
+          type: integer
+          minimum: 1
+        greeting:
+          type: string
+          maxLength: 1000
+        sends_enabled:
+          type: boolean
+        manual_enabled:
+          type: boolean
+        automatic_enabled:
+          type: boolean
+      required:
+      - action
+    ChannelActionInputActionEnum:
+      enum:
+      - connect
+      - disconnect
+      - configure
+      type: string
+      description: |-
+        * `connect` - connect
+        * `disconnect` - disconnect
+        * `configure` - configure
+    ChannelActionOutput:
+      type: object
+      properties:
+        version:
+          type: integer
+        state:
+          type: string
     ChannelEnum:
       enum:
       - phone
@@ -4157,6 +7040,55 @@ components:
       description: |-
         * `phone` - phone
         * `whatsapp` - whatsapp
+    ChannelLogOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+        time:
+          type: string
+          format: date-time
+        event:
+          type: string
+      required:
+      - event
+      - id
+      - time
+    ChannelOutput:
+      type: object
+      properties:
+        configuration:
+          $ref: '#/components/schemas/ConfigurationInput'
+        global_sends_enabled:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/ChannelStatusOutput'
+      required:
+      - configuration
+      - global_sends_enabled
+      - status
+    ChannelStatusOutput:
+      type: object
+      properties:
+        state:
+          type: string
+        account:
+          type: string
+        qr:
+          type: string
+          nullable: true
+        qr_expires_at:
+          type: integer
+          nullable: true
+        sends_enabled:
+          type: boolean
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelLogOutput'
+      required:
+      - logs
+      - state
     CheckInput:
       type: object
       properties:
@@ -4415,6 +7347,87 @@ components:
       - unlocked_until
       - validation_state
       - version
+    Connection:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+        admin_password:
+          type: string
+          writeOnly: true
+          maxLength: 1024
+        source_description:
+          type: string
+          readOnly: true
+        has_password:
+          type: boolean
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        engine:
+          $ref: '#/components/schemas/EngineEnum'
+        host:
+          type: string
+          maxLength: 253
+        port:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        database:
+          type: string
+          maxLength: 500
+        username:
+          type: string
+          maxLength: 128
+        options: {}
+        enabled:
+          type: boolean
+        validated:
+          type: boolean
+          readOnly: true
+        checked_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        validation_error:
+          type: string
+          readOnly: true
+        timeout_seconds:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        max_rows:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        version:
+          type: integer
+          readOnly: true
+        legacy:
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - admin_password
+      - checked_at
+      - engine
+      - has_password
+      - id
+      - legacy
+      - name
+      - source_description
+      - unit
+      - validated
+      - validation_error
+      - version
     Contact:
       type: object
       properties:
@@ -4485,6 +7498,163 @@ components:
       - production_enabled
       - test_recipients
       - unit
+    CostOutput:
+      type: object
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        start:
+          type: string
+          format: date
+        end:
+          type: string
+          format: date
+        currency:
+          type: string
+          nullable: true
+        phone_number:
+          type: string
+        total_cost:
+          type: string
+          nullable: true
+        total_volume:
+          type: integer
+          nullable: true
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/CostRow'
+        checked_at:
+          type: string
+          format: date-time
+      required:
+      - checked_at
+      - code
+      - currency
+      - end
+      - phone_number
+      - rows
+      - start
+      - status
+      - total_cost
+      - total_volume
+    CostRow:
+      type: object
+      properties:
+        day:
+          type: string
+          format: date
+        category:
+          type: string
+        pricing_type:
+          type: string
+        volume:
+          type: integer
+        cost:
+          type: string
+      required:
+      - category
+      - cost
+      - day
+      - pricing_type
+      - volume
+    CrossBatchControlInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        enabled:
+          type: boolean
+      required:
+      - enabled
+      - version
+    CrossRecord:
+      type: object
+      properties:
+        nome_completo:
+          type: string
+        data:
+          type: string
+        hora:
+          type: string
+        celular:
+          type: string
+        celular2:
+          type: string
+        tipo:
+          type: string
+        horario_chegada:
+          type: string
+        data_nascimento:
+          type: string
+        codigo:
+          type: string
+        local:
+          type: string
+        tipo2:
+          type: string
+        obs:
+          type: string
+        record_id:
+          type: string
+        enabled:
+          type: boolean
+        recent_send_count:
+          type: integer
+        last_sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        history_match_basis:
+          type: string
+        phone_numbers:
+          type: array
+          items:
+            type: string
+      required:
+      - enabled
+      - history_match_basis
+      - last_sent_at
+      - phone_numbers
+      - recent_send_count
+      - record_id
+    CrossRecordsControlInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        enabled:
+          type: boolean
+        records:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10000
+          minItems: 1
+        all_matching:
+          type: boolean
+          default: false
+        excluded_records:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10000
+        search:
+          type: string
+          default: ''
+          maxLength: 200
+        recent_only:
+          type: boolean
+          default: false
+      required:
+      - enabled
+      - version
     CsrfOutput:
       type: object
       properties:
@@ -4492,6 +7662,48 @@ components:
           type: string
       required:
       - csrfToken
+    DatasetKindEnum:
+      enum:
+      - beds
+      - capacity
+      - lives
+      type: string
+      description: |-
+        * `beds` - Leitos totais
+        * `capacity` - Capacidade SUS/convênio
+        * `lives` - Vidas Sansaúde
+    DateFormatEnum:
+      enum:
+      - native
+      - br_date
+      - iso_date
+      type: string
+      description: |-
+        * `native` - native
+        * `br_date` - br_date
+        * `iso_date` - iso_date
+    EngineEnum:
+      enum:
+      - oracle
+      - sqlite
+      - firebird
+      - mysql
+      - postgres
+      type: string
+      description: |-
+        * `oracle` - oracle
+        * `sqlite` - sqlite
+        * `firebird` - firebird
+        * `mysql` - mysql
+        * `postgres` - postgres
+    EnvironmentEnum:
+      enum:
+      - homologation
+      - production
+      type: string
+      description: |-
+        * `homologation` - Homologação
+        * `production` - Produção
     Event:
       type: object
       properties:
@@ -4561,6 +7773,137 @@ components:
         * `confirmed` - confirmed
         * `declined` - declined
         * `review` - review
+    Execution:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        missing_dates:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        data_environment:
+          type: string
+          readOnly: true
+        data_origin:
+          type: string
+          readOnly: true
+        report_name:
+          type: string
+          readOnly: true
+        recipient_name:
+          type: string
+          readOnly: true
+          default: ''
+        run_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        origin:
+          type: string
+          readOnly: true
+        parameters:
+          readOnly: true
+        definition_version:
+          type: integer
+          readOnly: true
+        recipient_version:
+          type: integer
+          readOnly: true
+          nullable: true
+        grant_version:
+          type: integer
+          readOnly: true
+          nullable: true
+        connection_version:
+          type: integer
+          readOnly: true
+          nullable: true
+        state:
+          type: string
+          readOnly: true
+        format:
+          type: string
+          readOnly: true
+        row_count:
+          type: integer
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        delivery_state:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        unit:
+          type: integer
+          readOnly: true
+        report:
+          type: integer
+          readOnly: true
+        recipient:
+          type: integer
+          readOnly: true
+          nullable: true
+        automation:
+          type: integer
+          readOnly: true
+          nullable: true
+        requester:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - automation
+      - completed_at
+      - connection_version
+      - created_at
+      - data_environment
+      - data_origin
+      - definition_version
+      - delivery_state
+      - error_code
+      - format
+      - grant_version
+      - id
+      - missing_dates
+      - origin
+      - parameters
+      - recipient
+      - recipient_name
+      - recipient_version
+      - report
+      - report_name
+      - requester
+      - row_count
+      - run_date
+      - state
+      - unit
+    ExecutionInput:
+      type: object
+      properties:
+        parameters: {}
+        report:
+          type: integer
+          minimum: 1
+        recipient:
+          type: integer
+          minimum: 1
+          nullable: true
+      required:
+      - report
     FlowRule:
       type: object
       properties:
@@ -4645,6 +7988,60 @@ components:
       - run_date
       - started_at
       - unit
+    Format157Enum:
+      enum:
+      - pdf
+      - xlsx
+      type: string
+      description: |-
+        * `pdf` - pdf
+        * `xlsx` - xlsx
+    Grant:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        pending_items:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        recipient_name:
+          type: string
+          readOnly: true
+        report_name:
+          type: string
+          readOnly: true
+        active:
+          type: boolean
+        manual:
+          type: boolean
+        automatic:
+          type: boolean
+        parameters: {}
+        legacy:
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        report:
+          type: integer
+        recipient:
+          type: integer
+      required:
+      - id
+      - legacy
+      - pending_items
+      - recipient
+      - recipient_name
+      - report
+      - report_name
+      - unit
+      - version
     GrantInput:
       type: object
       properties:
@@ -4776,41 +8173,6 @@ components:
           type: integer
       required:
       - rule_id
-    ImportLayout:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        format:
-          $ref: '#/components/schemas/ImportLayoutFormatEnum'
-        name:
-          type: string
-          maxLength: 120
-        version:
-          type: integer
-          readOnly: true
-        mapping: {}
-        verified:
-          type: boolean
-        evidence:
-          type: string
-        unit:
-          type: integer
-          readOnly: true
-      required:
-      - id
-      - name
-      - unit
-      - version
-    ImportLayoutFormatEnum:
-      enum:
-      - table
-      - absence_html
-      type: string
-      description: |-
-        * `table` - CSV/XLSX
-        * `absence_html` - Ausentes HTML (.xls)
     ImportRun:
       type: object
       properties:
@@ -4889,6 +8251,42 @@ components:
             additionalProperties: {}
         paused:
           type: boolean
+        messages_to_send:
+          type: integer
+          default: 0
+        messages_total:
+          type: integer
+          default: 0
+        messages_answered:
+          type: integer
+          default: 0
+        messages_unanswered:
+          type: integer
+          default: 0
+        messages_sent:
+          type: integer
+          default: 0
+        messages_invalid:
+          type: integer
+          default: 0
+        appointments_total:
+          type: integer
+          default: 0
+        appointments_declined:
+          type: integer
+          default: 0
+        appointments_answered:
+          type: integer
+          default: 0
+        appointments_unanswered:
+          type: integer
+          default: 0
+        appointments_sent:
+          type: integer
+          default: 0
+        appointments_invalid:
+          type: integer
+          default: 0
       required:
       - accepted
       - appointments
@@ -4904,6 +8302,22 @@ components:
       - states
       - synthetic_appointments
       - trend
+    InspectInput:
+      type: object
+      properties:
+        view_name:
+          type: string
+          maxLength: 200
+      required:
+      - view_name
+    InspectOutput:
+      type: object
+      properties:
+        columns:
+          type: array
+          items: {}
+      required:
+      - columns
     InstanceVersionInput:
       type: object
       properties:
@@ -5059,6 +8473,18 @@ components:
       - key
       - name
       - role
+    ItemTypeEnum:
+      enum:
+      - ALL
+      - I
+      - A
+      - L
+      type: string
+      description: |-
+        * `ALL` - Todos
+        * `I` - Imagem / Exames
+        * `A` - Consulta
+        * `L` - Laboratório
     Key:
       type: object
       properties:
@@ -5113,6 +8539,91 @@ components:
           default: 90
       required:
       - name
+    Layout:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        standard_mapping: {}
+        parameter_fields: {}
+        format:
+          $ref: '#/components/schemas/LayoutFormatEnum'
+        name:
+          type: string
+          maxLength: 120
+        version:
+          type: integer
+          readOnly: true
+        mapping: {}
+        verified:
+          type: boolean
+        evidence:
+          type: string
+        default_template:
+          type: integer
+          nullable: true
+        unit:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - name
+      - unit
+      - version
+    LayoutFormatEnum:
+      enum:
+      - table
+      - absence_html
+      - cross_demand_csv
+      type: string
+      description: |-
+        * `table` - CSV/XLSX
+        * `absence_html` - Ausentes HTML (.xls)
+        * `cross_demand_csv` - Demanda por recurso CROSS (.csv)
+    Log:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        title:
+          type: string
+        reference:
+          type: string
+        recipient:
+          type: string
+        provider_id:
+          type: string
+        actor:
+          type: string
+        error_code:
+          type: string
+        count:
+          type: integer
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - actor
+      - category
+      - completed_at
+      - count
+      - error_code
+      - id
+      - occurred_at
+      - provider_id
+      - recipient
+      - reference
+      - status
+      - title
     LoginInput:
       type: object
       properties:
@@ -5149,6 +8660,46 @@ components:
       - role
       - sending_enabled
       - unit
+    ManualReportOptionOutput:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        enabled:
+          type: boolean
+        manual_enabled:
+          type: boolean
+      required:
+      - code
+      - enabled
+      - id
+      - manual_enabled
+      - name
+    ManualReportsOutput:
+      type: object
+      properties:
+        selected:
+          type: array
+          items:
+            type: integer
+        inactive:
+          type: array
+          items:
+            type: integer
+        reports:
+          type: array
+          items: {}
+        token:
+          type: string
+      required:
+      - inactive
+      - reports
+      - selected
+      - token
     Member:
       type: object
       properties:
@@ -5344,6 +8895,14 @@ components:
         * `blocked` - Bloqueada
         * `expired` - Vencida
         * `cancelled` - Invalidada
+    ModeEnum:
+      enum:
+      - local
+      - remote
+      type: string
+      description: |-
+        * `local` - Instância local
+        * `remote` - Instância remota
     Movement:
       type: object
       properties:
@@ -5426,6 +8985,24 @@ components:
         * `cancel` - Cancelamento
         * `reschedule` - Reagendamento
         * `transfer` - Transferência
+    OracleAbsenceInput:
+      type: object
+      properties:
+        layout:
+          type: integer
+          minimum: 1
+        absence_date:
+          type: string
+          format: date
+        item_type:
+          $ref: '#/components/schemas/ItemTypeEnum'
+        template:
+          type: integer
+          minimum: 1
+      required:
+      - absence_date
+      - item_type
+      - layout
     OracleVersionInput:
       type: object
       properties:
@@ -5434,6 +9011,83 @@ components:
           minimum: 1
       required:
       - version
+    OutputFormat157Enum:
+      enum:
+      - pdf
+      - xlsx
+      type: string
+      description: |-
+        * `pdf` - pdf
+        * `xlsx` - xlsx
+    PaginatedAgendaItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaItem'
+    PaginatedAgendaOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgendaOutput'
+    PaginatedAppConnectionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppConnection'
     PaginatedAppointmentList:
       type: object
       required:
@@ -5480,6 +9134,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Audit'
+    PaginatedAutomationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Automation'
     PaginatedCampaignList:
       type: object
       required:
@@ -5526,6 +9203,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Case'
+    PaginatedCatalogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Catalog'
     PaginatedConfigOutputList:
       type: object
       required:
@@ -5549,6 +9249,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ConfigOutput'
+    PaginatedConnectionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
     PaginatedContactList:
       type: object
       required:
@@ -5572,6 +9295,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Contact'
+    PaginatedCrossRecordList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrossRecord'
+    PaginatedExecutionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Execution'
     PaginatedFlowRuleList:
       type: object
       required:
@@ -5618,6 +9387,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FlowRun'
+    PaginatedGrantList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Grant'
     PaginatedGroupList:
       type: object
       required:
@@ -5641,29 +9433,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Group'
-    PaginatedImportLayoutList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ImportLayout'
     PaginatedImportRunList:
       type: object
       required:
@@ -5756,6 +9525,75 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Key'
+    PaginatedLayoutList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Layout'
+    PaginatedLogList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Log'
+    PaginatedManualReportOptionOutputList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManualReportOptionOutput'
     PaginatedMemberList:
       type: object
       required:
@@ -5871,6 +9709,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PurposePolicy'
+    PaginatedRecipientList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
     PaginatedRemoteList:
       type: object
       required:
@@ -5940,29 +9801,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ReportAccess'
-    PaginatedReportDefinitionList:
-      type: object
-      required:
-      - count
-      - results
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ReportDefinition'
     PaginatedReportRequestList:
       type: object
       required:
@@ -6055,6 +9893,75 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Sheet'
+    PaginatedSnapshotConfigurationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotConfiguration'
+    PaginatedSnapshotRecordList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotRecord'
+    PaginatedSnapshotRunList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotRun'
     PaginatedSourceConfigurationList:
       type: object
       required:
@@ -6078,6 +9985,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SourceConfiguration'
+    PaginatedStandardRowList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StandardRow'
     PaginatedTemplateList:
       type: object
       required:
@@ -6160,6 +10090,14 @@ components:
       required:
       - admin_password
       - version
+    PeriodTypeEnum:
+      enum:
+      - day
+      - month
+      type: string
+      description: |-
+        * `day` - Diário
+        * `month` - Mensal
     Preparation:
       type: object
       properties:
@@ -6196,6 +10134,32 @@ components:
       - text
       - unit
       - version
+    PreviewInput:
+      type: object
+      properties:
+        parameters: {}
+    PreviewOutput:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        total:
+          type: integer
+        real_sends:
+          type: boolean
+      required:
+      - columns
+      - real_sends
+      - rows
+      - total
     ProcessTestInput:
       type: object
       properties:
@@ -6231,6 +10195,89 @@ components:
       - purpose
       - unit
       - version
+    Recipient:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        manual_reports:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          writeOnly: true
+          maxItems: 500
+        manual_inactive_reports:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          writeOnly: true
+          maxItems: 500
+        manual_reports_token:
+          type: string
+          writeOnly: true
+          maxLength: 64
+        manual_report_count:
+          type: integer
+          readOnly: true
+        pending_items:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        legacy_key:
+          type: string
+          readOnly: true
+          default: ''
+        name:
+          type: string
+          maxLength: 200
+        address:
+          type: string
+          maxLength: 100
+        kind:
+          $ref: '#/components/schemas/RecipientKindEnum'
+        active:
+          type: boolean
+        manual_enabled:
+          type: boolean
+        verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        version:
+          type: integer
+          readOnly: true
+        legacy:
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          nullable: true
+      required:
+      - address
+      - id
+      - legacy
+      - legacy_key
+      - manual_report_count
+      - name
+      - pending_items
+      - unit
+      - verified_at
+      - version
+    RecipientKindEnum:
+      enum:
+      - phone
+      - group
+      type: string
+      description: |-
+        * `phone` - Telefone
+        * `group` - Grupo
     Remote:
       type: object
       properties:
@@ -6408,44 +10455,13 @@ components:
       - user
       - verified_at
       - version
-    ReportDefinition:
+    ReportCatalogVersionInput:
       type: object
       properties:
-        id:
-          type: integer
-          readOnly: true
-        code:
-          type: string
-          maxLength: 80
-        name:
-          type: string
-          maxLength: 200
-        keyword:
-          type: string
-          maxLength: 80
-        source:
-          type: string
-          maxLength: 80
-        handler:
-          type: string
-          maxLength: 80
-        parameter_schema: {}
-        enabled:
-          type: boolean
-        unavailable_reason:
-          type: string
         version:
           type: integer
-          readOnly: true
-        unit:
-          type: integer
-          readOnly: true
+          minimum: 1
       required:
-      - code
-      - id
-      - keyword
-      - name
-      - unit
       - version
     ReportInput:
       type: object
@@ -6727,6 +10743,8 @@ components:
           items:
             type: string
           readOnly: true
+        logo:
+          type: string
         remote:
           type: boolean
         instance_id:
@@ -6757,11 +10775,24 @@ components:
           readOnly: true
         layout:
           type: integer
+        layout_format:
+          type: string
+          readOnly: true
         state:
           type: string
           maxLength: 20
         row_count:
           type: integer
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        layout_name:
+          type: string
+          readOnly: true
+        control_status:
+          type: object
+          additionalProperties: {}
           readOnly: true
         errors: {}
         duplicates:
@@ -6772,11 +10803,37 @@ components:
           type: string
           format: date-time
           readOnly: true
+        filename:
+          type: string
+          maxLength: 200
+        template:
+          type: integer
+          nullable: true
+        template_name:
+          type: string
+          readOnly: true
+          default: ''
+        configuration: {}
+        campaign_id:
+          type: integer
+          nullable: true
+          readOnly: true
+        purpose:
+          type: string
+          readOnly: true
+          default: ''
       required:
+      - campaign_id
+      - control_status
       - created_at
       - id
       - layout
+      - layout_format
+      - layout_name
+      - purpose
       - row_count
+      - template_name
+      - version
     SheetConfirmInput:
       type: object
       properties:
@@ -6797,6 +10854,17 @@ components:
     SheetPreviewInput:
       type: object
       properties:
+        template:
+          type: integer
+        standard_mapping:
+          type: object
+          additionalProperties:
+            type: string
+        parameter_fields:
+          type: array
+          items:
+            type: string
+          maxItems: 30
         layout:
           type: integer
         filename:
@@ -6816,6 +10884,257 @@ components:
           $ref: '#/components/schemas/EventEnum'
       required:
       - event
+    SnapshotConfiguration:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        source_name:
+          type: string
+          readOnly: true
+        connection_name:
+          type: string
+          readOnly: true
+        output_name:
+          type: string
+          readOnly: true
+        pending_items:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        latest_run:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        code:
+          type: string
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 150
+        dataset_kind:
+          $ref: '#/components/schemas/DatasetKindEnum'
+        reference_offset_days:
+          type: integer
+          maximum: 32767
+          minimum: -32768
+        environment:
+          $ref: '#/components/schemas/EnvironmentEnum'
+        collection_time:
+          type: string
+          format: time
+        weekdays: {}
+        window_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        source_report:
+          type: integer
+        output_report:
+          type: integer
+        consumers:
+          type: array
+          items:
+            type: integer
+      required:
+      - code
+      - collection_time
+      - connection_name
+      - created_at
+      - environment
+      - id
+      - latest_run
+      - name
+      - output_name
+      - output_report
+      - pending_items
+      - source_name
+      - source_report
+      - timezone
+      - unit
+      - updated_at
+      - version
+    SnapshotDataRow:
+      type: object
+      properties:
+        record_key:
+          type: string
+          readOnly: true
+        payload:
+          readOnly: true
+      required:
+      - payload
+      - record_key
+    SnapshotRecord:
+      oneOf:
+      - $ref: '#/components/schemas/SnapshotRow'
+      - $ref: '#/components/schemas/SnapshotDataRow'
+    SnapshotRow:
+      type: object
+      properties:
+        ward_code:
+          type: integer
+          readOnly: true
+        ward_name:
+          type: string
+          readOnly: true
+        quantity:
+          type: integer
+          readOnly: true
+        source_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - quantity
+      - source_at
+      - ward_code
+      - ward_name
+    SnapshotRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        configuration_name:
+          type: string
+          readOnly: true
+        dataset_kind:
+          type: string
+          readOnly: true
+        environment:
+          type: string
+          readOnly: true
+        reference_date:
+          type: string
+          format: date
+          readOnly: true
+        dataset_key:
+          type: string
+          readOnly: true
+        period_type:
+          allOf:
+          - $ref: '#/components/schemas/PeriodTypeEnum'
+          readOnly: true
+        origin:
+          type: string
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/SnapshotRunStateEnum'
+          readOnly: true
+        configuration_version:
+          type: integer
+          readOnly: true
+        scheduled_for:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        requested_at:
+          type: string
+          format: date-time
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        captured_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        source_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        attempt_count:
+          type: integer
+          readOnly: true
+        row_count:
+          type: integer
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        unit:
+          type: integer
+          readOnly: true
+        configuration:
+          type: integer
+          readOnly: true
+        requester:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - attempt_count
+      - captured_at
+      - completed_at
+      - configuration
+      - configuration_name
+      - configuration_version
+      - dataset_key
+      - dataset_kind
+      - environment
+      - error_code
+      - id
+      - origin
+      - period_type
+      - reference_date
+      - requested_at
+      - requester
+      - row_count
+      - scheduled_for
+      - source_at
+      - started_at
+      - state
+      - unit
+    SnapshotRunStateEnum:
+      enum:
+      - pending
+      - running
+      - ready
+      - failed
+      - missed
+      type: string
+      description: |-
+        * `pending` - pending
+        * `running` - running
+        * `ready` - ready
+        * `failed` - failed
+        * `missed` - missed
     SourceConfiguration:
       type: object
       properties:
@@ -6855,6 +11174,52 @@ components:
         * `exam` - Exame
         * `lab` - Laboratório
         * `postoperative` - Pós-cirúrgico
+    StandardRow:
+      type: object
+      properties:
+        nome_completo:
+          type: string
+        data:
+          type: string
+        hora:
+          type: string
+        celular:
+          type: string
+        celular2:
+          type: string
+        tipo:
+          type: string
+        horario_chegada:
+          type: string
+        data_nascimento:
+          type: string
+        codigo:
+          type: string
+        local:
+          type: string
+        tipo2:
+          type: string
+        obs:
+          type: string
+    StandardSchema:
+      type: object
+      properties:
+        version:
+          type: integer
+        fields:
+          type: array
+          items:
+            type: string
+        default_mappings:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+      required:
+      - default_mappings
+      - fields
+      - version
     Template:
       type: object
       properties:
@@ -6895,6 +11260,37 @@ components:
           default: consultation
       required:
       - phone
+    TestPatientInput:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        view_name:
+          type: string
+          maxLength: 200
+        patient_external_id:
+          type: string
+          maxLength: 100
+        column_mapping: {}
+        parameter_mapping: {}
+      required:
+      - patient_external_id
+    TestPatientOutput:
+      type: object
+      properties:
+        found:
+          type: boolean
+        source:
+          type: string
+        patient_external_id:
+          type: string
+        values: {}
+        parameters: {}
+        message:
+          type: string
+      required:
+      - found
     Unit:
       type: object
       properties:
@@ -6927,6 +11323,8 @@ components:
           items:
             type: string
           readOnly: true
+        logo:
+          type: string
       required:
       - effective_recipients
       - id
@@ -7009,6 +11407,19 @@ components:
       - has_other_units
       - id
       - username
+      - version
+    VerifyInput:
+      type: object
+      properties:
+        version:
+          type: integer
+          minimum: 1
+        evidence:
+          type: string
+          maxLength: 1000
+          minLength: 5
+      required:
+      - evidence
       - version
     VersionInput:
       type: object

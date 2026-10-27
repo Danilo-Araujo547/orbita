@@ -3,6 +3,7 @@ import type { PageName } from "./types";
 const pages: Record<string, PageName> = {
   "/": "appointments",
   "/visao-geral": "overview",
+  "/custos-meta": "costs",
   "/agendamentos": "appointments",
   "/grupos": "groups",
   "/responses": "groups",
@@ -19,8 +20,10 @@ const pages: Record<string, PageName> = {
 export function readRoute(path = window.location.pathname) {
   const normalized = path.replace(/\/$/, "") || "/";
   const match = normalized.match(/^\/grupos\/([0-9a-f-]{36})$/i);
+  const canvas = normalized.match(/^\/relatorios\/([0-9]+)\/canvas$/);
   return {
-    page: match ? ("groups" as PageName) : pages[normalized] || "appointments",
+    ...(canvas ? {canvasId: Number(canvas[1])} : {}),
+    page: canvas ? ("reports" as PageName) : match ? ("groups" as PageName) : pages[normalized] || "appointments",
     groupId: match?.[1] || null,
   };
 }

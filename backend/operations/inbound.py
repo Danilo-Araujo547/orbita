@@ -8,6 +8,10 @@ from operations.reports import check_access, generate, validate_parameters
 
 def request_report(event, unit):
     """Only an explicit command is intercepted; never consume ordinary patient replies."""
+    from operations.reporting import inbound_catalog
+
+    if inbound_catalog(event, unit):
+        return True
     text = event.data.get("text", "").strip()
     pieces = text.split()
     if not pieces or pieces[0].upper() != "RELATORIO":
@@ -24,7 +28,8 @@ def request_report(event, unit):
         .first()
     )
     if not access or not (
-        access.user.is_superuser or Membership.objects.filter(unit=unit, user=access.user).exists()
+        access.user.is_superuser
+        or Membership.objects.filter(unit=unit, user=access.user).exists()
     ):
         # Generic acknowledgment only; no catalog or private result is disclosed.
         event.data = {**event.data, "report_command_result": "unavailable"}

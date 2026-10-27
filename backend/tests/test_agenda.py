@@ -58,6 +58,7 @@ def test_agenda_types_and_filters_are_unit_scoped(setup):
         "consultation",
         "exam",
         "lab",
+        "postprocedure",
         "cross:absence",
     }
     client = setup["client"]

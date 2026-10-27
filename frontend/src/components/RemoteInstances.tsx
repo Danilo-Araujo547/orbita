@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useCallback, useEffect, useId, useState } from "react";
 import type { FormEvent } from "react";
 import {
@@ -504,7 +505,7 @@ export default function RemoteInstances({
                   placeholder={
                     dialog === "key"
                       ? "Painel da central"
-                      : "Órbita · outra unidade"
+                      : "SCV Messenger · outra unidade"
                   }
                 />
               </label>
@@ -512,11 +513,11 @@ export default function RemoteInstances({
                 <>
                   <label className="op-field">
                     Permissão
-                    <select name="role" defaultValue="viewer">
+                    <Select name="role" defaultValue="viewer">
                       <option value="viewer">Consulta</option>
                       <option value="operator">Operador</option>
                       <option value="admin">Administrador</option>
-                    </select>
+                    </Select>
                   </label>
                   <label className="op-field">
                     Validade em dias
@@ -539,7 +540,7 @@ export default function RemoteInstances({
                       name="base_url"
                       required
                       defaultValue={editing?.base_url || ""}
-                      placeholder="https://orbita.unidade.exemplo"
+                      placeholder="https://scv-messenger.unidade.exemplo"
                     />
                   </label>
                   <label className="op-field">

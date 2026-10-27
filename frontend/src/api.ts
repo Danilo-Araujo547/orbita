@@ -42,7 +42,15 @@ export async function request<T>(
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
-  const data = await response.json();
+  if (response.status === 204) return undefined as T;
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(
+      `O servidor retornou uma resposta inválida (HTTP ${response.status}). Tente novamente.`,
+    );
+  }
   if (!response.ok)
     throw new Error(
       typeof data.detail === "string"

@@ -1,11 +1,18 @@
+import Select from "./components/Select";
+import ReportCanvasPage from "./components/ReportCanvasPage";
+import MetaCosts from "./components/MetaCosts";
+import BrandLogo from "./components/BrandLogo";
+import LegacyLabel from "./components/LegacyLabel";
 import { settingsEntries } from "./settingsDirectory";
 import FormAction from "./components/FormAction";
-import { Badge, Empty, Panel, Metric, SearchField } from "./components/ui";
+import { Badge, Empty, Panel, SearchField } from "./components/ui";
 import OperationalAppointments from "./components/OperationalAppointments";
+import OverviewWorkspace from "./components/OverviewWorkspace";
 import AppointmentGroups from "./components/AppointmentGroups";
 import ExecutionLogs from "./components/ExecutionLogs";
 import MetaConfiguration from "./components/MetaConfiguration";
 import OracleConfiguration from "./components/OracleConfiguration";
+import OracleAgendaConfiguration from "./components/OracleAgendaConfiguration";
 import UnitDirectory from "./components/UnitDirectory";
 import UserDirectory from "./components/UserDirectory";
 import { canAccess, permissionsFor, reconcileSession } from "./permissions";
@@ -26,13 +33,13 @@ import {
   Bell,
   CalendarDays,
   Check,
-  CheckCheck,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
   ClipboardList,
   Clock3,
   Cloud,
+  Wallet,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -50,17 +57,8 @@ import {
   User,
   X,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { initCsrf, query, request } from "./api";
-import { dateOnly, dateTime, kinds, labels, percentage } from "./format";
+import { dateTime, kinds, labels } from "./format";
 import type {
   Appointment,
   Audit,
@@ -85,6 +83,7 @@ const navigation: { id: PageName; label: string; icon: typeof Activity }[] = [
   { id: "issues", label: "Pendências", icon: ClipboardList },
   { id: "campaigns", label: "Importa CROSS", icon: Send },
   { id: "reports", label: "Relatórios", icon: Activity },
+  { id: "costs", label: "Custos Meta", icon: Wallet },
   { id: "settings", label: "Configurações", icon: Settings2 },
 ];
 type Data = {
@@ -128,7 +127,7 @@ function AppRoot() {
   if (checking)
     return (
       <div className="boot">
-        <div className="logo-symbol" />
+        <BrandLogo />
         <span>Carregando painel…</span>
       </div>
     );
@@ -164,6 +163,7 @@ function Workspace({
     [modal, setModal] = useState<Modal>(null),
     [mobile, setMobile] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string | null>(null);
+  const [canvasId, setCanvasId] = useState<number | null>(() => readRoute().canvasId ?? null);
   const [groupId, setGroupId] = useState<string | null>(
     () => readRoute().groupId,
   );
@@ -171,6 +171,7 @@ function Workspace({
     const sync = () => {
       const next = readRoute();
       setPage(next.page);
+      setCanvasId(next.canvasId ?? null);
       setSettingsTab(null);
       setGroupId(next.groupId);
       const slug = new URLSearchParams(window.location.search).get("unit");
@@ -234,6 +235,7 @@ function Workspace({
   useEffect(() => { setSettingsTab(null); }, [unit]);
   useEffect(() => { if (page !== "settings") setSettingsTab(null); }, [page]);
   function changeUnit(slug: string) {
+    setCanvasId(null);
     setData(null);
     setUnit(slug);
     setGroupId(null);
@@ -251,6 +253,7 @@ function Workspace({
   }
   const loadSequence = useRef(0);
   const load = useCallback(async () => {
+    if (canvasId) return;
     const sequence = ++loadSequence.current;
     setBusy(true);
     setError("");
@@ -331,7 +334,7 @@ function Workspace({
     } finally {
       if (sequence === loadSequence.current) setBusy(false);
     }
-  }, [unit, kind, start, end, listPage, search, state, responseState, page, session.permissions]);
+  }, [unit, kind, start, end, listPage, search, state, responseState, page, canvasId, session.permissions]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -391,6 +394,7 @@ function Workspace({
   ) {
     selectAppointment(appointmentId);
     setPage(next);
+    setCanvasId(null);
     setGroupId(null);
     window.history.pushState(
       {},
@@ -461,6 +465,7 @@ function Workspace({
         : page === "messages"
           ? data?.messages
           : null;
+  if (canvasId) return <ReportCanvasPage id={canvasId} unit={unit} admin={role === "admin"} />;
   return (
     <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       {mobile && (
@@ -475,11 +480,8 @@ function Workspace({
         className={`sidebar ${mobile ? "open" : ""}`}
       >
         <div className="sidebar-heading">
-          <div className="brand" aria-label="Órbita">
-            <div className="logo-symbol" />
-            <span>
-              órbita<span className="brand-dot">.</span>
-            </span>
+          <div className="brand" aria-label="SCV Messenger">
+            <BrandLogo wordmark={!sidebarCollapsed} />
           </div>
           <button
             className="sidebar-toggle icon-button"
@@ -586,11 +588,41 @@ function Workspace({
             </button>
             <span className="breadcrumb">
               <span className="breadcrumb-root">Workspace</span>
-              <ChevronRight className="breadcrumb-root" size={14} />{" "}
-              <strong>{currentTitle}</strong>
+              {page !== "overview" && page !== "appointments" && (
+                <>
+                  <ChevronRight className="breadcrumb-root" size={14} />{" "}
+                  <strong>{currentTitle}</strong>
+                </>
+              )}
             </span>
           </div>
           <div className="topbar-right">
+            <div className="topbar-actions">
+              {page !== "costs" && (
+<button
+                className="button topbar-action-btn"
+                onClick={() => void load()}
+                disabled={busy}
+                title="Atualizar dados"
+              >
+                <RefreshCw size={14} className={busy ? "spin" : ""} />
+                <span>Atualizar</span>
+              </button>
+)}
+              {canOperate && ["overview", "appointments"].includes(page) && (
+                <button
+                  className="button primary topbar-action-btn"
+                  disabled={isRemote}
+                  title={
+                    isRemote ? "Crie testes na instância de origem" : undefined
+                  }
+                  onClick={() => setModal({ type: "test" })}
+                >
+                  <Plus size={15} />
+                  <span>Novo teste</span>
+                </button>
+              )}
+            </div>
             <ThemeToggle />
             <span className="test-pill">
               <i />
@@ -613,37 +645,7 @@ function Workspace({
         <main
           className={`content ${page === "appointments" || page === "issues" ? "appointments-page" : ""}`}
         >
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">
-                {session.units.find((u) => u.slug === unit)?.name || unit}
-              </div>
-              <h1>{currentTitle}</h1>
-            </div>
-            <div className="heading-actions">
-              <button
-                className="button"
-                onClick={() => void load()}
-                disabled={busy}
-              >
-                <RefreshCw size={16} className={busy ? "spin" : ""} />
-                Atualizar
-              </button>
-              {canOperate && ["overview", "appointments"].includes(page) && (
-                <button
-                  className="button primary"
-                  disabled={isRemote}
-                  title={
-                    isRemote ? "Crie testes na instância de origem" : undefined
-                  }
-                  onClick={() => setModal({ type: "test" })}
-                >
-                  <Plus size={17} />
-                  Novo teste
-                </button>
-              )}
-            </div>
-          </div>
+
           {error && (
             <div className="inline-error" role="alert">
               <TriangleAlert size={18} />
@@ -657,10 +659,10 @@ function Workspace({
             <OperationsWorkspace key={`${unit}:${page}`} page={page} unit={unit} role={role}
               username={session.username} userAccess={false} />
           )}
-          {(page === "overview" || page === "messages") && (
+          {page === "messages" && (
             <div className="filters">
               <div className="filter-left">
-                <select
+                <Select
                   aria-label="Tipo de agendamento"
                   value={kind}
                   onChange={(e) => {
@@ -674,7 +676,7 @@ function Workspace({
                       {label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               {periodFilter}
             </div>
@@ -687,241 +689,26 @@ function Workspace({
             </div>
           ) : (
             <>
+              {page === "costs" && <MetaCosts unit={unit} />}
               {page === "overview" && (
-                <>
-                  <div className="metrics-grid">
-                    <Metric
-                      title="Agendamentos"
-                      value={d!.appointments}
-                      icon={CalendarDays}
-                      tone="neutral"
-                      note="Consultas, exames e laboratório"
-                      onClick={() => navigate("appointments")}
-                    />
-                    <Metric
-                      title="Mensagens entregues"
-                      value={d!.delivered}
-                      icon={Send}
-                      tone="green"
-                      note={`${percentage(d!.delivered, d!.messages)}% das mensagens do período`}
-                      onClick={() =>
-                        cardNavigate("messages", "delivered_or_read")
-                      }
-                    />
-                    <Metric
-                      title="Confirmações recebidas"
-                      value={d!.confirmed}
-                      icon={CheckCheck}
-                      tone="lime"
-                      note="Lembretes com confirmação registrada"
-                      onClick={() =>
-                        cardNavigate("messages", "confirmed", true)
-                      }
-                    />
-                    <Metric
-                      title="Pendências abertas"
-                      value={d!.issues}
-                      icon={TriangleAlert}
-                      tone="amber"
-                      note="Agendamentos que exigem intervenção"
-                      onClick={() => navigate("issues")}
-                    />
-                  </div>
-                  <div className="charts-grid">
-                    <Panel
-                      title="Mensagens por dia"
-                      action={
-                        <span className="chart-period">
-                          <CalendarDays size={14} />
-                          Últimos 7 dias
-                        </span>
-                      }
-                    >
-                      <div className="chart-legend">
-                        <span>
-                          <i
-                            style={{
-                              background: isDark ? "#ffffff" : "#075B94",
-                            }}
-                          />
-                          Mensagens
-                        </span>
-                        <span>
-                          <i
-                            style={{
-                              background: isDark ? "#a1a1aa" : "#14B4CB",
-                            }}
-                          />
-                          Entregues
-                        </span>
-                      </div>
-                      <div className="area-chart">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart
-                            data={d!.trend}
-                            margin={{
-                              left: -20,
-                              right: 16,
-                              top: 10,
-                              bottom: 0,
-                            }}
-                          >
-                            <defs>
-                              <linearGradient
-                                id="greenFade"
-                                x1="0"
-                                y1="0"
-                                x2="0"
-                                y2="1"
-                              >
-                                <stop
-                                  offset="0%"
-                                  stopColor={isDark ? "#ffffff" : "#075B94"}
-                                  stopOpacity={isDark ? 0.2 : 0.16}
-                                />
-                                <stop
-                                  offset="100%"
-                                  stopColor={isDark ? "#ffffff" : "#075B94"}
-                                  stopOpacity={0}
-                                />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid
-                              strokeDasharray="3 5"
-                              vertical={false}
-                              stroke={isDark ? "#262626" : "#e2e8f0"}
-                            />
-                            <XAxis
-                              dataKey="day"
-                              tickFormatter={(value) =>
-                                dateOnly(`${value}T12:00:00-03:00`)
-                              }
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{
-                                fontSize: 11,
-                                fill: isDark ? "#71717a" : "#647d96",
-                              }}
-                              dy={10}
-                            />
-                            <YAxis
-                              allowDecimals={false}
-                              axisLine={false}
-                              tickLine={false}
-                              tick={{
-                                fontSize: 11,
-                                fill: isDark ? "#71717a" : "#647d96",
-                              }}
-                            />
-                            <Tooltip
-                              labelFormatter={(value) =>
-                                dateOnly(`${value}T12:00:00-03:00`)
-                              }
-                              contentStyle={{
-                                borderRadius: 10,
-                                border: isDark
-                                  ? "1px solid #282828"
-                                  : "1px solid #e2e8f0",
-                                background: isDark ? "#181818" : "#ffffff",
-                                color: isDark ? "#f4f4f5" : "#0f2438",
-                                boxShadow: isDark
-                                  ? "0 8px 24px rgba(0, 0, 0, 0.6)"
-                                  : "0 4px 12px rgba(7, 91, 148, 0.08)",
-                                fontSize: 12,
-                              }}
-                              itemStyle={{
-                                color: isDark ? "#f4f4f5" : "#0f2438",
-                              }}
-                            />
-                            <Area
-                              isAnimationActive={false}
-                              type="monotone"
-                              dataKey="messages"
-                              name="Mensagens"
-                              stroke={isDark ? "#ffffff" : "#075B94"}
-                              strokeWidth={2}
-                              fill="url(#greenFade)"
-                            />
-                            <Area
-                              isAnimationActive={false}
-                              type="monotone"
-                              dataKey="delivered"
-                              name="Entregues"
-                              stroke={isDark ? "#a1a1aa" : "#14B4CB"}
-                              strokeWidth={2}
-                              strokeDasharray="5 4"
-                              fill="transparent"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="chart-footer">
-                        <span>
-                          <i />
-                          Atualizado com o histórico da fila
-                        </span>
-                        <strong>{d!.messages} mensagens no total</strong>
-                      </div>
-                    </Panel>
-                    <Panel
-                      title="Situação das respostas"
-                      className="response-panel"
-                    >
-                      <div className="response-hero">
-                        <div
-                          className="response-ring"
-                          style={{
-                            background: `conic-gradient(${isDark ? "#34d399" : "#10b981"} 0 ${percentage(d!.confirmed, d!.messages)}%,#f87171 ${percentage(d!.confirmed, d!.messages)}% ${percentage(d!.confirmed + d!.declined, d!.messages)}%,${isDark ? "#fbbf24" : "#f59e0b"} ${percentage(d!.confirmed + d!.declined, d!.messages)}% ${percentage(d!.confirmed + d!.declined + d!.no_response, d!.messages)}%,${isDark ? "#262626" : "#e2e8f0"} 0)`,
-                          }}
-                        >
-                          <div>
-                            <strong>
-                              {percentage(d!.confirmed, d!.messages)}
-                              <small>%</small>
-                            </strong>
-                            <span>confirmados</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="response-breakdown">
-                        {[
-                          [
-                            "confirmed",
-                            "Confirmados",
-                            isDark ? "#34d399" : "#10b981",
-                          ],
-                          ["declined", "Não comparecerão", "#f87171"],
-                          [
-                            "no_response",
-                            "Sem resposta no prazo",
-                            isDark ? "#fbbf24" : "#f59e0b",
-                          ],
-                          [
-                            "pending",
-                            "Aguardando resposta",
-                            isDark ? "#71717a" : "#94a3b8",
-                          ],
-                          [
-                            "not_requested",
-                            "Sem envio confirmado",
-                            isDark ? "#27272a" : "#cbd5e1",
-                          ],
-                        ].map(([key, label, color]) => (
-                          <button
-                            key={key}
-                            onClick={() => cardNavigate("messages", key, true)}
-                          >
-                            <span>
-                              <i style={{ background: color }} />
-                              {label}
-                            </span>
-                            <strong>{d!.responses[key] || 0}</strong>
-                          </button>
-                        ))}
-                      </div>
-                    </Panel>
-                  </div>
-                </>
+                <OverviewWorkspace
+                  data={d!}
+                  unit={unit}
+                  start={start}
+                  end={end}
+                  kind={kind}
+                  kinds={kinds}
+                  isDark={isDark}
+                  onFilterChange={(newKind, newStart, newEnd) => {
+                    setKind(newKind);
+                    setStart(newStart);
+                    setEnd(newEnd);
+                    setListPage(1);
+                  }}
+                  onNavigate={(nextPage, filter, isResponse) => {
+                    cardNavigate(nextPage, filter || "", isResponse || false);
+                  }}
+                />
               )}
               {page === "appointments" && (
                 <OperationalAppointments
@@ -951,7 +738,7 @@ function Workspace({
                   }
                 >
                   <div className="table-filters">
-                    <select
+                    <Select
                       aria-label="Situação da mensagem"
                       value={state}
                       onChange={(e) => {
@@ -977,8 +764,8 @@ function Workspace({
                           {labels[s]}
                         </option>
                       ))}
-                    </select>
-                    <select
+                    </Select>
+                    <Select
                       aria-label="Situação da resposta"
                       value={responseState}
                       onChange={(e) => {
@@ -999,7 +786,7 @@ function Workspace({
                           {labels[s]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   {!data.messages.results.length ? (
                     <Empty />
@@ -1106,13 +893,13 @@ function Workspace({
                       return entries.length > 0 && <section key={group} className="settings-directory-group">
                         <h2>{group}</h2>
                         {entries.map(item => <div className="settings-directory-row" role="listitem" key={item.id}>
-                          <span>{item.label}</span>
+                          <LegacyLabel legacy={item.legacy}>{item.label}</LegacyLabel>
                           <button className="button" type="button" aria-label={`Abrir ${item.label}`} onClick={() => setSettingsTab(item.id)}>Abrir</button>
                         </div>)}
                       </section>;
                     })}
                   </div>
-                  {activeConfiguration && <InlineDialog title={activeConfiguration.label} subtitle="" className="configuration-dialog"
+                  {activeConfiguration && <InlineDialog title={activeConfiguration.label} legacy={activeConfiguration.legacy} subtitle="" className="configuration-dialog"
                     onClose={() => setSettingsTab(null)} footer={<button className="button" onClick={() => setSettingsTab(null)}>Fechar</button>}>
                     {activeConfiguration.section === "operationsAdmin" && <OperationsWorkspace
                       key={`${unit}:${settingsTab}`} page="operationsAdmin" unit={unit} role={role}
@@ -1149,6 +936,7 @@ function Workspace({
                     !isRemote && (
                       <OracleConfiguration key={`oracle-${unit}`} unit={unit} />
                     )}
+                  {settingsTab === "oracleAgendas" && role === "admin" && !isRemote && <OracleAgendaConfiguration key={unit} unit={unit} />}
                   {settingsTab === "rules" && (
                     <div className="rules-settings-layout">
                       <div className="settings-grid">
@@ -1314,7 +1102,7 @@ function Workspace({
                           </div>
                         </Panel>
                       </div>
-                      <Panel title="Regras de lembretes">
+                      <Panel title="Regras de lembretes" legacy>
                         <div className="table-scroll">
                           <table className="directory-table">
                             <thead>
@@ -1333,8 +1121,8 @@ function Workspace({
                                   <td data-label="Regra">
                                     <strong>{rule.name}</strong>
                                     <small className="directory-detail">
-                                      Versão {rule.version} · legado #
-                                      {rule.legacy_scheduler_id}
+                                      Versão {rule.version}
+                                      {!!rule.legacy_scheduler_id && <> · legado #{rule.legacy_scheduler_id}</>}
                                     </small>
                                   </td>
                                   <td data-label="Antecedência">
@@ -1405,7 +1193,7 @@ function Workspace({
                           </table>
                         </div>
                       </Panel>
-                      <Panel title="Templates de mensagens">
+                      <Panel title="Templates de mensagens" legacy>
                         <div className="templates-grid">
                           {data.templates.results.map((template) => (
                             <article
@@ -1483,7 +1271,7 @@ function Workspace({
                                   "sqlite_simulated" && (
                                   <label className="op-field">
                                     Regra
-                                    <select
+                                    <Select
                                       name="rule_id"
                                       required
                                       defaultValue={data.rules.results[0]?.id}
@@ -1493,7 +1281,7 @@ function Workspace({
                                           {rule.name}
                                         </option>
                                       ))}
-                                    </select>
+                                    </Select>
                                   </label>
                                 )}
                                 <button
@@ -1609,8 +1397,8 @@ function Workspace({
           )}
           <footer className="page-footer">
             <span>
-              <span className="footer-orbit" />
-              Órbita
+              <BrandLogo small />
+              SCV Messenger
             </span>
             <span>
               Horário de Brasília ·{" "}
@@ -1633,6 +1421,7 @@ function Workspace({
       )}
       {modal && data && (
         <InlineDialog
+          legacy={modal.type === "rule" || modal.type === "template"}
           title={
             {
               test: "Novo teste",

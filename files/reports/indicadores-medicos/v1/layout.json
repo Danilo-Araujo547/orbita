@@ -1,0 +1,260 @@
+{
+  "TBRELATORIO_CORES": [
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "4.90000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CLINICA GERAL",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "4.91000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CLINICA GERAL",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "2.20000",
+      "COR": "$006ebe83",
+      "CRITERIO": "GINECOLOGIA/OBSTETRICIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "2.21000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "GINECOLOGIA/OBSTETRICIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "2.70000",
+      "COR": "$006ebe83",
+      "CRITERIO": "ORTOPEDIA/TRAUMATOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "2.71000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "ORTOPEDIA/TRAUMATOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "2.10000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CIRURGIA GERAL",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "2.11000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CIRURGIA GERAL",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "3.20000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CARDIOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "3.21000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CARDIOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "3.60000",
+      "COR": "$006ebe83",
+      "CRITERIO": "NEFROLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "3.61000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "NEFROLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "2.80000",
+      "COR": "$006ebe83",
+      "CRITERIO": "PEDIATRIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "2.81000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "PEDIATRIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "3.20000",
+      "COR": "$006ebe83",
+      "CRITERIO": "INFECTOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "3.21000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "INFECTOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "1.90000",
+      "COR": "$006ebe83",
+      "CRITERIO": "UROLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "1.91000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "UROLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "4.80000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CIRURGIA VASCULAR",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "4.81000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CIRURGIA VASCULAR",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "5.40000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CIRURGIA CARDIOVASCULAR",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "5.41000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CIRURGIA CARDIOVASCULAR",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "17.60000",
+      "COR": "$006ebe83",
+      "CRITERIO": "NEONATOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "17.61000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "NEONATOLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "1.00000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CIRURGIA PEDIATRICA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "1.10000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CIRURGIA PEDIATRICA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "3.70000",
+      "COR": "$006ebe83",
+      "CRITERIO": "CIRURGIA TORAXICA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "3.71000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "CIRURGIA TORAXICA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "1.00000",
+      "COR": "$006ebe83",
+      "CRITERIO": "NEUROLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 63,
+      "PERCENTUAL_INICIAL": "1.10000",
+      "PERCENTUAL_FINAL": "1000.00000",
+      "COR": "$006262f4",
+      "CRITERIO": "NEUROLOGIA",
+      "COR_FONTE": null
+    },
+    {
+      "ID_RELATORIO": 68,
+      "PERCENTUAL_INICIAL": "0.00000",
+      "PERCENTUAL_FINAL": "0.08300",
+      "COR": "$00CEEFC6",
+      "CRITERIO": "",
+      "COR_FONTE": "$00006100"
+    },
+    {
+      "ID_RELATORIO": 68,
+      "PERCENTUAL_INICIAL": "0.08300",
+      "PERCENTUAL_FINAL": "5000000.00000",
+      "COR": "$00CEC7FF",
+      "CRITERIO": "",
+      "COR_FONTE": "$000600ad"
+    }
+  ]
+}
