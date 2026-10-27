@@ -1,4 +1,4 @@
-import type { SourcePreviewState } from "../api/useSourcePreview";
+import type { StagePreviewState as SourcePreviewState } from "../hooks/useStagePreviews";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type {
   CanvasAssetMeta,
@@ -38,7 +38,7 @@ export interface PageViewProps {
   blockProblems?: Record<string, CanvasProblemItem>;
   onOpenProblem?: (problem: CanvasProblemItem) => void;
   previewStates?: Record<string, SourcePreviewState>;
-  onLoadSourcePreview?: (sourceId: string) => void;
+  onLoadSourcePreview?: (sourceId: string, parameters?: Record<string, unknown>) => void;
   onClearSelection: () => void;
   onKeyboardResize?: (blockId: string, dx: number, dy: number) => void;
   onSelectBlock: (blockId: string) => void;

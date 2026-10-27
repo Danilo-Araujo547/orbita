@@ -912,3 +912,13 @@
 /* Chips use an opaque editor surface even above the white paper in dark mode. */
 .cv-root .cv-origin-chip.is-preview, .cv-root .cv-origin-chip.is-no-source { background: var(--cv-surface); }
 .cv-root .cv-page[data-page-tone="light"] .cv-table-preview .cv-type-badge { color: #3b5266; background: #eef3f8; border-color: #cbd5e1; }
+
+.cv-root .cv-block-problem-inline:has(.cv-preview-parameters) {
+  justify-content: flex-start; overflow: auto; pointer-events: auto; color: var(--cv-text); background: var(--cv-surface);
+}
+.cv-preview-parameters { width: 100%; display: grid; gap: 8px; text-align: left; }
+.cv-preview-parameters label { display: grid; gap: 3px; }
+.cv-root .cv-preview-parameters input, .cv-root .cv-preview-parameters select {
+  pointer-events: auto; width: 100%; min-width: 0; padding: 5px; color: var(--cv-text);
+  background: var(--cv-surface); border: 1px solid var(--cv-border); border-radius: 4px;
+}

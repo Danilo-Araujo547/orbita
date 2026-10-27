@@ -237,7 +237,7 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
     () => resolveKnownColumns(selectedBlock?.source_id),
     [resolveKnownColumns, selectedBlock?.source_id],
   );
-  const stagePreviews = useStagePreviews(report.id, unit, layout.sources, !showSampleData);
+  const stagePreviews = useStagePreviews(report.id, unit, layout.sources, !showSampleData, report.parameter_schema);
   const sourcePreviews = useMemo(() => Object.fromEntries(Object.entries(stagePreviews.states).map(([id, state]) => [id, state.data])), [stagePreviews.states]);
   const localDatasets = useMemo(() => {
     const datasets = selectLocalDatasets(layout.sources, session.monthlyGoals);
@@ -575,7 +575,7 @@ function ReportCanvasEditor({ unit, report, onClose, onSaved }: ReportCanvasProp
               tempGeometries={activeDrag ? { [activeDrag.blockId]: activeDrag } : undefined}
               activeGuides={activeDrag?.guides}
               previewStates={stagePreviews.states}
-              onLoadSourcePreview={(id) => void stagePreviews.load(id, true)}
+              onLoadSourcePreview={(id, parameters) => void stagePreviews.load(id, true, parameters)}
               blockProblems={problems.byBlockId}
               onOpenProblem={() => setProblemsPanelOpen(true)}
               sources={layout.sources}

@@ -349,3 +349,48 @@ os exports reais nem performance de 100 gráficos/leitor de tela com base no smo
 Validação: scripts/canvas-check.sh verde (typecheck, 425 testes Vitest e build); pytest dos seis arquivos do Canvas verde (126 testes); scripts/canvas-task09-qa.cjs no Chromium em container contra 127.0.0.1:8091, com sessão/fontes sintéticas e todas as requisições de API interceptadas. O script bloqueia gravações e não acessa dados de relatório real. Resultado do navegador: linhagem, tipos, 404/retry, selo fora do conteúdo, ajuste de altura, guias, sobreposição, atalhos, botão de Problemas, Tab e ausência de overflow a 1100 px passaram; axe sem violações nos temas claro e escuro; zero pageerror e zero gravações. Capturas sintéticas em .canvas-task09-shots/qa09-light.png e qa09-dark.png.
 
 Pendências de ambiente: conferência visual com sessão real no relatório #6 e confirmação da rota na API real permanecem para o operador. Nenhum serviço da porta 8080 foi implantado ou reiniciado por esta tarefa; se a API real ainda estiver antiga, a disponibilização do endpoint exige procedimento próprio posterior. A cobertura automatizada não equivale a uma revisão manual completa com leitor de tela.
+
+
+## Tarefa 10 — Prévia nos blocos (27/10/2026)
+
+A folha usa a prévia por fonte para tabela, KPI, barra, linha e pizza, compartilhando
+a mesma consulta entre blocos vinculados à mesma fonte. A amostra é limitada a 50
+linhas; o selo informa a quantidade carregada e seu título informa a limitação
+quando há mais linhas na origem. As agregações de KPI/gráficos usam essa amostra.
+
+Antes da consulta, o editor lê o schema do relatório de origem e pede os parâmetros
+obrigatórios ausentes dentro do bloco. Valores fixos e defaults são preservados;
+bindings são resolvidos só no corpo da requisição de prévia. Os valores digitados
+ficam na memória desta sessão, fora do layout, histórico, recuperação e salvamento.
+Nova tentativa mantém os parâmetros temporários. Nenhuma ação desta funcionalidade
+salva ou altera ReportDefinition.
+
+Carregamento, falha de acesso/rota e resultado vazio aparecem inline. Resultado
+vazio exibe “A fonte não retornou linhas para estes parâmetros”, inclusive em KPI
+e gráficos. Falhas e resultados vazios oferecem nova tentativa.
+
+Staging: scripts/canvas-stage.sh up publica apenas em 127.0.0.1:8091, com /api/
+encaminhado a api:8000. O POST sem sessão na rota de source-preview retorna 401,
+confirmando a rota através do proxy, sem comprovar uma consulta autenticada.
+A API já existente não foi reconstruída nem reiniciada; porta 8080 preservada.
+
+QA automatizado: scripts/canvas-task10-qa.cjs usa Chromium em container contra
+8091, bloqueia qualquer mutação e permite somente POST de consulta source-preview.
+Sessão e dados autenticados são sintéticos. Valida tabela (rota de relatório 6),
+fonte compartilhada, parâmetros obrigatórios, KPI e três gráficos (relatório 999
+sintético), erros 400/403/404, resultado vazio e nova tentativa. Capturas sintéticas
+claro/escuro ficam em .canvas-task10-shots/, fora do Git.
+
+Pendente: consulta autenticada e capturas com os relatórios reais 6/unidade ame e
+outro com KPI/gráficos. Não havia sessão autenticada disponibilizada para este QA;
+não se tentou obter credenciais nem contornar o login. As capturas sintéticas não
+comprovam a consulta real. A checagem manual deve apenas ativar Prévia e preencher
+parâmetros; nunca Salvar.
+
+
+Validação automatizada da Tarefa 10: canvas-check verde (typecheck, 437 testes
+Vitest / 31 arquivos, build); pytest dos seis arquivos Canvas verde (126 testes).
+Chromium validou os cenários sintéticos descritos acima: 10 chamadas de prévia,
+zero gravações, zero pageerror, selo de 50 linhas, KPI de 1.275 e os três SVGs de
+gráficos. Também confirmou que preencher parâmetros não marca o layout como
+alterado. O aviso de chunk do Vite acima de 500 kB continua sendo aviso de build.

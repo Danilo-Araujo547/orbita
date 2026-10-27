@@ -1,4 +1,5 @@
-import type { SourcePreviewState } from "../api/useSourcePreview";
+import PreviewParameters from "../blocks/PreviewParameters";
+import type { StagePreviewState as SourcePreviewState } from "../hooks/useStagePreviews";
 import { memo, useMemo } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import BlockPreview from "../blocks/BlockPreview";
@@ -32,7 +33,7 @@ export interface BlockFrameProps {
   problem?: CanvasProblemItem;
   onOpenProblem?: (problem: CanvasProblemItem) => void;
   previewState?: SourcePreviewState;
-  onLoadSourcePreview?: (sourceId: string) => void;
+  onLoadSourcePreview?: (sourceId: string, parameters?: Record<string, unknown>) => void;
   onStartDrag: (e: ReactPointerEvent, block: CanvasBlock) => void;
   onStartResize: (e: ReactPointerEvent, block: CanvasBlock, handle: ResizeHandle) => void;
   onKeyboardResize?: (blockId: string, dx: number, dy: number) => void;
@@ -162,10 +163,11 @@ function BlockFrameComponent({
 
   if (!showSampleData && blockSourceId && sources.find(s => s.id === blockSourceId)?.type === "report" && !localDatasets.has(blockSourceId)) {
     originState = "preview";
-    originLabel = previewState?.status === "loading" ? "Prévia · carregando…" : "Prévia · indisponível";
+    originLabel = previewState?.status === "loading" ? "Prévia · carregando…" : previewState?.status === "idle" && previewState.fields?.length ? "Prévia · parâmetros" : "Prévia · indisponível";
     canLoadPreview = false;
   }
 
+  const waitingForPreview = !showSampleData && blockSourceId && sources.find(s => s.id === blockSourceId)?.type === "report" && !previewState && !localDatasets.has(blockSourceId);
   const blockDisplayName = block.title || BLOCK_LABELS[block.type];
   const pageLabel = pageName || `página ${pageIndex + 1}`;
   const ariaLabel = `${BLOCK_LABELS[block.type]}, ${blockDisplayName}, ${pageLabel}`;
@@ -196,7 +198,7 @@ function BlockFrameComponent({
       {/* Origin Chip (Top-Left) */}
       <div
         className={`cv-origin-chip is-${originState}`}
-        title={lineage || (hasMissingSource ? "Nenhuma fonte associada ao bloco" : undefined)}
+        title={previewState?.data?.truncated && !showSampleData ? `${lineage || "Prévia"} · amostra limitada a ${previewState.data.rows.length} de ${previewState.data.total_rows} linhas` : lineage || (hasMissingSource ? "Nenhuma fonte associada ao bloco" : undefined)}
       >
         <span>{originLabel}</span>
         {canLoadPreview && blockSourceId && onLoadSourcePreview && (
@@ -245,11 +247,16 @@ function BlockFrameComponent({
         </span>
       )}
 
-      {!showSampleData && previewState && previewState.status !== "ready" ? (
+      {waitingForPreview ? (
+        <div className="cv-block-inner"><div className="cv-block-problem-inline" role="status">Carregando prévia…</div></div>
+      ) : !showSampleData && previewState && previewState.status !== "ready" ? (
         <div className="cv-block-inner"><div className="cv-block-problem-inline" role="status">
           <p>{previewState.status === "loading" ? "Carregando prévia…" : previewState.error}</p>
-          {previewState.status !== "loading" && blockSourceId && <button type="button" className="cv-btn-compact" onClick={() => onLoadSourcePreview?.(blockSourceId!)}>Tentar de novo</button>}
+          {previewState.status !== "loading" && !!previewState.fields?.length && blockSourceId && <PreviewParameters key={JSON.stringify(previewState.values)} fields={previewState.fields} values={previewState.values || {}} onSubmit={parameters => onLoadSourcePreview?.(blockSourceId!, parameters)} />}
+          {previewState.status !== "loading" && !previewState.fields?.length && blockSourceId && <button type="button" className="cv-btn-compact" onClick={() => onLoadSourcePreview?.(blockSourceId!)}>Tentar de novo</button>}
         </div></div>
+      ) : !showSampleData && block.type !== "text" && block.type !== "image" && blockSourceId && localDatasets.has(blockSourceId) && !localDatasets.get(blockSourceId)?.rows.length ? (
+        <div className="cv-block-inner"><div className="cv-block-problem-inline" role="status"><p>A fonte não retornou linhas para estes parâmetros</p>{onLoadSourcePreview && sources.find(s => s.id === blockSourceId)?.type === "report" && <PreviewParameters fields={previewState?.fields || []} values={previewState?.values || {}} onSubmit={parameters => onLoadSourcePreview(blockSourceId!, parameters)} />}</div></div>
       ) : <>
       {/* Block Preview Content or Inline Problem Message */}
       {problem && problem.severity === "error" && hasMissingSource ? (
